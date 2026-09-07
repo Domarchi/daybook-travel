@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   Download,
+  FileSpreadsheet,
   LogOut,
   Moon,
   Plane,
@@ -21,11 +22,14 @@ import {
   X,
 } from "lucide-react";
 import YearView from "./year-view";
+import ExcelSyncPanel from "./excel-sync-panel";
 import { db } from "../lib/supabase";
 import { addDays, pulseDates } from "../lib/calendar";
 
 type Person = {
   id: string;
+  version?: number | null;
+  employee_code?: string | null;
   name: string;
   origin: string;
   destination: string;
@@ -34,12 +38,15 @@ type Person = {
   end_date: string | null;
   baggage: string;
   active: boolean;
+  updated_at?: string;
 };
 
 type Trip = {
   id: string;
+  version?: number | null;
   person_id: string;
   date: string;
+  planned_date?: string | null;
   direction: string;
   origin: string;
   destination: string;
@@ -62,7 +69,7 @@ type HistoryItem = {
 };
 
 type AccessStatus = "checking" | "allowed" | "denied" | "error";
-type ModalName = "person" | "trip" | "generate" | "history" | null;
+type ModalName = "person" | "trip" | "generate" | "history" | "excel" | null;
 
 const statuses = [
   "Planificado",
@@ -362,7 +369,10 @@ export default function App() {
         (peopleFilter === "Activas" && person.active) ||
         (peopleFilter === "Inactivas" && !person.active) ||
         (peopleFilter === "4×3" && person.active && person.shift === "4×3") ||
-        (peopleFilter === "10×10" && person.active && person.shift === "10×10");
+        (peopleFilter === "10×10" && person.active && person.shift === "10×10") ||
+        (peopleFilter === "Por confirmar" &&
+          person.active &&
+          person.shift === "Por confirmar");
       return matchesText && matchesFilter;
     });
   }, [people, peopleFilter, query]);
@@ -1110,7 +1120,11 @@ export default function App() {
               Personas, turnos y pasajes organizados en una sola agenda para
               Copiapó.
             </p>
-            <div className="entry-route" aria-label="Rutas habituales">
+            <div
+              className="entry-route"
+              role="group"
+              aria-label="Rutas habituales"
+            >
               <span>Santiago</span>
               <ArrowUpRight size={17} />
               <strong>Copiapó</strong>
@@ -1360,8 +1374,14 @@ export default function App() {
                       />
                     </label>
                     <div className="filter-pills" aria-label="Filtrar personas">
-                      {["Activas", "4×3", "10×10", "Inactivas", "Todas"].map(
-                        (option) => (
+                      {[
+                        "Activas",
+                        "4×3",
+                        "10×10",
+                        "Por confirmar",
+                        "Inactivas",
+                        "Todas",
+                      ].map((option) => (
                           <button
                             type="button"
                             key={option}
@@ -1371,12 +1391,21 @@ export default function App() {
                           >
                             {option}
                           </button>
-                        ),
-                      )}
+                        ))}
                     </div>
                     <button type="button" onClick={() => openGenerate()}>
                       <CalendarDays size={18} />
                       Planificar 4×3
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearMessages();
+                        setModal("excel");
+                      }}
+                    >
+                      <FileSpreadsheet size={18} />
+                      Gestionar con Excel
                     </button>
                   </div>
                   <div
@@ -1432,7 +1461,13 @@ export default function App() {
                           </div>
                           <div className="person-shift">
                             <span
-                              className={`shift-badge ${person.shift === "4×3" ? "four" : "ten"}`}
+                              className={`shift-badge ${
+                                person.shift === "4×3"
+                                  ? "four"
+                                  : person.shift === "10×10"
+                                    ? "ten"
+                                    : "pending"
+                              }`}
                             >
                               Turno {person.shift}
                             </span>
@@ -1812,50 +1847,56 @@ export default function App() {
           }}
         >
           <section
-            className="dialog"
+            className={modal === "excel" ? "dialog excel-dialog" : "dialog"}
             role="dialog"
             aria-modal="true"
             aria-labelledby="dialog-title"
             aria-describedby="dialog-description"
           >
-            <header className="dialog-head">
+            <div className="dialog-head">
               <div>
                 <span className="section-kicker">
-                  {modal === "person"
-                    ? "DIRECTORIO"
-                    : modal === "generate"
-                      ? "PLANIFICACIÓN 4×3"
-                      : modal === "history"
-                        ? "TRAZABILIDAD"
-                        : "REGISTRO DE VIAJE"}
+                  {modal === "excel"
+                    ? "CONTROL DE DATOS"
+                    : modal === "person"
+                      ? "DIRECTORIO"
+                      : modal === "generate"
+                        ? "PLANIFICACIÓN 4×3"
+                        : modal === "history"
+                          ? "TRAZABILIDAD"
+                          : "REGISTRO DE VIAJE"}
                 </span>
                 <h2 id="dialog-title">
-                  {modal === "person"
-                    ? editPerson
-                      ? "Editar persona"
-                      : pendingTripDate
-                        ? "Primero, agrega una persona"
-                        : "Nueva persona"
-                    : modal === "trip"
-                      ? editTrip
-                        ? "Editar viaje"
-                        : "Nuevo viaje"
-                      : modal === "generate"
-                        ? "Crear calendario 4×3"
-                        : "Historial del viaje"}
+                  {modal === "excel"
+                    ? "Gestionar con Excel"
+                    : modal === "person"
+                      ? editPerson
+                        ? "Editar persona"
+                        : pendingTripDate
+                          ? "Primero, agrega una persona"
+                          : "Nueva persona"
+                      : modal === "trip"
+                        ? editTrip
+                          ? "Editar viaje"
+                          : "Nuevo viaje"
+                        : modal === "generate"
+                          ? "Crear calendario 4×3"
+                          : "Historial del viaje"}
                 </h2>
                 <p id="dialog-description">
-                  {modal === "person"
-                    ? pendingTripDate
-                      ? `Al guardarla, continuaremos con el viaje del ${formatDate(pendingTripDate)}.`
-                      : "Define su ruta habitual, turno y vigencia."
-                    : modal === "trip"
-                      ? "Registra el movimiento y completa la reserva cuando corresponda."
-                      : modal === "generate"
-                        ? "Crea subidas los lunes y bajadas los jueves sin duplicar viajes."
-                        : editTrip
-                          ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
-                          : "Cambios registrados en este viaje."}
+                  {modal === "excel"
+                    ? "Descarga, revisa y aplica cambios sin reemplazar información a ciegas."
+                    : modal === "person"
+                      ? pendingTripDate
+                        ? `Al guardarla, continuaremos con el viaje del ${formatDate(pendingTripDate)}.`
+                        : "Define su ruta habitual, turno y vigencia."
+                      : modal === "trip"
+                        ? "Registra el movimiento y completa la reserva cuando corresponda."
+                        : modal === "generate"
+                          ? "Crea subidas los lunes y bajadas los jueves sin duplicar viajes."
+                          : editTrip
+                            ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
+                            : "Cambios registrados en este viaje."}
                 </p>
               </div>
               <button
@@ -1867,7 +1908,7 @@ export default function App() {
               >
                 <X size={20} />
               </button>
-            </header>
+            </div>
 
             {formError && (
               <p
@@ -1877,6 +1918,23 @@ export default function App() {
               >
                 {formError}
               </p>
+            )}
+
+            {modal === "excel" && (
+              <ExcelSyncPanel
+                people={people}
+                trips={trips}
+                demo={demo}
+                onClose={closeModal}
+                onBusyChange={(nextBusy) => {
+                  setBusy(nextBusy);
+                  busyRef.current = nextBusy;
+                }}
+                onApplied={async (message) => {
+                  if (!demo) await reload();
+                  setNotice(message);
+                }}
+              />
             )}
 
             {modal === "person" && (
@@ -1928,8 +1986,9 @@ export default function App() {
                         Turno
                         <select
                           name="shift"
-                          defaultValue={editPerson?.shift ?? "4×3"}
+                          defaultValue={editPerson?.shift ?? "Por confirmar"}
                         >
+                          <option>Por confirmar</option>
                           <option>4×3</option>
                           <option>10×10</option>
                         </select>
@@ -1981,7 +2040,8 @@ export default function App() {
                     </label>
                     <p className="hint">
                       Para 4×3, el inicio debe ser lunes. Las fechas 10×10 se
-                      registran manualmente.
+                      registran manualmente. Si aún no conoces el turno, déjalo
+                      por confirmar y podrás completar sus viajes uno a uno.
                     </p>
                   </section>
                 </div>

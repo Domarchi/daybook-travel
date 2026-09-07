@@ -524,6 +524,11 @@ small {
   background: var(--ten);
 }
 
+.shift-dot.pending {
+  border: 1px solid var(--border-strong);
+  background: var(--muted);
+}
+
 .calendar-section {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -794,6 +799,13 @@ small {
   border-color: var(--ten-border);
   background: var(--ten-soft);
   color: var(--ten);
+}
+
+.shift-tag.pending,
+.shift-badge.pending {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+  color: var(--text-soft);
 }
 
 .calendar-summary {
@@ -1788,6 +1800,443 @@ td > strong {
   white-space: pre-wrap;
 }
 
+/* Excel is an occasional, review-first workflow inside Personas. */
+.excel-dialog {
+  width: min(920px, 100%);
+}
+
+.excel-sync {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+.excel-steps {
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(14px);
+  list-style: none;
+}
+
+.excel-steps li {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.excel-steps li span {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.excel-steps li.current {
+  color: var(--text);
+}
+
+.excel-steps li.current span {
+  border-color: var(--text-soft);
+  background: var(--text);
+  color: var(--surface);
+}
+
+.excel-steps li.complete span {
+  border-color: color-mix(in srgb, var(--success) 48%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.excel-start,
+.excel-preview {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.excel-downloads {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
+.excel-downloads h3,
+.excel-reading h3,
+.excel-complete h3 {
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+
+.excel-downloads p {
+  max-width: 530px;
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.excel-download-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.excel-dropzone {
+  position: relative;
+  min-height: 184px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 28px;
+  overflow: hidden;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 140ms var(--ease-out),
+    background-color 140ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+.excel-dropzone:active {
+  transform: scale(0.99);
+}
+
+.excel-dropzone:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.excel-dropzone input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.excel-upload-icon,
+.excel-file-icon,
+.excel-complete-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-soft);
+}
+
+.excel-upload-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: 13px;
+}
+
+.excel-safety-note,
+.excel-demo-note,
+.excel-inline-message {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.excel-safety-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+}
+
+.excel-safety-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--success);
+}
+
+.excel-safety-note span {
+  display: grid;
+  gap: 2px;
+}
+
+.excel-inline-message,
+.excel-demo-note {
+  padding: 11px 13px;
+}
+
+.excel-reading {
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.excel-reading svg {
+  margin-bottom: 5px;
+  color: var(--muted);
+}
+
+.excel-file-head {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+
+.excel-file-head > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.excel-file-head > span:nth-child(2) strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.excel-file-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.excel-counts,
+.excel-result-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.excel-counts {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.excel-counts > span,
+.excel-result-grid > span {
+  min-height: 76px;
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.excel-counts strong,
+.excel-result-grid strong {
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.excel-counts .new.has-items,
+.excel-action.new {
+  border-color: color-mix(in srgb, var(--success) 38%, var(--border));
+  background: color-mix(in srgb, var(--success) 9%, var(--surface));
+  color: var(--success);
+}
+
+.excel-counts .change.has-items,
+.excel-action.change {
+  border-color: color-mix(in srgb, var(--warning) 38%, var(--border));
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  color: var(--warning);
+}
+
+.excel-counts .conflict.has-items,
+.excel-counts .error.has-items,
+.excel-action.conflict {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 9%, var(--surface));
+  color: var(--danger);
+}
+
+.excel-counts .has-items strong,
+.excel-action.new,
+.excel-action.change,
+.excel-action.conflict {
+  color: inherit;
+}
+
+.excel-issues {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--danger) 38%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+}
+
+.excel-issues-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--danger) 24%, var(--border));
+}
+
+.excel-issues-head svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--danger);
+}
+
+.excel-issues-head span {
+  display: grid;
+  gap: 2px;
+}
+
+.excel-issues ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.excel-issues li {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.excel-issues li:last-child {
+  border-bottom: 0;
+}
+
+.excel-issues > small {
+  display: block;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.excel-preview-table {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.excel-preview-table table {
+  min-width: 620px;
+}
+
+.excel-preview-table th:last-child,
+.excel-preview-table td:last-child {
+  width: 140px;
+}
+
+.excel-action {
+  min-height: 27px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.excel-more-rows {
+  padding: 11px 13px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.excel-panel-actions {
+  position: sticky;
+  z-index: 4;
+  bottom: -24px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 2px -24px -24px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.excel-complete {
+  min-height: 440px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.excel-complete-icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-color: color-mix(in srgb, var(--success) 38%, var(--border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+  color: var(--success);
+}
+
+.excel-result-grid {
+  width: min(360px, 100%);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.excel-complete-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 @keyframes overlay-in {
   from {
     opacity: 0;
@@ -2254,6 +2703,101 @@ td > strong {
     width: 100%;
   }
 
+  .excel-steps {
+    padding-inline: 16px;
+  }
+
+  .excel-start,
+  .excel-preview {
+    gap: 14px;
+    padding: 18px 16px;
+  }
+
+  .excel-downloads {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .excel-download-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .excel-dropzone {
+    min-height: 156px;
+    padding: 22px 16px;
+  }
+
+  .excel-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .excel-counts > span {
+    min-height: 68px;
+  }
+
+  .excel-issues li {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .excel-preview-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .excel-preview-table table {
+    min-width: 0;
+  }
+
+  .excel-preview-table tbody tr {
+    grid-template-columns: 1fr;
+  }
+
+  .excel-preview-table tbody td,
+  .excel-preview-table tbody td:nth-child(2),
+  .excel-preview-table tbody td:last-child {
+    width: 100%;
+    min-height: 50px;
+    grid-column: 1;
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+  }
+
+  .excel-preview-table tbody td::before,
+  .excel-preview-table tbody td:nth-child(2)::before {
+    display: block;
+  }
+
+  .excel-preview-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  .excel-more-rows {
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+
+  .excel-panel-actions {
+    bottom: -18px;
+    margin: 2px -16px -18px;
+    padding: 10px 16px;
+  }
+
+  .excel-panel-actions button {
+    flex: 1;
+  }
+
+  .excel-complete {
+    padding-inline: 18px;
+  }
+
   .dialog-head {
     padding: 18px 16px 15px;
   }
@@ -2315,6 +2859,45 @@ td > strong {
   .theme-toggle {
     width: 44px;
     padding: 0;
+  }
+
+  .excel-steps {
+    gap: 3px;
+    padding-inline: 12px;
+  }
+
+  .excel-steps li {
+    gap: 5px;
+    font-size: 10px;
+  }
+
+  .excel-steps li span {
+    width: 22px;
+    height: 22px;
+  }
+
+  .excel-download-actions,
+  .excel-counts,
+  .excel-complete-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .excel-download-actions,
+  .excel-complete-actions {
+    display: grid;
+    width: 100%;
+  }
+
+  .excel-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .excel-file-head {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .excel-file-head > button {
+    grid-column: 1 / -1;
   }
 
   .calendar-day {

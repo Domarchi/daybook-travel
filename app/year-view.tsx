@@ -47,7 +47,7 @@ type CalendarProps = {
 };
 
 const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-const shifts = ["Todos", "4×3", "10×10"];
+const shifts = ["Todos", "4×3", "10×10", "Por confirmar"];
 
 const localToday = () =>
   new Intl.DateTimeFormat("en-CA", {
@@ -279,6 +279,9 @@ export default function YearView({
       tenByTen: dayTrips.filter(
         (trip) => members.get(trip.person_id)?.shift === "10×10",
       ).length,
+      pending: dayTrips.filter(
+        (trip) => members.get(trip.person_id)?.shift === "Por confirmar",
+      ).length,
     };
   }
 
@@ -291,6 +294,7 @@ export default function YearView({
     const shiftDescription = [
       counts.fourByThree ? `${counts.fourByThree} de turno 4 por 3` : "",
       counts.tenByTen ? `${counts.tenByTen} de turno 10 por 10` : "",
+      counts.pending ? `${counts.pending} con turno por confirmar` : "",
     ]
       .filter(Boolean)
       .join(", ");
@@ -314,6 +318,7 @@ export default function YearView({
           counts.total ? "has-trips" : "",
           counts.fourByThree ? "has-four" : "",
           counts.tenByTen ? "has-ten" : "",
+          counts.pending ? "has-pending" : "",
           weekday === 0 || weekday === 6 ? "weekend" : "",
           isToday ? "current-day" : "",
           isSelected ? "selected-day" : "",
@@ -348,6 +353,11 @@ export default function YearView({
             {counts.tenByTen ? (
               <span className="shift-tag ten">
                 10×10 <b>{counts.tenByTen}</b>
+              </span>
+            ) : null}
+            {counts.pending ? (
+              <span className="shift-tag pending">
+                Pendiente <b>{counts.pending}</b>
               </span>
             ) : null}
           </span>
@@ -425,6 +435,9 @@ export default function YearView({
         </span>
         <span>
           <i className="shift-dot ten" /> 10×10
+        </span>
+        <span>
+          <i className="shift-dot pending" /> Por confirmar
         </span>
         <span>
           <CalendarDays size={14} /> El número indica la cantidad de viajes
