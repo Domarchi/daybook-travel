@@ -1,64 +1,2570 @@
-'use client';
-import {useEffect,useState,FormEvent} from 'react';
-import {Plane,Users,CalendarDays,ArrowUpRight,ArrowDownLeft,Plus,LogOut,Search,Download,Check,Clock,LayoutDashboard,X,Sun,Moon} from 'lucide-react';
-import YearView from "./year-view";
-import {db} from '../lib/supabase';
-import {addDays,pulseDates} from '../lib/calendar';
-type Person={id:string;name:string;origin:string;destination:string;shift:string;start_date:string;end_date:string|null;baggage:string;active:boolean};
-type Trip={id:string;person_id:string;date:string;direction:string;origin:string;destination:string;requested_time:string|null;baggage:string;status:string;pnr:string;flight:string;amount:number|null;notes:string;updated_at?:string};
-const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago'}).format(new Date());
-const fmt=(d:string)=>new Intl.DateTimeFormat('es-CL',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(d+'T12:00:00Z'));
-const statuses=['Planificado','Solicitado','Emitido','Volado','Anulado','No presentado'];
-const baggage=['Por confirmar','Mochila','Maleta de cabina','Maleta en bodega'];
-const demoPeople:Person[]=[{id:'p1',name:'Persona de ejemplo 1',origin:'Santiago',destination:'Copiapó',shift:'4×3',start_date:'2026-09-07',end_date:null,baggage:'Mochila',active:true},{id:'p2',name:'Persona de ejemplo 2',origin:'Concepción',destination:'Copiapó',shift:'10×10',start_date:'2026-09-08',end_date:null,baggage:'Maleta en bodega',active:true}];
-function demoTrips():Trip[]{return pulseDates('2026-09-07','2026-09-24').map((d,i)=>({id:'t'+i,person_id:'p1',...d,origin:d.direction==='SUBIDA'?'Santiago':'Copiapó',destination:d.direction==='SUBIDA'?'Copiapó':'Santiago',requested_time:null,baggage:'Mochila',status:i===0?'Solicitado':'Planificado',pnr:'',flight:'',amount:null,notes:''}));}
-export default function App(){
- const [theme,setTheme]=useState('dark');
- useEffect(()=>{try{const saved=localStorage.getItem('fcc-travel-theme');if(saved==='light'||saved==='dark'){setTheme(saved);document.documentElement.dataset.theme=saved}}catch{}},[]);
- function toggleTheme(){const next=theme==='dark'?'light':'dark';setTheme(next);document.documentElement.dataset.theme=next;try{localStorage.setItem('fcc-travel-theme',next)}catch{}}
- const themeButton=<button className="theme-toggle" onClick={toggleTheme} aria-label={theme==='dark'?'Activar modo claro':'Activar modo oscuro'}>{theme==='dark'?<Sun size={17}/>:<Moon size={17}/>}<span>{theme==='dark'?'Claro':'Oscuro'}</span></button>;
- const [ready,setReady]=useState(false),[email,setEmail]=useState<string|null>(null),[demo,setDemo]=useState(false),[allowed,setAllowed]=useState(false);
- const [people,setPeople]=useState<Person[]>([]),[trips,setTrips]=useState<Trip[]>([]),[view,setView]=useState('Agenda'),[query,setQuery]=useState(''),[filter,setFilter]=useState('Todos'),[date,setDate]=useState('');
- const [modal,setModal]=useState<'person'|'trip'|'generate'|'history'|null>(null),[editPerson,setEditPerson]=useState<Person|null>(null),[editTrip,setEditTrip]=useState<Trip|null>(null),[history,setHistory]=useState<{id:number;action:string;created_at:string;actor:string;after_data:Record<string,unknown>}[]>([]);
- const [selectedDay,setSelectedDay]=useState<string|null>(null),[newDate,setNewDate]=useState(''),[newPerson,setNewPerson]=useState(''),[personFilter,setPersonFilter]=useState(''),[onlyUpcoming,setOnlyUpcoming]=useState(false);
- const [agendaMode,setAgendaMode]=useState("Año");
- const [week,setWeek]=useState(()=>{const d=today();return addDays(d,-((new Date(d+'T12:00Z').getUTCDay()+6)%7))});
- const [notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
- useEffect(()=>{db.auth.getSession().then(({data})=>{setEmail(data.session?.user.email??null);setReady(true)});const {data}=db.auth.onAuthStateChange((_e,s)=>{setEmail(s?.user.email??null);setReady(true)});return()=>data.subscription.unsubscribe()},[]);
- async function allRows(table:string){const rows:any[]=[];for(let offset=0;;offset+=1000){const {data,error}=await db.from(table).select("*").order("id").range(offset,offset+999);if(error)throw error;rows.push(...data);if(data.length<1000)return rows;}}
- async function reload(){setLoading(true);try{const {data:member,error:me}=await db.rpc('is_member');if(me)throw me;setAllowed(!!member);if(!member){setPeople([]);setTrips([]);return;}const [p,t]=await Promise.all([allRows('people'),allRows('trips')]);setPeople(p.sort((a,b)=>a.name.localeCompare(b.name)));setTrips(t.sort((a,b)=>a.date.localeCompare(b.date)));}catch{setNotice('No se pudo cargar la información. Revisa la conexión y la configuración del proyecto.')}finally{setLoading(false)}}
- useEffect(()=>{if(email&&!demo)void reload()},[email,demo]);
- useEffect(()=>{if(!email||demo)return;const timer=setInterval(()=>void reload(),60000);return()=>clearInterval(timer)},[email,demo]);
- async function action(fn:()=>Promise<void>){setBusy(true);setNotice('');try{await fn()}catch(e){setNotice(e instanceof Error?e.message:((e as {message?:string})?.message??'No se pudo guardar. Inténtalo nuevamente.'))}finally{setBusy(false)}}
- async function login(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);await action(async()=>{const {error}=await db.auth.signInWithPassword({email:String(f.get('email')),password:String(f.get('password'))});if(error)throw new Error('No pudimos iniciar sesión. Comprueba tu correo y contraseña.');});}
- const name=(id:string)=>people.find(p=>p.id===id)?.name??'Persona';
- const visible=trips.filter(t=>(!query||[name(t.person_id),t.origin,t.destination,t.pnr].join(' ').toLowerCase().includes(query.toLowerCase()))&&(filter==='Todos'||t.status===filter)&&(view==='Agenda'||!date||t.date===date)&&(!personFilter||t.person_id===personFilter)&&(!onlyUpcoming||t.date>=today()));
- const upcoming=trips.filter(t=>t.date>=today()&&!['Anulado','Volado','No presentado'].includes(t.status));
- const pending=upcoming.filter(t=>t.status==='Planificado');
- function enterDemo(){setWeek('2026-09-07');setView('Agenda');setDemo(true);setAllowed(true);setPeople(demoPeople);setTrips(demoTrips());setNotice('');}
- function openTrip(t:Trip|null,d?:string,personId?:string){setNotice('');setEditTrip(t);setNewDate(d??(view==='Agenda'?selectedDay??today():date));setNewPerson(personId??personFilter);if(!t&&!people.some(p=>p.active)){setModal('person');setEditPerson(null);setNotice('Agrega primero una persona para poder organizar su viaje.');return}setModal('trip')}
- function navigate(label:string){setView(label);setQuery('');setDate('');setFilter('Todos');setPersonFilter('');setOnlyUpcoming(false);setNotice('')}
- function personTrips(id:string){navigate('Viajes');setPersonFilter(id)}
- function focusDay(d:string|null){setSelectedDay(d);if(!d)return;setWeek(addDays(d,-((new Date(d+'T12:00Z').getUTCDay()+6)%7)))}
- function switchMode(mode:string){if(selectedDay)focusDay(selectedDay);setAgendaMode(mode)}
+"use client";
 
- function close(){setModal(null);setEditPerson(null);setEditTrip(null)}
- async function savePerson(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);await action(async()=>{const p={name:String(f.get('name')).trim(),origin:String(f.get('origin')).trim(),destination:String(f.get('destination')).trim(),shift:String(f.get('shift')),start_date:String(f.get('start_date')),end_date:String(f.get('end_date'))||null,baggage:String(f.get('baggage')),active:f.get('active')==='on'};if(p.end_date&&p.end_date<p.start_date)throw new Error('El término debe ser posterior al inicio.');if(p.shift==='4×3'&&new Date(p.start_date+'T12:00:00Z').getUTCDay()!==1)throw new Error('En 4×3, selecciona un lunes como primera subida.');if(demo){setPeople(old=>editPerson?old.map(x=>x.id===editPerson.id?{...p,id:x.id}:x):[...old,{...p,id:crypto.randomUUID()}]);}else{const {error}=await(editPerson?db.from('people').update(p).eq('id',editPerson.id):db.from('people').insert(p));if(error)throw error;await reload();}close();setNotice('Persona guardada. Los viajes existentes conservan sus fechas; revisa los pendientes si cambiaste su turno o vigencia.');});}
- async function saveTrip(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);await action(async()=>{const person=people.find(p=>p.id===f.get('person_id'));if(!person)throw new Error('Selecciona una persona.');const direction=String(f.get('direction'));const t={person_id:person.id,date:String(f.get('date')),direction,origin:String(f.get('origin')).trim()||(direction==='SUBIDA'?person.origin:person.destination),destination:String(f.get('destination')).trim()||(direction==='SUBIDA'?person.destination:person.origin),requested_time:String(f.get('requested_time'))||null,baggage:String(f.get('baggage')),status:String(f.get('status')),pnr:String(f.get('pnr')).trim(),flight:String(f.get('flight')).trim(),amount:f.get('amount')===''?null:Number(f.get('amount')),notes:String(f.get('notes')).trim(),updated_at:new Date().toISOString()};if((!editTrip||editTrip.date!==t.date)&&(t.date<person.start_date||(person.end_date&&t.date>person.end_date)||!person.active))throw new Error('El viaje debe estar dentro de la vigencia de una persona activa.');if(['Emitido','Volado','No presentado'].includes(t.status)&&!t.pnr)throw new Error('Registra el código de reserva.');if(editTrip&&!t.notes)throw new Error('Escribe el motivo del cambio.');if(trips.some(x=>x.id!==editTrip?.id&&x.person_id===t.person_id&&x.date===t.date&&x.direction===t.direction))throw new Error('Ya existe ese viaje para la persona.');if(demo)setTrips(old=>editTrip?old.map(x=>x.id===editTrip.id?{...t,id:x.id}:x):[...old,{...t,id:crypto.randomUUID()}]);else{let result;if(editTrip){result=await db.from('trips').update(t).eq('id',editTrip.id).eq('updated_at',editTrip.updated_at!).select('id');if(!result.error&&!result.data?.length)throw new Error('Otra persona modificó este viaje. Actualiza la vista antes de editar.');}else result=await db.from('trips').insert(t);if(result.error)throw result.error;await reload();}close();if(view==='Agenda')focusDay(t.date);setNotice('Viaje guardado.');});}
- async function generate(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);await action(async()=>{const p=people.find(x=>x.id===f.get('person_id'));if(!p)throw new Error('Selecciona una persona.');let count=0;const until=String(f.get('until'));if(demo){const rows=pulseDates(p.start_date,p.end_date&&p.end_date<until?p.end_date:until).filter(d=>!trips.some(t=>t.person_id===p.id&&t.date===d.date&&t.direction===d.direction)).map(d=>({id:crypto.randomUUID(),person_id:p.id,...d,origin:d.direction==='SUBIDA'?p.origin:p.destination,destination:d.direction==='SUBIDA'?p.destination:p.origin,requested_time:null,baggage:p.baggage,status:'Planificado',pnr:'',flight:'',amount:null,notes:''}));count=rows.length;setTrips(old=>[...old,...rows].sort((a,b)=>a.date.localeCompare(b.date)));}else{const {data,error}=await db.rpc('generate_pulse',{p_id:p.id,p_until:until});if(error)throw error;count=data;await reload();}close();setNotice(`${count} viajes nuevos generados. Los viajes existentes se conservaron.`);});}
- function exportCsv(){const rows=visible.filter(t=>t.status==='Planificado'&&t.date>=today());if(!rows.length){setNotice('No hay viajes futuros por solicitar con estos filtros.');return}const cell=(v:unknown)=>'"'+String(v??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"';const csv='\uFEFF'+[['Persona','Fecha','Sentido','Origen','Destino','Hora requerida','Equipaje','Estado','Reserva','Vuelo','Monto CLP'],...rows.map(t=>[name(t.person_id),t.date,t.direction,t.origin,t.destination,t.requested_time,t.baggage,t.status,t.pnr,t.flight,t.amount])].map(r=>r.map(cell).join(';')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='fcc-travel-solicitud.csv';a.click();URL.revokeObjectURL(url);setNotice('Lista descargada con viajes futuros por solicitar. No se incluyeron reservas emitidas ni solicitudes ya enviadas. Revisa la lista antes de enviarla a la agencia.');}
- async function showHistory(t:Trip){setNotice('');setEditTrip(t);setModal('history');setHistory([]);if(demo)return;const {data,error}=await db.from('history').select('*').eq('record_id',t.id).order('created_at',{ascending:false});if(error)setNotice('No se pudo cargar el historial.');else setHistory(data??[]);}
- useEffect(()=>{if(!modal)return;const previous=document.activeElement as HTMLElement;const before=document.body.style.overflow;document.body.style.overflow='hidden';const frame=requestAnimationFrame(()=>document.querySelector<HTMLElement>('.dialog input:not([disabled]):not([type=hidden]),.dialog select:not([disabled]),.dialog button')?.focus());function keydown(e:KeyboardEvent){if(e.key==='Escape'&&!busy){setModal(null);setEditPerson(null);setEditTrip(null)}if(e.key==='Tab'){const items=Array.from(document.querySelectorAll<HTMLElement>('.dialog button:not([disabled]),.dialog input:not([disabled]):not([type=hidden]),.dialog select:not([disabled]),.dialog textarea:not([disabled])'));const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}}document.addEventListener('keydown',keydown);return()=>{cancelAnimationFrame(frame);document.body.style.overflow=before;document.removeEventListener('keydown',keydown);previous?.focus()}},[modal,busy]);
- const days=Array.from({length:7},(_,i)=>addDays(week,i));
- const weekTrips=visible.filter(t=>t.date>=week&&t.date<=days[6]);
- if(!ready)return <main className="login"><p>Cargando FCC TRAVEL…</p></main>;
- if(!email&&!demo)return <main className="entry"><div className="entry-top"><span className="brand">FCC TRAVEL<span className="brand-mark">↗</span></span><div className="entry-tools"><span>FCC / COPIAPÓ</span>{themeButton}</div></div><section className="entry-center"><div className="entry-heading"><p className="eyebrow">COORDINACIÓN DE VIAJES</p><h1>El próximo<br/>viaje empieza<br/><em>aquí.</em></h1><div className="entry-route"><span>Santiago</span><span>→</span><strong>Copiapó</strong><span>←</span><span>Concepción</span></div></div><div className="entry-form"><span className="step-label">ACCESO AL EQUIPO</span><h2>Entra a tu agenda.</h2><form onSubmit={login}><label>Correo de acceso<input name="email" type="email" autoComplete="username" required placeholder="nombre@empresa.cl"/></label><label>Contraseña<input name="password" type="password" autoComplete="current-password" required minLength={6}/></label><button disabled={busy} className="primary">{busy?'Ingresando…':'Entrar a FCC TRAVEL'} <ArrowUpRight size={18}/></button></form>{notice&&<p role="alert" className="message">{notice}</p>}<div className="try-demo"><span>Conoce el espacio antes de entrar</span><button onClick={enterDemo}>Abrir demostración <ArrowUpRight size={18}/></button></div><small>Tu correo debe estar habilitado por el responsable de la aplicación.</small></div></section><footer><span>Personas que llegan. Equipos que continúan.</span><span>FCC · Gestión de obra</span></footer></main>;
- return <div className="shell"><header className="topbar"><div className="brand">FCC TRAVEL<span className="brand-mark">↗</span></div><span className="worksite">FCC <span>/</span> Copiapó</span><nav aria-label="Navegación principal">{['Agenda','Personas','Viajes'].map(label=><button key={label} className={view===label?'selected':''} onClick={()=>{navigate(label)}}>{label}</button>)}</nav><div className="account">{themeButton}<span>{demo?'Demostración':email}</span><button aria-label="Cerrar sesión" onClick={async()=>{if(!demo)await db.auth.signOut();setDemo(false);setAllowed(false);setPeople([]);setTrips([])}}><LogOut size={18}/></button></div></header><main className="workspace">{demo&&<div className="demo"><span className="demo-dot"/>Estás explorando una demostración. Los datos son ficticios y los cambios no se guardan.</div>}{notice&&<div className="message" role="status">{notice}<button aria-label="Cerrar aviso" onClick={()=>setNotice('')}><X size={16}/></button></div>}{!allowed&&!demo?<section className="empty"><Users/><h2>{loading?'Comprobando acceso…':'Tu cuenta todavía no tiene acceso'}</h2><p>Solicita que el responsable de FCC TRAVEL habilite tu correo.</p><button onClick={reload}>Volver a comprobar</button></section>:<><div className="page-head"><div><p className="eyebrow">{view==='Agenda'?'EL MOVIMIENTO DE TU EQUIPO':view==='Personas'?'DIRECTORIO DE OBRA':'REGISTRO DE MOVIMIENTOS'}</p><h1>{view==='Agenda'?'Agenda de viajes':view==='Personas'?'Las personas primero.':'Cada viaje, en detalle.'}</h1></div><button className="primary" onClick={()=>{if(view==='Personas'){setNotice('');setEditPerson(null);setModal('person')}else openTrip(null)}}><Plus size={18}/>{view==='Personas'?'Nueva persona':'Nuevo viaje'}</button></div>
- {view==='Agenda'?<><section className="agenda-guide"><p>Ve cuándo viaja tu equipo, revisa cada pasajero y prepara los pasajes pendientes.</p><div><button onClick={()=>navigate('Personas')}><Users size={17}/>Organizar personas</button><button onClick={()=>{navigate('Personas');if(people.some(p=>p.active&&p.shift==='4×3')){setNotice('');setModal('generate')}else setNotice('Agrega una persona activa con turno 4×3 antes de generar sus viajes.')}}><CalendarDays size={17}/>Planificar 4×3</button><button onClick={()=>{navigate('Viajes');setOnlyUpcoming(true);setFilter('Planificado')}}><Plane size={17}/>Preparar solicitudes <span>{pending.length}</span></button></div></section><YearView selected={selectedDay} onSelect={focusDay} mode="Mes" week={week} onChangeWeek={setWeek} trips={trips} people={people} onWeek={focusDay} onTrip={id=>openTrip(trips.find(t=>t.id===id)??null)} onAdd={d=>openTrip(null,d)}/><section className="attention"><div><p className="eyebrow">ANTES DEL PRÓXIMO VIAJE</p><h2>Por resolver</h2></div><button onClick={()=>{navigate('Viajes');setOnlyUpcoming(true);setFilter('Planificado')}}><span className="attention-number">{pending.length}</span><span>Viajes por solicitar<small>Revisar fechas y preparar la lista</small></span><ArrowUpRight size={20}/></button><button onClick={()=>{navigate('Viajes');setOnlyUpcoming(true);setFilter('Solicitado')}}><span className="attention-number">{upcoming.filter(t=>t.status==='Solicitado').length}</span><span>Respuestas de la agencia<small>Solicitudes que esperan confirmación</small></span><ArrowUpRight size={20}/></button><div className="turn-note"><strong>Turnos 10×10</strong><p>Las fechas se confirman manualmente hasta definir el desfase.</p></div></section></>:view==='Personas'?<><div className="toolbar"><label className="search"><Search size={18}/><input aria-label="Buscar personas" placeholder="Buscar por nombre o ciudad…" value={query} onChange={e=>setQuery(e.target.value)}/></label><span className="count-label">{people.filter(p=>p.active).length} personas activas</span><button onClick={()=>{setNotice('');setModal('generate')}}><CalendarDays size={18}/>Planificar turnos 4×3</button></div><div className="people-list">{people.filter(p=>(p.name+' '+p.origin).toLowerCase().includes(query.toLowerCase())).map((p,i)=><article className="person-row" key={p.id}><span className="person-index">{String(i+1).padStart(2,'0')}</span><div className="person-name"><h2>{p.name}</h2><span>{p.active?'Activo':'Inactivo'} · {p.baggage}</span></div><div className="person-route">{p.origin}<span>→</span>{p.destination}</div><div className="person-shift"><strong>{p.shift}</strong><small>Desde {fmt(p.start_date)}</small></div><div className="person-actions"><button onClick={()=>personTrips(p.id)}>Ver viajes</button><button aria-label={'Editar '+p.name} onClick={()=>{setNotice('');setEditPerson(p);setModal('person')}}>Editar <ArrowUpRight size={17}/></button></div></article>)}</div>{!people.length&&<div className="empty"><Users/><h3>Agrega a la primera persona</h3><p>Su origen, turno y fecha de inicio serán el punto de partida.</p><button onClick={()=>setModal('person')}>Nueva persona</button></div>}</>:<><div className="toolbar"><label className="search"><Search size={18}/><input aria-label="Buscar viajes" placeholder="Buscar persona, ruta o reserva…" value={query} onChange={e=>setQuery(e.target.value)}/></label><select aria-label="Filtrar estado" value={filter} onChange={e=>setFilter(e.target.value)}><option>Todos</option>{statuses.map(st=><option key={st}>{st}</option>)}</select><input aria-label="Filtrar fecha" type="date" value={date} onChange={e=>setDate(e.target.value)}/>{date&&<button onClick={()=>setDate('')}>Todas las fechas</button>}<button onClick={exportCsv}><Download size={17}/>Lista para solicitar</button>{!demo&&<button onClick={reload} disabled={loading}>Actualizar</button>}</div><div className="filter-context"><span>{visible.length} {visible.length===1?'viaje':'viajes'}{personFilter?' de '+name(personFilter):''}{onlyUpcoming?' · desde hoy':''}{date?' · '+fmt(date):''}{filter!=='Todos'?' · '+filter:''}</span>{(query||date||filter!=='Todos'||personFilter||onlyUpcoming)&&<button onClick={()=>{setQuery('');setDate('');setFilter('Todos');setPersonFilter('');setOnlyUpcoming(false)}}>Quitar filtros</button>}</div><div className="table-wrap"><table><thead><tr><th>Persona / ruta</th><th>Fecha</th><th>Movimiento</th><th>Hora requerida</th><th>Estado</th><th>Reserva</th><th/></tr></thead><tbody>{visible.map(t=><tr key={t.id}><td><strong>{name(t.person_id)}</strong><small>{t.origin} → {t.destination}</small></td><td>{fmt(t.date)}</td><td><span className={'direction '+t.direction}>{t.direction==='SUBIDA'?<ArrowUpRight size={16}/>:<ArrowDownLeft size={16}/>} {t.direction==='SUBIDA'?'Subida':'Bajada'}</span></td><td>{t.requested_time?.slice(0,5)||'Por confirmar'}</td><td><span className={'badge '+t.status.replaceAll(' ','')}>{t.status}</span></td><td>{t.pnr||'—'}</td><td className="row-actions"><button onClick={()=>openTrip(t)}>Abrir <ArrowUpRight size={14}/></button><button aria-label={'Historial de '+name(t.person_id)} onClick={()=>void showHistory(t)}><Clock size={16}/></button></td></tr>)}</tbody></table>{!visible.length&&<div className="empty"><Plane/><h3>No hay viajes en esta vista</h3><p>{people.length?'Agrega un viaje o planifica el calendario 4×3 desde Personas.':'Primero registra a las personas que viajarán.'}</p><button onClick={()=>setView('Personas')}>Ir a personas</button></div>}</div><p className="integration-note">Tarifas en vivo: integración pendiente. Los montos se registran al confirmar los pasajes.</p></>}
- </>}<footer><span>FCC TRAVEL / Copiapó</span><span>Personas · Planificación · Pasajes</span></footer></main>
- {modal&&<div className="overlay" onClick={e=>{if(e.target===e.currentTarget&&!busy)close()}}><section className="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div className="dialog-head"><h2 id="dialog-title">{modal==='person'?(editPerson?'Editar persona':'Agregar persona'):modal==='trip'?(editTrip?'Detalle del viaje':'Agregar viaje'):modal==='generate'?'Generar calendario 4×3':'Historial del viaje'}</h2><button aria-label="Cerrar" disabled={busy} onClick={close}><X/></button></div>{notice&&<p role="alert" className="message">{notice}</p>}
- {modal==='person'&&<form onSubmit={savePerson}><label>Nombre completo<input autoFocus name="name" required minLength={2} maxLength={180} defaultValue={editPerson?.name}/></label><div className="form-grid"><label>Ciudad / aeropuerto de origen<input name="origin" required defaultValue={editPerson?.origin} placeholder="Santiago"/></label><label>Destino de subida<input name="destination" required defaultValue={editPerson?.destination??'Copiapó'}/></label><label>Turno<select name="shift" defaultValue={editPerson?.shift??'4×3'}><option>4×3</option><option>10×10</option></select></label><label>Primera subida (4×3) / inicio (10×10)<input name="start_date" type="date" required defaultValue={editPerson?.start_date}/></label><label>Vigente hasta (opcional)<input name="end_date" type="date" defaultValue={editPerson?.end_date??''}/></label><label>Equipaje habitual<select name="baggage" defaultValue={editPerson?.baggage??'Por confirmar'}>{baggage.map(b=><option key={b}>{b}</option>)}</select></label></div><label className="check"><input name="active" type="checkbox" defaultChecked={editPerson?.active??true}/>Persona activa</label><p className="hint">El 10×10 requiere fechas manuales. Guardar una persona no solicita pasajes ni modifica viajes existentes.</p><button className="primary" disabled={busy}>Guardar persona</button></form>}
- {modal==='trip'&&editTrip&&<button className="context-link" onClick={()=>void showHistory(editTrip)}>Ver historial de este viaje →</button>}{modal==='history'&&editTrip&&<button className="context-link" onClick={()=>openTrip(editTrip)}>← Volver al viaje</button>}{modal==='trip'&&<form onSubmit={saveTrip}><label>Persona{editTrip&&<input type="hidden" name="person_id" value={editTrip.person_id}/>}<select disabled={!!editTrip} autoFocus name="person_id" required defaultValue={editTrip?.person_id??newPerson} onChange={e=>{const p=people.find(p=>p.id===e.target.value);const f=e.target.form;if(!p||!f)return;const down=(f.elements.namedItem('direction') as HTMLSelectElement).value==='BAJADA';(f.elements.namedItem('origin') as HTMLInputElement).value=down?p.destination:p.origin;(f.elements.namedItem('destination') as HTMLInputElement).value=down?p.origin:p.destination;(f.elements.namedItem('baggage') as HTMLSelectElement).value=p.baggage}}><option value="" disabled>Seleccionar persona</option>{people.map(p=><option key={p.id} value={p.id}>{p.name}{!p.active?' (inactivo)':''}</option>)}</select></label><div className="form-grid"><label>Fecha<input name="date" type="date" required defaultValue={editTrip?.date??newDate}/></label><label>Movimiento{editTrip&&<input type="hidden" name="direction" value={editTrip.direction}/>}<select disabled={!!editTrip} name="direction" defaultValue={editTrip?.direction??'SUBIDA'} onChange={e=>{const f=e.target.form;if(!f)return;const p=people.find(p=>p.id===(f.elements.namedItem('person_id') as HTMLSelectElement).value);if(!p)return;const down=e.target.value==='BAJADA';(f.elements.namedItem('origin') as HTMLInputElement).value=down?p.destination:p.origin;(f.elements.namedItem('destination') as HTMLInputElement).value=down?p.origin:p.destination}}><option value="SUBIDA">Subida</option><option value="BAJADA">Bajada</option></select></label><label>Origen<input name="origin" defaultValue={editTrip?.origin??people.find(p=>p.id===newPerson)?.origin} placeholder="Usar ruta de la persona"/></label><label>Destino<input name="destination" defaultValue={editTrip?.destination??people.find(p=>p.id===newPerson)?.destination} placeholder="Usar ruta de la persona"/></label><label>Hora requerida del vuelo<input name="requested_time" type="time" defaultValue={editTrip?.requested_time?.slice(0,5)}/></label><label>Equipaje<select name="baggage" defaultValue={editTrip?.baggage??people.find(p=>p.id===newPerson)?.baggage??'Por confirmar'}>{baggage.map(b=><option key={b}>{b}</option>)}</select></label><label>Estado<select name="status" defaultValue={editTrip?.status??'Planificado'}>{statuses.map(s=><option key={s}>{s}</option>)}</select></label><label>Código de reserva<input name="pnr" defaultValue={editTrip?.pnr} maxLength={40}/></label><label>Aerolínea y vuelo<input name="flight" defaultValue={editTrip?.flight}/></label><label>Monto por persona (CLP)<input name="amount" type="number" min="0" step="0.01" defaultValue={editTrip?.amount??''}/></label></div><label>{editTrip?'Motivo del cambio (obligatorio)':'Observaciones'}<textarea name="notes" required={!!editTrip} defaultValue={editTrip?.notes} placeholder="Incluye restricciones horarias, equipaje o cambios acordados."/></label><p className="hint">Los montos son registrados por el equipo; no son tarifas consultadas en vivo. Marcar Solicitado registra un envío ya realizado.</p><button className="primary" disabled={busy||!people.length}>Guardar viaje</button></form>}
- {modal==='generate'&&<form onSubmit={generate}><p>Genera subidas los lunes y bajadas los jueves. Conserva las reservas y los viajes que ya existen.</p><label>Persona{editTrip&&<input type="hidden" name="person_id" value={editTrip.person_id}/>}<select disabled={!!editTrip} autoFocus name="person_id" required><option value="">Seleccionar persona 4×3</option>{people.filter(p=>p.active&&p.shift==='4×3').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>Generar hasta<input type="date" name="until" required defaultValue={addDays(today(),90)}/></label><button className="primary" disabled={busy}>Generar viajes</button></form>}
- {modal==='history'&&<div>{demo?<p>El historial persistente está disponible en la operación conectada, no en la demostración.</p>:history.length?history.map(h=><article className="history" key={h.id}><strong>{h.action==='INSERT'?'Registro creado':'Registro actualizado'}</strong><small>{new Date(h.created_at).toLocaleString('es-CL')} · Usuario {h.actor?.slice(0,8)}</small><p>{String(h.after_data?.notes||'Sin observaciones')} · {String(h.after_data?.status||'')}</p></article>):<p>No hay cambios disponibles.</p>}</div>}</section></div>}</div>;
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CalendarDays,
+  ChevronRight,
+  Clock,
+  Download,
+  LogOut,
+  Moon,
+  Plane,
+  Plus,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  Sun,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
+import YearView from "./year-view";
+import { db } from "../lib/supabase";
+import { addDays, pulseDates } from "../lib/calendar";
+
+type Person = {
+  id: string;
+  name: string;
+  origin: string;
+  destination: string;
+  shift: string;
+  start_date: string;
+  end_date: string | null;
+  baggage: string;
+  active: boolean;
+};
+
+type Trip = {
+  id: string;
+  person_id: string;
+  date: string;
+  direction: string;
+  origin: string;
+  destination: string;
+  requested_time: string | null;
+  baggage: string;
+  status: string;
+  pnr: string;
+  flight: string;
+  amount: number | null;
+  notes: string;
+  updated_at?: string;
+};
+
+type HistoryItem = {
+  id: number;
+  action: string;
+  created_at: string;
+  actor: string;
+  after_data: Record<string, unknown>;
+};
+
+type AccessStatus = "checking" | "allowed" | "denied" | "error";
+type ModalName = "person" | "trip" | "generate" | "history" | null;
+
+const statuses = [
+  "Planificado",
+  "Solicitado",
+  "Emitido",
+  "Volado",
+  "Anulado",
+  "No presentado",
+];
+
+const baggageOptions = [
+  "Por confirmar",
+  "Mochila",
+  "Maleta de cabina",
+  "Maleta en bodega",
+];
+
+const navItems = [
+  { label: "Agenda", icon: CalendarDays },
+  { label: "Personas", icon: Users },
+  { label: "Viajes", icon: Plane },
+];
+
+const localDate = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santiago",
+  }).format(new Date());
+
+const formatDate = (date: string) =>
+  new Intl.DateTimeFormat("es-CL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(date + "T12:00:00Z"));
+
+const formatDateTime = (date: string) =>
+  new Intl.DateTimeFormat("es-CL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
+
+const normalize = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-CL")
+    .trim();
+
+const statusClass = (status: string) =>
+  "status-" + normalize(status).replaceAll(" ", "-");
+
+function nextWeekday(date: string, weekday: number) {
+  const current = new Date(date + "T12:00:00Z").getUTCDay();
+  return addDays(date, (weekday - current + 7) % 7);
+}
+
+function makeDemoPeople(): Person[] {
+  const firstMonday = nextWeekday(localDate(), 1);
+  return [
+    {
+      id: "p1",
+      name: "Persona de ejemplo 1",
+      origin: "Santiago",
+      destination: "Copiapó",
+      shift: "4×3",
+      start_date: firstMonday,
+      end_date: null,
+      baggage: "Mochila",
+      active: true,
+    },
+    {
+      id: "p2",
+      name: "Persona de ejemplo 2",
+      origin: "Concepción",
+      destination: "Copiapó",
+      shift: "10×10",
+      start_date: firstMonday,
+      end_date: null,
+      baggage: "Maleta en bodega",
+      active: true,
+    },
+  ];
+}
+
+function makeDemoTrips(people: Person[]): Trip[] {
+  const firstMonday = people[0].start_date;
+  const fourByThree = pulseDates(firstMonday, addDays(firstMonday, 35)).map(
+    (row, index) => ({
+      id: "t" + index,
+      person_id: "p1",
+      ...row,
+      origin: row.direction === "SUBIDA" ? "Santiago" : "Copiapó",
+      destination: row.direction === "SUBIDA" ? "Copiapó" : "Santiago",
+      requested_time: index === 0 ? "08:30" : null,
+      baggage: "Mochila",
+      status:
+        index === 0 ? "Solicitado" : index === 1 ? "Emitido" : "Planificado",
+      pnr: index === 1 ? "DEMO01" : "",
+      flight: index === 1 ? "LA 112" : "",
+      amount: index === 1 ? 84990 : null,
+      notes: "",
+    }),
+  );
+  const tenByTen: Trip[] = [
+    {
+      id: "t-10x10-up",
+      person_id: "p2",
+      date: firstMonday,
+      direction: "SUBIDA",
+      origin: "Concepción",
+      destination: "Copiapó",
+      requested_time: "09:00",
+      baggage: "Maleta en bodega",
+      status: "Planificado",
+      pnr: "",
+      flight: "",
+      amount: null,
+      notes: "",
+    },
+    {
+      id: "t-10x10-down",
+      person_id: "p2",
+      date: addDays(firstMonday, 10),
+      direction: "BAJADA",
+      origin: "Copiapó",
+      destination: "Concepción",
+      requested_time: "17:00",
+      baggage: "Maleta en bodega",
+      status: "Planificado",
+      pnr: "",
+      flight: "",
+      amount: null,
+      notes: "",
+    },
+  ];
+  return [...fourByThree, ...tenByTen].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
+}
+
+export default function App() {
+  const [theme, setTheme] = useState("dark");
+  const [ready, setReady] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [demo, setDemo] = useState(false);
+  const [accessStatus, setAccessStatus] = useState<AccessStatus>("checking");
+  const [people, setPeople] = useState<Person[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [view, setView] = useState("Agenda");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [dateFilter, setDateFilter] = useState("");
+  const [personFilter, setPersonFilter] = useState("");
+  const [peopleFilter, setPeopleFilter] = useState("Activas");
+  const [onlyUpcoming, setOnlyUpcoming] = useState(true);
+  const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    localDate().slice(0, 7),
+  );
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalName>(null);
+  const [editPerson, setEditPerson] = useState<Person | null>(null);
+  const [editTrip, setEditTrip] = useState<Trip | null>(null);
+  const [newDate, setNewDate] = useState("");
+  const [newPerson, setNewPerson] = useState("");
+  const [pendingTripDate, setPendingTripDate] = useState<string | null>(null);
+  const [tripStatus, setTripStatus] = useState("Planificado");
+  const [reservationOpen, setReservationOpen] = useState(false);
+  const [generateSelection, setGenerateSelection] = useState("all");
+  const [generateUntil, setGenerateUntil] = useState(() =>
+    addDays(localDate(), 90),
+  );
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [notice, setNotice] = useState("");
+  const [formError, setFormError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const busyRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("fcc-travel-theme");
+      if (saved === "light" || saved === "dark") setTheme(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    db.auth.getSession().then(({ data }) => {
+      setEmail(data.session?.user.email ?? null);
+      setReady(true);
+    });
+    const { data } = db.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user.email ?? null);
+      setReady(true);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  async function allRows(table: string) {
+    const rows: Record<string, unknown>[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await db
+        .from(table)
+        .select("*")
+        .order("id")
+        .range(offset, offset + 999);
+      if (error) throw error;
+      rows.push(...(data ?? []));
+      if (!data || data.length < 1000) return rows;
+    }
+  }
+
+  async function reload() {
+    setLoading(true);
+    setAccessStatus((current) =>
+      current === "allowed" ? current : "checking",
+    );
+    try {
+      const { data: member, error } = await db.rpc("is_member");
+      if (error) throw error;
+      if (!member) {
+        setAccessStatus("denied");
+        setPeople([]);
+        setTrips([]);
+        return;
+      }
+      const [peopleRows, tripRows] = await Promise.all([
+        allRows("people"),
+        allRows("trips"),
+      ]);
+      setPeople(
+        (peopleRows as unknown as Person[]).sort((a, b) =>
+          a.name.localeCompare(b.name, "es"),
+        ),
+      );
+      setTrips(
+        (tripRows as unknown as Trip[]).sort((a, b) =>
+          a.date.localeCompare(b.date),
+        ),
+      );
+      setAccessStatus("allowed");
+    } catch {
+      setAccessStatus((current) => (current === "allowed" ? current : "error"));
+      setNotice(
+        "No pudimos cargar la información. Revisa la conexión e inténtalo nuevamente.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (email && !demo) void reload();
+  }, [email, demo]);
+
+  useEffect(() => {
+    if (!email || demo) return;
+    const timer = setInterval(() => void reload(), 60_000);
+    return () => clearInterval(timer);
+  }, [email, demo]);
+
+  const peopleById = useMemo(
+    () => new Map(people.map((person) => [person.id, person])),
+    [people],
+  );
+
+  const personName = (id: string) =>
+    peopleById.get(id)?.name ?? "Persona sin registro";
+
+  const activePeople = useMemo(
+    () => people.filter((person) => person.active),
+    [people],
+  );
+
+  const eligibleFourByThree = useMemo(
+    () => people.filter((person) => person.active && person.shift === "4×3"),
+    [people],
+  );
+
+  const visiblePeople = useMemo(() => {
+    const needle = normalize(query);
+    return people.filter((person) => {
+      const matchesText =
+        !needle ||
+        normalize(
+          [person.name, person.origin, person.destination, person.shift].join(
+            " ",
+          ),
+        ).includes(needle);
+      const matchesFilter =
+        peopleFilter === "Todas" ||
+        (peopleFilter === "Activas" && person.active) ||
+        (peopleFilter === "Inactivas" && !person.active) ||
+        (peopleFilter === "4×3" && person.active && person.shift === "4×3") ||
+        (peopleFilter === "10×10" && person.active && person.shift === "10×10");
+      return matchesText && matchesFilter;
+    });
+  }, [people, peopleFilter, query]);
+
+  const visibleTrips = useMemo(() => {
+    const needle = normalize(query);
+    return trips
+      .filter((trip) => {
+        const matchesText =
+          !needle ||
+          normalize(
+            [
+              personName(trip.person_id),
+              trip.origin,
+              trip.destination,
+              trip.pnr,
+              trip.flight,
+            ].join(" "),
+          ).includes(needle);
+        return (
+          matchesText &&
+          (statusFilter === "Todos" || trip.status === statusFilter) &&
+          (!dateFilter || trip.date === dateFilter) &&
+          (!personFilter || trip.person_id === personFilter) &&
+          (!onlyUpcoming || trip.date >= localDate())
+        );
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [
+    trips,
+    query,
+    statusFilter,
+    dateFilter,
+    personFilter,
+    onlyUpcoming,
+    peopleById,
+  ]);
+
+  const requestableTrips = useMemo(
+    () =>
+      visibleTrips.filter(
+        (trip) => trip.status === "Planificado" && trip.date >= localDate(),
+      ),
+    [visibleTrips],
+  );
+
+  useEffect(() => {
+    setSelectedTrips([]);
+  }, [query, statusFilter, dateFilter, personFilter, onlyUpcoming]);
+
+  const upcomingTrips = useMemo(
+    () =>
+      trips
+        .filter(
+          (trip) =>
+            trip.date >= localDate() &&
+            !["Anulado", "Volado", "No presentado"].includes(trip.status),
+        )
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    [trips],
+  );
+
+  const plannedCount = upcomingTrips.filter(
+    (trip) => trip.status === "Planificado",
+  ).length;
+  const requestedCount = upcomingTrips.filter(
+    (trip) => trip.status === "Solicitado",
+  ).length;
+  const nextTrip = upcomingTrips[0];
+
+  const generationPeople = useMemo(() => {
+    if (generateSelection === "all") return eligibleFourByThree;
+    return eligibleFourByThree.filter(
+      (person) => person.id === generateSelection,
+    );
+  }, [eligibleFourByThree, generateSelection]);
+
+  const generationPreview = useMemo(
+    () =>
+      generationPeople.reduce((total, person) => {
+        const until =
+          person.end_date && person.end_date < generateUntil
+            ? person.end_date
+            : generateUntil;
+        if (until < person.start_date) return total;
+        return (
+          total +
+          pulseDates(person.start_date, until).filter(
+            (row) =>
+              !trips.some(
+                (trip) =>
+                  trip.person_id === person.id &&
+                  trip.date === row.date &&
+                  trip.direction === row.direction,
+              ),
+          ).length
+        );
+      }, 0),
+    [generationPeople, generateUntil, trips],
+  );
+
+  const reservationRequired = ["Emitido", "Volado", "No presentado"].includes(
+    tripStatus,
+  );
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem("fcc-travel-theme", next);
+    } catch {}
+  }
+
+  function clearMessages() {
+    setNotice("");
+    setFormError("");
+  }
+
+  async function runAction(
+    operation: () => Promise<void>,
+    destination: "form" | "global" = "global",
+  ) {
+    setBusy(true);
+    busyRef.current = true;
+    setFormError("");
+    if (destination === "global") setNotice("");
+    try {
+      await operation();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : ((error as { message?: string })?.message ??
+            "No se pudo completar la acción. Inténtalo nuevamente.");
+      if (destination === "form") {
+        setFormError(message);
+        setTimeout(
+          () => document.querySelector<HTMLElement>(".dialog-error")?.focus(),
+          0,
+        );
+      } else setNotice(message);
+    } finally {
+      setBusy(false);
+      busyRef.current = false;
+    }
+  }
+
+  async function login(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await runAction(async () => {
+      const { error } = await db.auth.signInWithPassword({
+        email: String(form.get("email")),
+        password: String(form.get("password")),
+      });
+      if (error) {
+        throw new Error(
+          "No pudimos iniciar sesión. Comprueba tu correo y contraseña.",
+        );
+      }
+    });
+  }
+
+  function enterDemo() {
+    const demoPeople = makeDemoPeople();
+    setView("Agenda");
+    setDemo(true);
+    setAccessStatus("allowed");
+    setPeople(demoPeople);
+    setTrips(makeDemoTrips(demoPeople));
+    setCalendarMonth(localDate().slice(0, 7));
+    setSelectedDay(null);
+    clearMessages();
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  }
+
+  function navigate(label: string) {
+    setView(label);
+    setQuery("");
+    setStatusFilter("Todos");
+    setDateFilter("");
+    setPersonFilter("");
+    setSelectedTrips([]);
+    setOnlyUpcoming(label === "Viajes");
+    if (label === "Personas") setPeopleFilter("Activas");
+    clearMessages();
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  }
+
+  function closeModal() {
+    setModal(null);
+    setEditPerson(null);
+    setEditTrip(null);
+    setPendingTripDate(null);
+    setHistory([]);
+    setFormError("");
+  }
+
+  function openPerson(person: Person | null = null) {
+    clearMessages();
+    setPendingTripDate(null);
+    setEditPerson(person);
+    setModal("person");
+  }
+
+  function openTrip(trip: Trip | null, date?: string, personId?: string) {
+    clearMessages();
+    if (!trip && !activePeople.length && !personId) {
+      setPendingTripDate(date || selectedDay || dateFilter || localDate());
+      setEditPerson(null);
+      setFormError("");
+      setModal("person");
+      return;
+    }
+    setEditTrip(trip);
+    setTripStatus(trip?.status ?? "Planificado");
+    setReservationOpen(
+      Boolean(
+        trip?.pnr ||
+        trip?.flight ||
+        trip?.amount ||
+        (trip && trip.status !== "Planificado"),
+      ),
+    );
+    setNewDate(date || selectedDay || dateFilter || localDate());
+    setNewPerson(personId || personFilter || activePeople[0]?.id || "");
+    setModal("trip");
+  }
+
+  function openGenerate(personId?: string) {
+    clearMessages();
+    if (!eligibleFourByThree.length) {
+      navigate("Personas");
+      setNotice(
+        "Agrega una persona activa con turno 4×3 para crear su calendario.",
+      );
+      return;
+    }
+    setGenerateSelection(
+      personId && eligibleFourByThree.some((person) => person.id === personId)
+        ? personId
+        : "all",
+    );
+    setGenerateUntil(addDays(localDate(), 90));
+    setModal("generate");
+  }
+
+  function showPersonTrips(person: Person) {
+    navigate("Viajes");
+    setPersonFilter(person.id);
+  }
+
+  function showTripGroup(status: string) {
+    navigate("Viajes");
+    setStatusFilter(status);
+    setOnlyUpcoming(true);
+  }
+
+  function clearTripFilters() {
+    setQuery("");
+    setStatusFilter("Todos");
+    setDateFilter("");
+    setPersonFilter("");
+    setOnlyUpcoming(true);
+    setSelectedTrips([]);
+  }
+
+  async function savePerson(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await runAction(async () => {
+      const person = {
+        name: String(form.get("name")).trim(),
+        origin: String(form.get("origin")).trim(),
+        destination: String(form.get("destination")).trim(),
+        shift: String(form.get("shift")),
+        start_date: String(form.get("start_date")),
+        end_date: String(form.get("end_date")) || null,
+        baggage: String(form.get("baggage")),
+        active: form.get("active") === "on",
+      };
+      if (person.end_date && person.end_date < person.start_date) {
+        throw new Error("La fecha de término debe ser posterior al inicio.");
+      }
+      if (
+        person.shift === "4×3" &&
+        new Date(person.start_date + "T12:00:00Z").getUTCDay() !== 1
+      ) {
+        throw new Error("En un turno 4×3, la primera subida debe ser lunes.");
+      }
+      let savedId = editPerson?.id ?? "";
+      if (demo) {
+        savedId ||= crypto.randomUUID();
+        setPeople((current) =>
+          editPerson
+            ? current.map((row) =>
+                row.id === editPerson.id ? { ...person, id: row.id } : row,
+              )
+            : [...current, { ...person, id: savedId }].sort((a, b) =>
+                a.name.localeCompare(b.name, "es"),
+              ),
+        );
+      } else {
+        const result = editPerson
+          ? await db.from("people").update(person).eq("id", editPerson.id)
+          : await db.from("people").insert(person).select("id").single();
+        if (result.error) throw result.error;
+        if (!editPerson) savedId = String(result.data?.id ?? "");
+        await reload();
+      }
+      const resumeDate = pendingTripDate;
+      closeModal();
+      setPendingTripDate(null);
+      if (!editPerson && resumeDate && savedId) {
+        openTrip(null, resumeDate, savedId);
+      } else {
+        setNotice(
+          "Persona guardada. Sus viajes existentes conservaron sus fechas.",
+        );
+      }
+    }, "form");
+  }
+
+  async function saveTrip(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await runAction(async () => {
+      const person = peopleById.get(String(form.get("person_id")));
+      if (!person) throw new Error("Selecciona una persona activa.");
+      const direction = String(form.get("direction"));
+      const changeReason = String(form.get("change_reason") ?? "").trim();
+      const observations = String(form.get("notes") ?? "").trim();
+      if (editTrip && !changeReason) {
+        throw new Error("Indica el motivo de este cambio.");
+      }
+      const notes = editTrip
+        ? [observations, `Motivo del cambio: ${changeReason}`]
+            .filter(Boolean)
+            .join("\n")
+        : observations;
+      const trip = {
+        person_id: person.id,
+        date: String(form.get("date")),
+        direction,
+        origin:
+          String(form.get("origin")).trim() ||
+          (direction === "SUBIDA" ? person.origin : person.destination),
+        destination:
+          String(form.get("destination")).trim() ||
+          (direction === "SUBIDA" ? person.destination : person.origin),
+        requested_time: String(form.get("requested_time")) || null,
+        baggage: String(form.get("baggage")),
+        status: String(form.get("status")),
+        pnr: String(form.get("pnr") ?? "").trim(),
+        flight: String(form.get("flight") ?? "").trim(),
+        amount:
+          form.get("amount") === "" || form.get("amount") === null
+            ? null
+            : Number(form.get("amount")),
+        notes,
+        updated_at: new Date().toISOString(),
+      };
+      if (
+        (!editTrip || editTrip.date !== trip.date) &&
+        (trip.date < person.start_date ||
+          (person.end_date && trip.date > person.end_date) ||
+          !person.active)
+      ) {
+        throw new Error(
+          "La fecha debe estar dentro de la vigencia de una persona activa.",
+        );
+      }
+      if (
+        ["Emitido", "Volado", "No presentado"].includes(trip.status) &&
+        !trip.pnr
+      ) {
+        throw new Error("Registra el código de reserva para este estado.");
+      }
+      if (
+        trips.some(
+          (row) =>
+            row.id !== editTrip?.id &&
+            row.person_id === trip.person_id &&
+            row.date === trip.date &&
+            row.direction === trip.direction,
+        )
+      ) {
+        throw new Error("Ese movimiento ya existe para la persona y fecha.");
+      }
+      if (demo) {
+        setTrips((current) =>
+          (editTrip
+            ? current.map((row) =>
+                row.id === editTrip.id ? { ...trip, id: row.id } : row,
+              )
+            : [...current, { ...trip, id: crypto.randomUUID() }]
+          ).sort((a, b) => a.date.localeCompare(b.date)),
+        );
+      } else if (editTrip) {
+        const result = await db
+          .from("trips")
+          .update(trip)
+          .eq("id", editTrip.id)
+          .eq("updated_at", editTrip.updated_at!)
+          .select("id");
+        if (result.error) throw result.error;
+        if (!result.data?.length) {
+          throw new Error(
+            "Otra persona modificó este viaje. Actualiza la vista antes de editar.",
+          );
+        }
+        await reload();
+      } else {
+        const result = await db.from("trips").insert(trip);
+        if (result.error) throw result.error;
+        await reload();
+      }
+      closeModal();
+      if (view === "Agenda") {
+        setCalendarMonth(trip.date.slice(0, 7));
+        setSelectedDay(trip.date);
+      }
+      setNotice("Viaje guardado correctamente.");
+    }, "form");
+  }
+
+  async function generateTrips(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await runAction(async () => {
+      if (!generationPeople.length) {
+        throw new Error("Selecciona al menos una persona con turno 4×3.");
+      }
+      if (generateUntil < localDate()) {
+        throw new Error("La fecha final debe ser hoy o posterior.");
+      }
+      let count = 0;
+      if (demo) {
+        const generated = generationPeople.flatMap((person) => {
+          const until =
+            person.end_date && person.end_date < generateUntil
+              ? person.end_date
+              : generateUntil;
+          if (until < person.start_date) return [];
+          return pulseDates(person.start_date, until)
+            .filter(
+              (row) =>
+                !trips.some(
+                  (trip) =>
+                    trip.person_id === person.id &&
+                    trip.date === row.date &&
+                    trip.direction === row.direction,
+                ),
+            )
+            .map((row) => ({
+              id: crypto.randomUUID(),
+              person_id: person.id,
+              ...row,
+              origin:
+                row.direction === "SUBIDA" ? person.origin : person.destination,
+              destination:
+                row.direction === "SUBIDA" ? person.destination : person.origin,
+              requested_time: null,
+              baggage: person.baggage,
+              status: "Planificado",
+              pnr: "",
+              flight: "",
+              amount: null,
+              notes: "",
+            }));
+        });
+        count = generated.length;
+        setTrips((current) =>
+          [...current, ...generated].sort((a, b) =>
+            a.date.localeCompare(b.date),
+          ),
+        );
+      } else {
+        for (let index = 0; index < generationPeople.length; index += 10) {
+          const batch = generationPeople.slice(index, index + 10);
+          const results = await Promise.all(
+            batch.map((person) =>
+              db.rpc("generate_pulse", {
+                p_id: person.id,
+                p_until: generateUntil,
+              }),
+            ),
+          );
+          for (const result of results) {
+            if (result.error) throw result.error;
+            count += Number(result.data ?? 0);
+          }
+        }
+        await reload();
+      }
+      const peopleCount = generationPeople.length;
+      closeModal();
+      setNotice(
+        `${count} viajes nuevos para ${peopleCount} ${peopleCount === 1 ? "persona" : "personas"}. Los registros existentes se conservaron.`,
+      );
+    }, "form");
+  }
+
+  function exportCsv() {
+    const rows = visibleTrips.filter(
+      (trip) => trip.status === "Planificado" && trip.date >= localDate(),
+    );
+    if (!rows.length) {
+      setNotice("No hay viajes futuros por solicitar con estos filtros.");
+      return;
+    }
+    const cell = (value: unknown) =>
+      '"' +
+      String(value ?? "")
+        .replace(/^[=+@-]/, "'$&")
+        .replaceAll('"', '""') +
+      '"';
+    const csv =
+      "\uFEFF" +
+      [
+        [
+          "Persona",
+          "Fecha",
+          "Sentido",
+          "Origen",
+          "Destino",
+          "Hora requerida",
+          "Equipaje",
+          "Estado",
+          "Reserva",
+          "Vuelo",
+          "Monto CLP",
+        ],
+        ...rows.map((trip) => [
+          personName(trip.person_id),
+          trip.date,
+          trip.direction,
+          trip.origin,
+          trip.destination,
+          trip.requested_time,
+          trip.baggage,
+          trip.status,
+          trip.pnr,
+          trip.flight,
+          trip.amount,
+        ]),
+      ]
+        .map((row) => row.map(cell).join(";"))
+        .join("\r\n");
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "fcc-travel-solicitud.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setSelectedTrips(rows.map((trip) => trip.id));
+    setNotice(
+      "Lista descargada. Revísala y, cuando la envíes, marca la selección como solicitada.",
+    );
+  }
+
+  async function markSelectedRequested() {
+    const ids = selectedTrips.filter((id) =>
+      trips.some(
+        (trip) =>
+          trip.id === id &&
+          trip.status === "Planificado" &&
+          trip.date >= localDate(),
+      ),
+    );
+    if (!ids.length) {
+      setNotice("Selecciona viajes planificados para continuar.");
+      return;
+    }
+    await runAction(async () => {
+      const updatedAt = new Date().toISOString();
+      if (demo) {
+        const selected = new Set(ids);
+        setTrips((current) =>
+          current.map((trip) =>
+            selected.has(trip.id)
+              ? {
+                  ...trip,
+                  status: "Solicitado",
+                  notes: [
+                    trip.notes.trim(),
+                    "Motivo del cambio: Solicitud enviada.",
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  updated_at: updatedAt,
+                }
+              : trip,
+          ),
+        );
+      } else {
+        const rows = ids
+          .map((id) => trips.find((trip) => trip.id === id))
+          .filter((trip): trip is Trip => Boolean(trip));
+        for (let index = 0; index < rows.length; index += 10) {
+          const results = await Promise.all(
+            rows.slice(index, index + 10).map((trip) =>
+              db
+                .from("trips")
+                .update({
+                  status: "Solicitado",
+                  notes: [
+                    trip.notes.trim(),
+                    "Motivo del cambio: Solicitud enviada.",
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                  updated_at: updatedAt,
+                })
+                .eq("id", trip.id)
+                .eq("updated_at", trip.updated_at!)
+                .select("id"),
+            ),
+          );
+          for (const result of results) {
+            if (result.error) throw result.error;
+            if (!result.data?.length) {
+              throw new Error(
+                "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
+              );
+            }
+          }
+        }
+        await reload();
+      }
+      setSelectedTrips([]);
+      setNotice(
+        `${ids.length} ${ids.length === 1 ? "viaje marcado como solicitado" : "viajes marcados como solicitados"}.`,
+      );
+    });
+  }
+
+  async function showHistory(trip: Trip) {
+    clearMessages();
+    setEditTrip(trip);
+    setHistory([]);
+    setHistoryLoading(!demo);
+    setModal("history");
+    if (demo) return;
+    try {
+      const { data, error } = await db
+        .from("history")
+        .select("*")
+        .eq("record_id", trip.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setHistory(data ?? []);
+    } catch {
+      setFormError("No se pudo cargar el historial. Inténtalo nuevamente.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!modal) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const frame = requestAnimationFrame(() => {
+      const preferred = document.querySelector<HTMLElement>(
+        ".dialog [data-autofocus]:not([disabled])",
+      );
+      const fallback = document.querySelector<HTMLElement>(
+        ".dialog input:not([disabled]):not([type=hidden]), .dialog select:not([disabled]), .dialog textarea:not([disabled]), .dialog button:not([disabled])",
+      );
+      (preferred ?? fallback)?.focus();
+    });
+    function handleKeydown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !busyRef.current) closeModal();
+      if (event.key !== "Tab") return;
+      const items = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          ".dialog button:not([disabled]), .dialog input:not([disabled]):not([type=hidden]), .dialog select:not([disabled]), .dialog textarea:not([disabled]), .dialog summary",
+        ),
+      );
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeydown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", handleKeydown);
+      previous?.focus();
+    };
+  }, [modal]);
+
+  const themeButton = (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={toggleTheme}
+      aria-label={
+        theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
+      }
+    >
+      {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+      <span>{theme === "dark" ? "Claro" : "Oscuro"}</span>
+    </button>
+  );
+
+  if (!ready) {
+    return (
+      <main className="login-state" aria-live="polite">
+        <span className="loading-mark" aria-hidden="true" />
+        <p>Cargando FCC TRAVEL…</p>
+      </main>
+    );
+  }
+
+  if (!email && !demo) {
+    return (
+      <main className="entry">
+        <header className="entry-top">
+          <span className="brand">FCC TRAVEL</span>
+          <div className="entry-tools">
+            <span>FCC / COPIAPÓ</span>
+            {themeButton}
+          </div>
+        </header>
+        <section className="entry-center">
+          <div className="entry-heading">
+            <p className="eyebrow">COORDINACIÓN DE VIAJES</p>
+            <h1>
+              Tu equipo viaja.
+              <br />
+              La obra continúa.
+            </h1>
+            <p className="entry-copy">
+              Personas, turnos y pasajes organizados en una sola agenda para
+              Copiapó.
+            </p>
+            <div className="entry-route" aria-label="Rutas habituales">
+              <span>Santiago</span>
+              <ArrowUpRight size={17} />
+              <strong>Copiapó</strong>
+              <ArrowDownLeft size={17} />
+              <span>Concepción</span>
+            </div>
+          </div>
+          <div className="entry-form">
+            <span className="section-kicker">Acceso al equipo</span>
+            <h2>Entra a tu agenda</h2>
+            <p>Usa el correo habilitado para FCC TRAVEL.</p>
+            <form onSubmit={login} aria-busy={busy}>
+              <label>
+                Correo
+                <input
+                  name="email"
+                  type="email"
+                  autoComplete="username"
+                  required
+                  placeholder="nombre@empresa.cl"
+                />
+              </label>
+              <label>
+                Contraseña
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  minLength={6}
+                />
+              </label>
+              <button disabled={busy} className="primary">
+                {busy ? "Ingresando…" : "Entrar"}
+                {!busy && <ArrowUpRight size={18} />}
+              </button>
+            </form>
+            {notice && (
+              <p role="alert" className="message error-message">
+                {notice}
+              </p>
+            )}
+            <div className="try-demo">
+              <span>¿Quieres conocerla primero?</span>
+              <button type="button" onClick={enterDemo}>
+                Abrir demostración <ArrowUpRight size={18} />
+              </button>
+            </div>
+            <small>
+              El responsable de la aplicación debe habilitar tu correo.
+            </small>
+          </div>
+        </section>
+        <footer className="entry-footer">
+          <span>FCC TRAVEL</span>
+          <span>Coordinación de viajes de obra</span>
+        </footer>
+      </main>
+    );
+  }
+
+  const hasTripFilters =
+    Boolean(query) ||
+    Boolean(dateFilter) ||
+    statusFilter !== "Todos" ||
+    Boolean(personFilter) ||
+    !onlyUpcoming;
+
+  return (
+    <div className="shell">
+      <div
+        className="app-content"
+        inert={modal ? true : undefined}
+        aria-hidden={modal ? true : undefined}
+      >
+        <header className="topbar">
+          <div className="brand-block">
+            <span className="brand">FCC TRAVEL</span>
+            <span className="worksite">Copiapó</span>
+          </div>
+          <nav aria-label="Navegación principal">
+            {navItems.map(({ label, icon: Icon }) => (
+              <button
+                type="button"
+                key={label}
+                className={view === label ? "selected" : ""}
+                aria-current={view === label ? "page" : undefined}
+                onClick={() => navigate(label)}
+              >
+                <Icon size={17} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="account">
+            {themeButton}
+            <span className="account-name">
+              {demo ? "Demostración" : email}
+            </span>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={demo ? "Salir de la demostración" : "Cerrar sesión"}
+              onClick={async () => {
+                if (!demo) await db.auth.signOut();
+                setDemo(false);
+                setAccessStatus("checking");
+                setPeople([]);
+                setTrips([]);
+              }}
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+        </header>
+
+        <main className="workspace">
+          {demo && (
+            <div className="demo-banner">
+              <span className="demo-dot" aria-hidden="true" />
+              <span>
+                Demostración con datos ficticios. Los cambios duran hasta que
+                cierres esta sesión.
+              </span>
+            </div>
+          )}
+
+          {notice && (
+            <div className="message global-message" role="status">
+              <span>{notice}</span>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Cerrar aviso"
+                onClick={() => setNotice("")}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {accessStatus !== "allowed" && !demo ? (
+            <section className="access-state" aria-live="polite">
+              {accessStatus === "checking" ? (
+                <>
+                  <span className="loading-mark" aria-hidden="true" />
+                  <h1>Comprobando tu acceso…</h1>
+                  <p>Estamos conectando con la agenda del proyecto.</p>
+                </>
+              ) : accessStatus === "error" ? (
+                <>
+                  <RefreshCw size={25} />
+                  <h1>No pudimos comprobar tu acceso</h1>
+                  <p>Revisa la conexión y vuelve a intentarlo.</p>
+                  <button type="button" className="primary" onClick={reload}>
+                    Intentar nuevamente
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Users size={25} />
+                  <h1>Tu cuenta todavía no está habilitada</h1>
+                  <p>
+                    Solicita al responsable de FCC TRAVEL que agregue tu correo
+                    al equipo.
+                  </p>
+                  <button type="button" onClick={reload}>
+                    Volver a comprobar
+                  </button>
+                </>
+              )}
+            </section>
+          ) : (
+            <>
+              <header className="page-head">
+                <div>
+                  <span className="section-kicker">
+                    {view === "Agenda"
+                      ? "OPERACIÓN DEL PROYECTO"
+                      : view === "Personas"
+                        ? "DIRECTORIO DE OBRA"
+                        : "SOLICITUDES Y RESERVAS"}
+                  </span>
+                  <h1>
+                    {view === "Agenda"
+                      ? "Agenda de viajes"
+                      : view === "Personas"
+                        ? "Personas del proyecto"
+                        : "Viajes y solicitudes"}
+                  </h1>
+                  <p className="page-description">
+                    {view === "Agenda"
+                      ? "Revisa el movimiento del equipo y atiende lo que sigue."
+                      : view === "Personas"
+                        ? "Administra rutas, turnos, vigencia y equipaje."
+                        : "Prepara solicitudes y completa cada reserva."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="primary page-primary"
+                  onClick={() =>
+                    view === "Personas" ? openPerson() : openTrip(null)
+                  }
+                >
+                  <Plus size={18} />
+                  {view === "Personas" ? "Nueva persona" : "Nuevo viaje"}
+                </button>
+              </header>
+
+              {view === "Agenda" ? (
+                <AgendaView
+                  nextTrip={nextTrip}
+                  plannedCount={plannedCount}
+                  requestedCount={requestedCount}
+                  activeCount={activePeople.length}
+                  personName={personName}
+                  onTrip={(trip) => openTrip(trip)}
+                  onPlanned={() => showTripGroup("Planificado")}
+                  onRequested={() => showTripGroup("Solicitado")}
+                  onPeople={() => navigate("Personas")}
+                  onGenerate={() => openGenerate()}
+                >
+                  <YearView
+                    selected={selectedDay}
+                    onSelect={setSelectedDay}
+                    month={calendarMonth}
+                    onMonthChange={setCalendarMonth}
+                    trips={trips}
+                    people={people}
+                    onTrip={(id) =>
+                      openTrip(trips.find((trip) => trip.id === id) ?? null)
+                    }
+                    onAdd={(date) => openTrip(null, date)}
+                  />
+                </AgendaView>
+              ) : view === "Personas" ? (
+                <section aria-labelledby="people-results">
+                  <div className="toolbar people-toolbar">
+                    <label className="search-field">
+                      <Search size={18} aria-hidden="true" />
+                      <input
+                        aria-label="Buscar personas"
+                        placeholder="Buscar nombre, ciudad o turno…"
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                      />
+                    </label>
+                    <div className="filter-pills" aria-label="Filtrar personas">
+                      {["Activas", "4×3", "10×10", "Inactivas", "Todas"].map(
+                        (option) => (
+                          <button
+                            type="button"
+                            key={option}
+                            className={peopleFilter === option ? "active" : ""}
+                            aria-pressed={peopleFilter === option}
+                            onClick={() => setPeopleFilter(option)}
+                          >
+                            {option}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                    <button type="button" onClick={() => openGenerate()}>
+                      <CalendarDays size={18} />
+                      Planificar 4×3
+                    </button>
+                  </div>
+                  <div
+                    className="results-line"
+                    id="people-results"
+                    aria-live="polite"
+                  >
+                    <span>
+                      {visiblePeople.length} de {people.length} personas
+                    </span>
+                    {(query || peopleFilter !== "Activas") &&
+                      visiblePeople.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuery("");
+                            setPeopleFilter("Activas");
+                          }}
+                        >
+                          Limpiar filtros
+                        </button>
+                      )}
+                  </div>
+
+                  {visiblePeople.length ? (
+                    <div className="people-list">
+                      {visiblePeople.map((person, index) => (
+                        <article className="person-row" key={person.id}>
+                          <span className="person-index" aria-hidden="true">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <div className="person-name">
+                            <div>
+                              <h2>{person.name}</h2>
+                              <span
+                                className={
+                                  person.active
+                                    ? "active-person"
+                                    : "inactive-person"
+                                }
+                              >
+                                {person.active ? "Activa" : "Inactiva"}
+                              </span>
+                            </div>
+                            <small>{person.baggage}</small>
+                          </div>
+                          <div className="person-route">
+                            <small>Ruta habitual</small>
+                            <span>
+                              {person.origin} <ChevronRight size={15} />{" "}
+                              {person.destination}
+                            </span>
+                          </div>
+                          <div className="person-shift">
+                            <span
+                              className={`shift-badge ${person.shift === "4×3" ? "four" : "ten"}`}
+                            >
+                              Turno {person.shift}
+                            </span>
+                            <small>Desde {formatDate(person.start_date)}</small>
+                          </div>
+                          <div className="person-actions">
+                            {person.active && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openTrip(null, undefined, person.id)
+                                }
+                              >
+                                <UserPlus size={16} /> Nuevo viaje
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => showPersonTrips(person)}
+                            >
+                              Ver viajes
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Editar a ${person.name}`}
+                              onClick={() => openPerson(person)}
+                            >
+                              Editar <ArrowUpRight size={16} />
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={<Users />}
+                      title={
+                        people.length
+                          ? "No encontramos personas"
+                          : "Agrega a la primera persona"
+                      }
+                      description={
+                        people.length
+                          ? "Prueba otra búsqueda o vuelve a las personas activas."
+                          : "Su ruta, turno y fecha de inicio serán el punto de partida."
+                      }
+                      action={
+                        people.length ? "Limpiar filtros" : "Nueva persona"
+                      }
+                      onAction={
+                        people.length
+                          ? () => {
+                              setQuery("");
+                              setPeopleFilter("Activas");
+                            }
+                          : () => openPerson()
+                      }
+                    />
+                  )}
+                </section>
+              ) : (
+                <section aria-labelledby="trip-results">
+                  {personFilter && peopleById.get(personFilter) && (
+                    <div className="context-banner">
+                      <span>
+                        Viajes de <strong>{personName(personFilter)}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const person = peopleById.get(personFilter);
+                          navigate("Personas");
+                          if (person) {
+                            setPeopleFilter("Todas");
+                            setQuery(person.name);
+                          }
+                        }}
+                      >
+                        Volver a la persona
+                      </button>
+                    </div>
+                  )}
+                  <div className="toolbar trips-toolbar">
+                    <label className="search-field">
+                      <Search size={18} aria-hidden="true" />
+                      <input
+                        aria-label="Buscar viajes"
+                        placeholder="Buscar persona, ruta, vuelo o reserva…"
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                      />
+                    </label>
+                    <label className="select-field">
+                      <span className="sr-only">Filtrar por estado</span>
+                      <select
+                        aria-label="Filtrar por estado"
+                        value={statusFilter}
+                        onChange={(event) =>
+                          setStatusFilter(event.target.value)
+                        }
+                      >
+                        <option>Todos</option>
+                        {statuses.map((status) => (
+                          <option key={status}>{status}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="date-field">
+                      <span className="sr-only">Filtrar por fecha</span>
+                      <input
+                        aria-label="Filtrar por fecha"
+                        type="date"
+                        value={dateFilter}
+                        onChange={(event) => setDateFilter(event.target.value)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className={onlyUpcoming ? "active-filter" : ""}
+                      aria-pressed={onlyUpcoming}
+                      onClick={() => setOnlyUpcoming((current) => !current)}
+                    >
+                      <SlidersHorizontal size={17} />
+                      {onlyUpcoming ? "Próximos" : "Todos los periodos"}
+                    </button>
+                    <button type="button" onClick={exportCsv}>
+                      <Download size={17} /> Lista para solicitar
+                    </button>
+                    {!demo && (
+                      <button type="button" onClick={reload} disabled={loading}>
+                        <RefreshCw
+                          className={loading ? "spin" : ""}
+                          size={17}
+                        />
+                        {loading ? "Actualizando…" : "Actualizar"}
+                      </button>
+                    )}
+                  </div>
+                  <div
+                    className="results-line"
+                    id="trip-results"
+                    aria-live="polite"
+                  >
+                    <span>
+                      {visibleTrips.length}{" "}
+                      {visibleTrips.length === 1 ? "viaje" : "viajes"}
+                      {onlyUpcoming ? " desde hoy" : " en total"}
+                      {statusFilter !== "Todos" ? ` · ${statusFilter}` : ""}
+                      {dateFilter ? ` · ${formatDate(dateFilter)}` : ""}
+                    </span>
+                    {hasTripFilters && visibleTrips.length > 0 && (
+                      <button type="button" onClick={clearTripFilters}>
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </div>
+
+                  {selectedTrips.length > 0 && (
+                    <div className="bulk-action-bar" role="status">
+                      <span>
+                        <strong>{selectedTrips.length}</strong>{" "}
+                        {selectedTrips.length === 1
+                          ? "viaje seleccionado"
+                          : "viajes seleccionados"}
+                      </span>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTrips([])}
+                          disabled={busy}
+                        >
+                          Quitar selección
+                        </button>
+                        <button
+                          type="button"
+                          className="primary"
+                          onClick={() => void markSelectedRequested()}
+                          disabled={busy}
+                        >
+                          {busy
+                            ? "Actualizando…"
+                            : `Marcar ${selectedTrips.length} como ${selectedTrips.length === 1 ? "solicitado" : "solicitados"}`}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {visibleTrips.length ? (
+                    <div
+                      className="table-wrap"
+                      role="region"
+                      aria-label="Listado de viajes"
+                      tabIndex={0}
+                    >
+                      <table>
+                        <thead>
+                          <tr>
+                            <th className="selection-cell">
+                              <label className="selection-toggle">
+                                <input
+                                  type="checkbox"
+                                  aria-label="Seleccionar todos los viajes planificados visibles"
+                                  checked={
+                                    requestableTrips.length > 0 &&
+                                    requestableTrips.every((trip) =>
+                                      selectedTrips.includes(trip.id),
+                                    )
+                                  }
+                                  onChange={(event) => {
+                                    const ids = requestableTrips.map(
+                                      (trip) => trip.id,
+                                    );
+                                    setSelectedTrips((current) =>
+                                      event.target.checked
+                                        ? Array.from(
+                                            new Set([...current, ...ids]),
+                                          )
+                                        : current.filter(
+                                            (id) => !ids.includes(id),
+                                          ),
+                                    );
+                                  }}
+                                  disabled={!requestableTrips.length}
+                                />
+                              </label>
+                            </th>
+                            <th>Persona y ruta</th>
+                            <th>Fecha</th>
+                            <th>Movimiento</th>
+                            <th>Hora</th>
+                            <th>Estado</th>
+                            <th>Reserva</th>
+                            <th>
+                              <span className="sr-only">Acciones</span>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visibleTrips.map((trip) => (
+                            <tr key={trip.id}>
+                              <td
+                                data-label="Seleccionar"
+                                className="selection-cell"
+                              >
+                                {trip.status === "Planificado" &&
+                                trip.date >= localDate() ? (
+                                  <label className="selection-toggle">
+                                    <input
+                                      type="checkbox"
+                                      aria-label={`Seleccionar viaje de ${personName(trip.person_id)} del ${formatDate(trip.date)}`}
+                                      checked={selectedTrips.includes(trip.id)}
+                                      onChange={(event) =>
+                                        setSelectedTrips((current) =>
+                                          event.target.checked
+                                            ? [...current, trip.id]
+                                            : current.filter(
+                                                (id) => id !== trip.id,
+                                              ),
+                                        )
+                                      }
+                                    />
+                                  </label>
+                                ) : (
+                                  <span aria-hidden="true">—</span>
+                                )}
+                              </td>
+                              <td data-label="Persona y ruta">
+                                <strong>{personName(trip.person_id)}</strong>
+                                <small>
+                                  {trip.origin} → {trip.destination}
+                                </small>
+                              </td>
+                              <td data-label="Fecha">
+                                {formatDate(trip.date)}
+                              </td>
+                              <td data-label="Movimiento">
+                                <span
+                                  className={`direction ${trip.direction.toLowerCase()}`}
+                                >
+                                  {trip.direction === "SUBIDA" ? (
+                                    <ArrowUpRight size={16} />
+                                  ) : (
+                                    <ArrowDownLeft size={16} />
+                                  )}
+                                  {trip.direction === "SUBIDA"
+                                    ? "Subida"
+                                    : "Bajada"}
+                                </span>
+                              </td>
+                              <td data-label="Hora">
+                                {trip.requested_time?.slice(0, 5) ||
+                                  "Por confirmar"}
+                              </td>
+                              <td data-label="Estado">
+                                <span
+                                  className={`status-pill ${statusClass(trip.status)}`}
+                                >
+                                  {trip.status}
+                                </span>
+                              </td>
+                              <td data-label="Reserva">{trip.pnr || "—"}</td>
+                              <td data-label="Acciones" className="row-actions">
+                                <button
+                                  type="button"
+                                  onClick={() => openTrip(trip)}
+                                >
+                                  Abrir <ArrowUpRight size={15} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="icon-button"
+                                  aria-label={`Ver historial de ${personName(trip.person_id)}`}
+                                  onClick={() => void showHistory(trip)}
+                                >
+                                  <Clock size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={<Plane />}
+                      title={
+                        hasTripFilters
+                          ? "No hay viajes con estos filtros"
+                          : "Aún no hay viajes"
+                      }
+                      description={
+                        hasTripFilters
+                          ? "Cambia los filtros para ampliar la búsqueda."
+                          : people.length
+                            ? "Agrega un viaje o planifica el calendario de los turnos 4×3."
+                            : "Primero registra a las personas que viajarán."
+                      }
+                      action={
+                        hasTripFilters
+                          ? "Limpiar filtros"
+                          : people.length
+                            ? "Nuevo viaje"
+                            : "Ir a personas"
+                      }
+                      onAction={
+                        hasTripFilters
+                          ? clearTripFilters
+                          : people.length
+                            ? () => openTrip(null)
+                            : () => navigate("Personas")
+                      }
+                    />
+                  )}
+                  <div className="integration-note">
+                    <Plane size={17} />
+                    <span>
+                      <strong>Tarifas en vivo aún no conectadas.</strong> El
+                      monto se registra al confirmar el pasaje.
+                    </span>
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+          <footer className="workspace-footer">
+            <span>FCC TRAVEL / Copiapó</span>
+            <span>Personas · Planificación · Pasajes</span>
+          </footer>
+        </main>
+      </div>
+
+      {modal && (
+        <div
+          className="overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !busy) closeModal();
+          }}
+        >
+          <section
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dialog-title"
+            aria-describedby="dialog-description"
+          >
+            <header className="dialog-head">
+              <div>
+                <span className="section-kicker">
+                  {modal === "person"
+                    ? "DIRECTORIO"
+                    : modal === "generate"
+                      ? "PLANIFICACIÓN 4×3"
+                      : modal === "history"
+                        ? "TRAZABILIDAD"
+                        : "REGISTRO DE VIAJE"}
+                </span>
+                <h2 id="dialog-title">
+                  {modal === "person"
+                    ? editPerson
+                      ? "Editar persona"
+                      : pendingTripDate
+                        ? "Primero, agrega una persona"
+                        : "Nueva persona"
+                    : modal === "trip"
+                      ? editTrip
+                        ? "Editar viaje"
+                        : "Nuevo viaje"
+                      : modal === "generate"
+                        ? "Crear calendario 4×3"
+                        : "Historial del viaje"}
+                </h2>
+                <p id="dialog-description">
+                  {modal === "person"
+                    ? pendingTripDate
+                      ? `Al guardarla, continuaremos con el viaje del ${formatDate(pendingTripDate)}.`
+                      : "Define su ruta habitual, turno y vigencia."
+                    : modal === "trip"
+                      ? "Registra el movimiento y completa la reserva cuando corresponda."
+                      : modal === "generate"
+                        ? "Crea subidas los lunes y bajadas los jueves sin duplicar viajes."
+                        : editTrip
+                          ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
+                          : "Cambios registrados en este viaje."}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Cerrar"
+                disabled={busy}
+                onClick={closeModal}
+              >
+                <X size={20} />
+              </button>
+            </header>
+
+            {formError && (
+              <p
+                role="alert"
+                tabIndex={-1}
+                className="message error-message dialog-error"
+              >
+                {formError}
+              </p>
+            )}
+
+            {modal === "person" && (
+              <form onSubmit={savePerson} aria-busy={busy}>
+                <div className="dialog-body">
+                  <section
+                    className="form-section"
+                    aria-labelledby="person-main"
+                  >
+                    <h3 id="person-main">Datos de la persona</h3>
+                    <label>
+                      Nombre completo
+                      <input
+                        data-autofocus
+                        name="name"
+                        required
+                        minLength={2}
+                        maxLength={180}
+                        defaultValue={editPerson?.name}
+                      />
+                    </label>
+                    <div className="form-grid">
+                      <label>
+                        Origen habitual
+                        <input
+                          name="origin"
+                          required
+                          defaultValue={editPerson?.origin}
+                          placeholder="Santiago"
+                        />
+                      </label>
+                      <label>
+                        Destino de subida
+                        <input
+                          name="destination"
+                          required
+                          defaultValue={editPerson?.destination ?? "Copiapó"}
+                        />
+                      </label>
+                    </div>
+                  </section>
+                  <section
+                    className="form-section"
+                    aria-labelledby="person-schedule"
+                  >
+                    <h3 id="person-schedule">Turno y vigencia</h3>
+                    <div className="form-grid">
+                      <label>
+                        Turno
+                        <select
+                          name="shift"
+                          defaultValue={editPerson?.shift ?? "4×3"}
+                        >
+                          <option>4×3</option>
+                          <option>10×10</option>
+                        </select>
+                      </label>
+                      <label>
+                        Primera subida / inicio
+                        <input
+                          name="start_date"
+                          type="date"
+                          required
+                          defaultValue={
+                            editPerson?.start_date ??
+                            nextWeekday(localDate(), 1)
+                          }
+                        />
+                      </label>
+                      <label>
+                        Vigente hasta <small>(opcional)</small>
+                        <input
+                          name="end_date"
+                          type="date"
+                          defaultValue={editPerson?.end_date ?? ""}
+                        />
+                      </label>
+                      <label>
+                        Equipaje habitual
+                        <select
+                          name="baggage"
+                          defaultValue={editPerson?.baggage ?? "Por confirmar"}
+                        >
+                          {baggageOptions.map((option) => (
+                            <option key={option}>{option}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <label className="check-field">
+                      <input
+                        name="active"
+                        type="checkbox"
+                        defaultChecked={editPerson?.active ?? true}
+                      />
+                      <span>
+                        <strong>Persona activa</strong>
+                        <small>
+                          Puede recibir nuevos viajes y planificación.
+                        </small>
+                      </span>
+                    </label>
+                    <p className="hint">
+                      Para 4×3, el inicio debe ser lunes. Las fechas 10×10 se
+                      registran manualmente.
+                    </p>
+                  </section>
+                </div>
+                <DialogActions
+                  busy={busy}
+                  busyLabel="Guardando…"
+                  submitLabel="Guardar persona"
+                  onCancel={closeModal}
+                />
+              </form>
+            )}
+
+            {modal === "trip" && (
+              <form onSubmit={saveTrip} aria-busy={busy}>
+                <div className="dialog-body">
+                  {editTrip && (
+                    <button
+                      type="button"
+                      className="context-link"
+                      onClick={() => void showHistory(editTrip)}
+                    >
+                      <Clock size={16} /> Ver historial del viaje
+                    </button>
+                  )}
+                  <section className="form-section" aria-labelledby="trip-main">
+                    <h3 id="trip-main">Movimiento</h3>
+                    <label>
+                      Persona
+                      {editTrip && (
+                        <input
+                          type="hidden"
+                          name="person_id"
+                          value={editTrip.person_id}
+                        />
+                      )}
+                      <select
+                        data-autofocus
+                        disabled={Boolean(editTrip)}
+                        name="person_id"
+                        required
+                        defaultValue={editTrip?.person_id ?? newPerson}
+                        onChange={(event) =>
+                          fillRoute(
+                            event.currentTarget.form,
+                            event.currentTarget.value,
+                          )
+                        }
+                      >
+                        <option value="" disabled>
+                          Seleccionar persona
+                        </option>
+                        {people.map((person) => (
+                          <option
+                            key={person.id}
+                            value={person.id}
+                            disabled={!person.active}
+                          >
+                            {person.name}
+                            {!person.active ? " · inactiva" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {editTrip && (
+                        <small>
+                          La persona se mantiene para conservar la trazabilidad.
+                        </small>
+                      )}
+                    </label>
+                    <div className="form-grid">
+                      <label>
+                        Fecha
+                        <input
+                          name="date"
+                          type="date"
+                          required
+                          defaultValue={editTrip?.date ?? newDate}
+                        />
+                      </label>
+                      <label>
+                        Movimiento
+                        {editTrip && (
+                          <input
+                            type="hidden"
+                            name="direction"
+                            value={editTrip.direction}
+                          />
+                        )}
+                        <select
+                          disabled={Boolean(editTrip)}
+                          name="direction"
+                          defaultValue={editTrip?.direction ?? "SUBIDA"}
+                          onChange={(event) =>
+                            fillRoute(
+                              event.currentTarget.form,
+                              undefined,
+                              event.currentTarget.value,
+                            )
+                          }
+                        >
+                          <option value="SUBIDA">Subida</option>
+                          <option value="BAJADA">Bajada</option>
+                        </select>
+                        {editTrip && (
+                          <small>
+                            El sentido identifica este registro y no se cambia.
+                          </small>
+                        )}
+                      </label>
+                      <label>
+                        Origen
+                        <input
+                          name="origin"
+                          defaultValue={
+                            editTrip?.origin ??
+                            peopleById.get(newPerson)?.origin ??
+                            activePeople[0]?.origin
+                          }
+                          placeholder="Usar ruta habitual"
+                        />
+                      </label>
+                      <label>
+                        Destino
+                        <input
+                          name="destination"
+                          defaultValue={
+                            editTrip?.destination ??
+                            peopleById.get(newPerson)?.destination ??
+                            activePeople[0]?.destination
+                          }
+                          placeholder="Usar ruta habitual"
+                        />
+                      </label>
+                      <label>
+                        Hora requerida
+                        <input
+                          name="requested_time"
+                          type="time"
+                          defaultValue={editTrip?.requested_time?.slice(0, 5)}
+                        />
+                      </label>
+                      <label>
+                        Equipaje
+                        <select
+                          name="baggage"
+                          defaultValue={
+                            editTrip?.baggage ??
+                            peopleById.get(newPerson)?.baggage ??
+                            activePeople[0]?.baggage ??
+                            "Por confirmar"
+                          }
+                        >
+                          {baggageOptions.map((option) => (
+                            <option key={option}>{option}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section
+                    className="form-section"
+                    aria-labelledby="trip-status"
+                  >
+                    <h3 id="trip-status">Estado</h3>
+                    <label>
+                      Estado del viaje
+                      <select
+                        name="status"
+                        value={tripStatus}
+                        onChange={(event) => {
+                          setTripStatus(event.target.value);
+                          if (event.target.value !== "Planificado") {
+                            setReservationOpen(true);
+                          }
+                        }}
+                      >
+                        {statuses.map((status) => (
+                          <option key={status}>{status}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <details
+                      className="form-disclosure"
+                      open={reservationOpen || reservationRequired}
+                      onToggle={(event) => {
+                        if (reservationRequired && !event.currentTarget.open) {
+                          event.currentTarget.open = true;
+                          setReservationOpen(true);
+                        } else {
+                          setReservationOpen(event.currentTarget.open);
+                        }
+                      }}
+                    >
+                      <summary
+                        aria-disabled={reservationRequired || undefined}
+                        onClick={(event) => {
+                          if (reservationRequired) event.preventDefault();
+                        }}
+                      >
+                        <span>
+                          <strong>Datos de reserva</strong>
+                          <small>
+                            PNR, vuelo y monto cuando estén disponibles
+                          </small>
+                        </span>
+                        <ChevronRight size={18} />
+                      </summary>
+                      <div className="form-grid disclosure-content">
+                        <label>
+                          Código de reserva
+                          <input
+                            name="pnr"
+                            defaultValue={editTrip?.pnr}
+                            maxLength={40}
+                            required={reservationRequired}
+                          />
+                        </label>
+                        <label>
+                          Aerolínea y vuelo
+                          <input
+                            name="flight"
+                            defaultValue={editTrip?.flight}
+                            placeholder="Ej. LA 112"
+                          />
+                        </label>
+                        <label>
+                          Monto por persona (CLP)
+                          <input
+                            name="amount"
+                            type="number"
+                            min="0"
+                            step="1"
+                            defaultValue={editTrip?.amount ?? ""}
+                          />
+                        </label>
+                      </div>
+                    </details>
+                  </section>
+
+                  <section
+                    className="form-section"
+                    aria-labelledby="trip-notes"
+                  >
+                    <h3 id="trip-notes">Observaciones</h3>
+                    <label>
+                      Información útil <small>(opcional)</small>
+                      <textarea
+                        name="notes"
+                        defaultValue={editTrip?.notes}
+                        placeholder="Restricciones horarias, equipaje o acuerdos."
+                      />
+                    </label>
+                    {editTrip && (
+                      <label>
+                        Motivo de este cambio
+                        <textarea
+                          name="change_reason"
+                          required
+                          placeholder="Describe brevemente qué cambió y por qué."
+                        />
+                      </label>
+                    )}
+                    <p className="hint">
+                      Los montos los registra el equipo. Cambiar a Solicitado
+                      indica que la solicitud ya fue enviada.
+                    </p>
+                  </section>
+                </div>
+                <DialogActions
+                  busy={busy}
+                  busyLabel="Guardando…"
+                  submitLabel="Guardar viaje"
+                  onCancel={closeModal}
+                />
+              </form>
+            )}
+
+            {modal === "generate" && (
+              <form onSubmit={generateTrips} aria-busy={busy}>
+                <div className="dialog-body">
+                  <section className="form-section generate-section">
+                    <div
+                      className="pulse-example"
+                      aria-label="Regla de turno 4 por 3"
+                    >
+                      <span className="four">
+                        Lun <strong>Subida</strong>
+                      </span>
+                      <ChevronRight size={16} />
+                      <span>Mar</span>
+                      <span>Mié</span>
+                      <ChevronRight size={16} />
+                      <span className="four">
+                        Jue <strong>Bajada</strong>
+                      </span>
+                    </div>
+                    <label>
+                      Personas a planificar
+                      <select
+                        data-autofocus
+                        name="person_id"
+                        value={generateSelection}
+                        onChange={(event) =>
+                          setGenerateSelection(event.target.value)
+                        }
+                      >
+                        <option value="all">
+                          Todas las personas 4×3 activas (
+                          {eligibleFourByThree.length})
+                        </option>
+                        {eligibleFourByThree.map((person) => (
+                          <option key={person.id} value={person.id}>
+                            {person.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Generar hasta
+                      <input
+                        type="date"
+                        name="until"
+                        required
+                        min={localDate()}
+                        value={generateUntil}
+                        onChange={(event) =>
+                          setGenerateUntil(event.target.value)
+                        }
+                      />
+                    </label>
+                    <div className="generation-preview" aria-live="polite">
+                      <span>Se agregarán</span>
+                      <strong>{generationPreview} viajes</strong>
+                      <small>
+                        para {generationPeople.length}{" "}
+                        {generationPeople.length === 1 ? "persona" : "personas"}
+                        . Los viajes existentes no se duplican.
+                      </small>
+                    </div>
+                  </section>
+                </div>
+                <DialogActions
+                  busy={busy}
+                  busyLabel="Generando…"
+                  submitLabel={`Generar ${generationPreview} viajes`}
+                  submitDisabled={!generationPreview}
+                  onCancel={closeModal}
+                />
+              </form>
+            )}
+
+            {modal === "history" && (
+              <div className="history-view">
+                <div className="dialog-body">
+                  {editTrip && (
+                    <button
+                      type="button"
+                      className="context-link"
+                      onClick={() => openTrip(editTrip)}
+                    >
+                      <ArrowDownLeft size={16} /> Volver al viaje
+                    </button>
+                  )}
+                  {historyLoading ? (
+                    <div className="history-loading" aria-live="polite">
+                      <span className="loading-mark" aria-hidden="true" />
+                      <p>Cargando cambios…</p>
+                    </div>
+                  ) : demo ? (
+                    <EmptyState
+                      icon={<Clock />}
+                      title="Historial disponible en la operación"
+                      description="La demostración no guarda cambios permanentes."
+                    />
+                  ) : history.length ? (
+                    <div className="history-list">
+                      {history.map((item) => (
+                        <article className="history-item" key={item.id}>
+                          <span className="history-dot" aria-hidden="true" />
+                          <div>
+                            <strong>
+                              {item.action === "INSERT"
+                                ? "Viaje creado"
+                                : "Viaje actualizado"}
+                            </strong>
+                            <small>
+                              {formatDateTime(item.created_at)} · Usuario{" "}
+                              {item.actor?.slice(0, 8)}
+                            </small>
+                            <p>
+                              {String(
+                                item.after_data?.notes || "Sin observaciones",
+                              )}{" "}
+                              · {String(item.after_data?.status || "")}
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={<Clock />}
+                      title="Sin cambios anteriores"
+                      description="Este viaje todavía no tiene cambios registrados."
+                    />
+                  )}
+                </div>
+                <div className="dialog-actions">
+                  <button type="button" onClick={closeModal}>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
+
+  function fillRoute(
+    form: HTMLFormElement | null,
+    personId?: string,
+    directionOverride?: string,
+  ) {
+    if (!form) return;
+    const personSelect = form.elements.namedItem(
+      "person_id",
+    ) as HTMLSelectElement;
+    const directionSelect = form.elements.namedItem(
+      "direction",
+    ) as HTMLSelectElement;
+    const person = peopleById.get(personId ?? personSelect.value);
+    if (!person) return;
+    const direction = directionOverride ?? directionSelect.value;
+    const down = direction === "BAJADA";
+    (form.elements.namedItem("origin") as HTMLInputElement).value = down
+      ? person.destination
+      : person.origin;
+    (form.elements.namedItem("destination") as HTMLInputElement).value = down
+      ? person.origin
+      : person.destination;
+    (form.elements.namedItem("baggage") as HTMLSelectElement).value =
+      person.baggage;
+  }
+}
+
+function AgendaView({
+  nextTrip,
+  plannedCount,
+  requestedCount,
+  activeCount,
+  personName,
+  onTrip,
+  onPlanned,
+  onRequested,
+  onPeople,
+  onGenerate,
+  children,
+}: {
+  nextTrip?: Trip;
+  plannedCount: number;
+  requestedCount: number;
+  activeCount: number;
+  personName: (id: string) => string;
+  onTrip: (trip: Trip) => void;
+  onPlanned: () => void;
+  onRequested: () => void;
+  onPeople: () => void;
+  onGenerate: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <section className="overview-strip" aria-label="Resumen operativo">
+        <button
+          type="button"
+          className="overview-card next"
+          onClick={() => nextTrip && onTrip(nextTrip)}
+          disabled={!nextTrip}
+        >
+          <span>Próximo movimiento</span>
+          {nextTrip ? (
+            <>
+              <strong>{formatDate(nextTrip.date)}</strong>
+              <small>
+                {personName(nextTrip.person_id)} ·{" "}
+                {nextTrip.requested_time?.slice(0, 5) || "hora pendiente"}
+              </small>
+            </>
+          ) : (
+            <>
+              <strong>Sin viajes próximos</strong>
+              <small>La agenda está despejada</small>
+            </>
+          )}
+          <ChevronRight size={18} />
+        </button>
+        <button type="button" className="overview-card" onClick={onPlanned}>
+          <span>Por solicitar</span>
+          <strong>{plannedCount}</strong>
+          <small>Viajes planificados</small>
+          <ChevronRight size={18} />
+        </button>
+        <button type="button" className="overview-card" onClick={onRequested}>
+          <span>Pendientes de confirmación</span>
+          <strong>{requestedCount}</strong>
+          <small>Solicitudes enviadas</small>
+          <ChevronRight size={18} />
+        </button>
+        <button type="button" className="overview-card" onClick={onPeople}>
+          <span>Personas activas</span>
+          <strong>{activeCount}</strong>
+          <small>En el proyecto</small>
+          <ChevronRight size={18} />
+        </button>
+      </section>
+      <div className="agenda-actions">
+        <button
+          type="button"
+          className="shift-action four"
+          onClick={onGenerate}
+        >
+          <CalendarDays size={17} /> Planificar turnos 4×3
+        </button>
+        <p>
+          <span className="shift-dot ten" /> Los turnos 10×10 se agregan con sus
+          fechas confirmadas.
+        </p>
+      </div>
+      {children}
+    </>
+  );
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  onAction,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="empty-state">
+      <span className="empty-icon">{icon}</span>
+      <h3>{title}</h3>
+      <p>{description}</p>
+      {action && onAction && (
+        <button type="button" onClick={onAction}>
+          {action}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DialogActions({
+  busy,
+  busyLabel,
+  submitLabel,
+  submitDisabled = false,
+  onCancel,
+}: {
+  busy: boolean;
+  busyLabel: string;
+  submitLabel: string;
+  submitDisabled?: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="dialog-actions">
+      <button type="button" onClick={onCancel} disabled={busy}>
+        Cancelar
+      </button>
+      <button className="primary" disabled={busy || submitDisabled}>
+        {busy ? busyLabel : submitLabel}
+      </button>
+    </div>
+  );
 }

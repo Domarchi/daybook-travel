@@ -1,3 +1,27 @@
-import './globals.css';
-export const metadata = {title:'FCC TRAVEL · Copiapó',description:'Planificación de personas y viajes de obra.'};
-export default function Layout({children}:{children:React.ReactNode}){return <html lang="es" data-theme="dark" suppressHydrationWarning><body>{children}</body></html>}
+import type { Metadata } from "next";
+
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "FCC TRAVEL · Copiapó",
+  description: "Planificación de personas y viajes de obra.",
+};
+
+const themeInitializer = `
+  try {
+    const savedTheme = window.localStorage.getItem("fcc-travel-theme");
+    document.documentElement.dataset.theme =
+      savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+  } catch {}
+`;
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="es" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
