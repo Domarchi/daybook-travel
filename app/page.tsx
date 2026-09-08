@@ -25,194 +25,33 @@ import YearView from "./year-view";
 import ExcelSyncPanel from "./excel-sync-panel";
 import { db } from "../lib/supabase";
 import { addDays, pulseDates } from "../lib/calendar";
-
-type Person = {
-  id: string;
-  version?: number | null;
-  employee_code?: string | null;
-  name: string;
-  origin: string;
-  destination: string;
-  shift: string;
-  start_date: string;
-  end_date: string | null;
-  baggage: string;
-  active: boolean;
-  updated_at?: string;
-};
-
-type Trip = {
-  id: string;
-  version?: number | null;
-  person_id: string;
-  date: string;
-  planned_date?: string | null;
-  direction: string;
-  origin: string;
-  destination: string;
-  requested_time: string | null;
-  baggage: string;
-  status: string;
-  pnr: string;
-  flight: string;
-  amount: number | null;
-  notes: string;
-  updated_at?: string;
-};
-
-type HistoryItem = {
-  id: number;
-  action: string;
-  created_at: string;
-  actor: string;
-  after_data: Record<string, unknown>;
-};
-
-type AccessStatus = "checking" | "allowed" | "denied" | "error";
-type ModalName = "person" | "trip" | "generate" | "history" | "excel" | null;
-
-const statuses = [
-  "Planificado",
-  "Solicitado",
-  "Emitido",
-  "Completado",
-  "Anulado",
-  "No presentado",
-];
-
-const baggageOptions = [
-  "Por confirmar",
-  "Mochila",
-  "Maleta de cabina",
-  "Maleta en bodega",
-];
+import { makeDemoPeople, makeDemoTrips } from "../lib/demo";
+import {
+  formatDate,
+  formatDateTime,
+  localDate,
+  nextWeekday,
+  normalize,
+  statusClass,
+} from "../lib/format";
+// Se importan con los nombres locales de siempre para no tocar el JSX que los usa.
+import {
+  BAGGAGE_OPTIONS as baggageOptions,
+  TRIP_STATUSES as statuses,
+} from "../lib/types";
+import type {
+  AccessStatus,
+  HistoryItem,
+  ModalName,
+  Person,
+  Trip,
+} from "../lib/types";
 
 const navItems = [
   { label: "Agenda", icon: CalendarDays },
   { label: "Personas", icon: Users },
   { label: "Viajes", icon: Plane },
 ];
-
-const localDate = () =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Santiago",
-  }).format(new Date());
-
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat("es-CL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(date + "T12:00:00Z"));
-
-const formatDateTime = (date: string) =>
-  new Intl.DateTimeFormat("es-CL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
-
-const normalize = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es-CL")
-    .trim();
-
-const statusClass = (status: string) =>
-  "status-" + normalize(status).replaceAll(" ", "-");
-
-function nextWeekday(date: string, weekday: number) {
-  const current = new Date(date + "T12:00:00Z").getUTCDay();
-  return addDays(date, (weekday - current + 7) % 7);
-}
-
-function makeDemoPeople(): Person[] {
-  const firstMonday = nextWeekday(localDate(), 1);
-  return [
-    {
-      id: "p1",
-      name: "Persona de ejemplo 1",
-      origin: "Santiago",
-      destination: "Copiapó",
-      shift: "4×3",
-      start_date: firstMonday,
-      end_date: null,
-      baggage: "Mochila",
-      active: true,
-    },
-    {
-      id: "p2",
-      name: "Persona de ejemplo 2",
-      origin: "Concepción",
-      destination: "Copiapó",
-      shift: "10×10",
-      start_date: firstMonday,
-      end_date: null,
-      baggage: "Maleta en bodega",
-      active: true,
-    },
-  ];
-}
-
-function makeDemoTrips(people: Person[]): Trip[] {
-  const firstMonday = people[0].start_date;
-  const fourByThree = pulseDates(firstMonday, addDays(firstMonday, 35)).map(
-    (row, index) => ({
-      id: "t" + index,
-      person_id: "p1",
-      ...row,
-      origin: row.direction === "SUBIDA" ? "Santiago" : "Copiapó",
-      destination: row.direction === "SUBIDA" ? "Copiapó" : "Santiago",
-      requested_time: index === 0 ? "08:30" : null,
-      baggage: "Mochila",
-      status:
-        index === 0 ? "Solicitado" : index === 1 ? "Emitido" : "Planificado",
-      pnr: index === 1 ? "DEMO01" : "",
-      flight: index === 1 ? "LA 112" : "",
-      amount: index === 1 ? 84990 : null,
-      notes: "",
-    }),
-  );
-  const tenByTen: Trip[] = [
-    {
-      id: "t-10x10-up",
-      person_id: "p2",
-      date: firstMonday,
-      direction: "SUBIDA",
-      origin: "Concepción",
-      destination: "Copiapó",
-      requested_time: "09:00",
-      baggage: "Maleta en bodega",
-      status: "Planificado",
-      pnr: "",
-      flight: "",
-      amount: null,
-      notes: "",
-    },
-    {
-      id: "t-10x10-down",
-      person_id: "p2",
-      date: addDays(firstMonday, 10),
-      direction: "BAJADA",
-      origin: "Copiapó",
-      destination: "Concepción",
-      requested_time: "17:00",
-      baggage: "Maleta en bodega",
-      status: "Planificado",
-      pnr: "",
-      flight: "",
-      amount: null,
-      notes: "",
-    },
-  ];
-  return [...fourByThree, ...tenByTen].sort((a, b) =>
-    a.date.localeCompare(b.date),
-  );
-}
 
 export default function App() {
   const [theme, setTheme] = useState("dark");

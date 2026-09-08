@@ -17,29 +17,13 @@ import {
   X,
 } from "lucide-react";
 import { addDays } from "../lib/calendar";
-
-type Travel = {
-  id: string;
-  date: string;
-  person_id: string;
-  direction: string;
-  origin: string;
-  destination: string;
-  status: string;
-  requested_time: string | null;
-};
-
-type Member = {
-  id: string;
-  name: string;
-  shift: string;
-};
+import type { Person, Trip } from "../lib/types";
 
 type CalendarProps = {
   selected: string | null;
   onSelect: (date: string | null) => void;
-  trips: Travel[];
-  people: Member[];
+  trips: Trip[];
+  people: Person[];
   onTrip: (id: string) => void;
   onAdd: (date: string) => void;
   month: string;
@@ -150,7 +134,7 @@ export default function YearView({
   );
 
   const byDay = useMemo(() => {
-    const result = new Map<string, Travel[]>();
+    const result = new Map<string, Trip[]>();
     for (const trip of trips) {
       const memberShift = members.get(trip.person_id)?.shift;
       if (

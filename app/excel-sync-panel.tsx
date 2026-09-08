@@ -22,44 +22,11 @@ import {
   type ExcelSyncResult,
   type ExcelSyncValidationError,
 } from "../lib/excel-sync";
-
-type CurrentPerson = {
-  id: string;
-  version?: number | null;
-  employee_code?: string | null;
-  name: string;
-  origin: string;
-  destination: string;
-  shift: string;
-  start_date: string;
-  end_date: string | null;
-  baggage: string;
-  active: boolean;
-  updated_at?: string;
-};
-
-type CurrentTrip = {
-  id: string;
-  version?: number | null;
-  person_id: string;
-  date: string;
-  planned_date?: string | null;
-  direction: string;
-  origin: string;
-  destination: string;
-  requested_time: string | null;
-  baggage: string;
-  status: string;
-  pnr: string;
-  flight: string;
-  amount: number | null;
-  notes: string;
-  updated_at?: string;
-};
+import type { Person, Trip } from "../lib/types";
 
 type Props = {
-  people: CurrentPerson[];
-  trips: CurrentTrip[];
+  people: Person[];
+  trips: Trip[];
   demo: boolean;
   onClose: () => void;
   onBusyChange?: (busy: boolean) => void;
@@ -897,8 +864,8 @@ export default function ExcelSyncPanel({
 
 function buildPreviewLines(
   payload: ExcelSyncPayload,
-  people: CurrentPerson[],
-  trips: CurrentTrip[],
+  people: Person[],
+  trips: Trip[],
 ) {
   const lines: PreviewLine[] = [];
   const currentPeople = new Map(people.map((person) => [person.id, person]));

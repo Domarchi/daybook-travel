@@ -1,20 +1,13 @@
-export const SHIFTS = ["Por confirmar", "4×3", "10×10"] as const;
-export const TRIP_DIRECTIONS = ["SUBIDA", "BAJADA"] as const;
-export const TRIP_STATUSES = [
-  "Planificado",
-  "Solicitado",
-  "Emitido",
-  "Completado",
-  "Anulado",
-  "No presentado",
-] as const;
-export const BAGGAGE_OPTIONS = [
-  "Por confirmar",
-  "Mochila",
-  "Maleta de cabina",
-  "Maleta en bodega",
-] as const;
-
+// El vocabulario del dominio vive en ./types.ts; se reexporta para no cambiar
+// la interfaz pública de este módulo.
+import { TRIP_STATUSES } from "./types.ts";
+import type { Baggage, Shift, TripDirection, TripStatus } from "./types.ts";
+export {
+  SHIFTS,
+  TRIP_DIRECTIONS,
+  TRIP_STATUSES,
+  BAGGAGE_OPTIONS,
+} from "./types.ts";
 export const PERSON_EXCEL_FIELDS = [
   "fccId",
   "codigoPersona",
@@ -56,10 +49,7 @@ export const TRIP_EXCEL_FIELDS = [
   "errorSincronizacion",
 ] as const;
 
-export type Shift = (typeof SHIFTS)[number];
-export type TripDirection = (typeof TRIP_DIRECTIONS)[number];
-export type TripStatus = (typeof TRIP_STATUSES)[number];
-export type Baggage = (typeof BAGGAGE_OPTIONS)[number];
+export type { Shift, TripDirection, TripStatus, Baggage } from "./types.ts";
 export type ExcelCell = unknown;
 export type ExcelRow = Record<string, unknown>;
 
