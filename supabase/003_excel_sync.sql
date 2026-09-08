@@ -489,7 +489,7 @@ begin
       end if;
       if v_status not in (
         'Planificado', 'Solicitado', 'Emitido',
-        'Volado', 'Anulado', 'No presentado'
+        'Completado', 'Anulado', 'No presentado'
       ) then
         raise exception 'El estado del viaje no es válido';
       end if;
@@ -501,7 +501,7 @@ begin
       if v_amount is not null and v_amount < 0 then
         raise exception 'El monto no puede ser negativo';
       end if;
-      if v_status in ('Emitido', 'Volado', 'No presentado') and v_pnr = '' then
+      if v_status in ('Emitido', 'Completado', 'No presentado') and v_pnr = '' then
         raise exception 'Registra el código de reserva para este estado';
       end if;
 

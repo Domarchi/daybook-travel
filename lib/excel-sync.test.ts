@@ -220,7 +220,7 @@ test("exige versión para registros existentes y PNR en estados emitidos", () =>
       origen: "Santiago",
       destino: "Copiapó",
       equipaje: "Mochila",
-      estado: "Volado",
+      estado: "Completado",
       pnr: "",
     },
     10,

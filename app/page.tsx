@@ -75,7 +75,7 @@ const statuses = [
   "Planificado",
   "Solicitado",
   "Emitido",
-  "Volado",
+  "Completado",
   "Anulado",
   "No presentado",
 ];
@@ -429,7 +429,7 @@ export default function App() {
         .filter(
           (trip) =>
             trip.date >= localDate() &&
-            !["Anulado", "Volado", "No presentado"].includes(trip.status),
+            !["Anulado", "Completado", "No presentado"].includes(trip.status),
         )
         .sort((a, b) => a.date.localeCompare(b.date)),
     [trips],
@@ -474,7 +474,7 @@ export default function App() {
     [generationPeople, generateUntil, trips],
   );
 
-  const reservationRequired = ["Emitido", "Volado", "No presentado"].includes(
+  const reservationRequired = ["Emitido", "Completado", "No presentado"].includes(
     tripStatus,
   );
 
@@ -747,7 +747,7 @@ export default function App() {
         );
       }
       if (
-        ["Emitido", "Volado", "No presentado"].includes(trip.status) &&
+        ["Emitido", "Completado", "No presentado"].includes(trip.status) &&
         !trip.pnr
       ) {
         throw new Error("Registra el código de reserva para este estado.");

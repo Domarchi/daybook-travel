@@ -15,10 +15,10 @@ create table public.trips (
  id uuid primary key default gen_random_uuid(), person_id uuid not null references public.people(id),
  date date not null, direction text not null check(direction in ('SUBIDA','BAJADA')),
  origin text not null, destination text not null, requested_time time, baggage text not null default 'Por confirmar',
- status text not null default 'Planificado' check(status in ('Planificado','Solicitado','Emitido','Volado','Anulado','No presentado')),
+ status text not null default 'Planificado' check(status in ('Planificado','Solicitado','Emitido','Completado','Anulado','No presentado')),
  pnr text not null default '', flight text not null default '', amount numeric(12,2) check(amount>=0),
  notes text not null default '', updated_at timestamptz not null default now(),
- unique(person_id,date,direction), check(status not in ('Emitido','Volado','No presentado') or length(trim(pnr))>0)
+ unique(person_id,date,direction), check(status not in ('Emitido','Completado','No presentado') or length(trim(pnr))>0)
 );
 create table public.history(id bigint generated always as identity primary key, entity text not null, record_id uuid not null, actor uuid, action text not null, before_data jsonb, after_data jsonb, created_at timestamptz not null default now());
 alter table public.people enable row level security;

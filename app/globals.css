@@ -1262,9 +1262,9 @@ td > strong {
 }
 
 .status-emitido,
-.status-volado,
+.status-completado,
 .status-pill.Emitido,
-.status-pill.Volado {
+.status-pill.Completado {
   border-color: color-mix(in srgb, var(--success) 35%, var(--border));
   background: color-mix(in srgb, var(--success) 10%, var(--surface));
   color: var(--success);

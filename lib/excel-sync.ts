@@ -4,7 +4,7 @@ export const TRIP_STATUSES = [
   "Planificado",
   "Solicitado",
   "Emitido",
-  "Volado",
+  "Completado",
   "Anulado",
   "No presentado",
 ] as const;
@@ -559,7 +559,7 @@ export function normalizeExcelTrip(
   if (!baggage) pushError(errors, "trips", rowNumber, "equipaje", "El equipaje no es válido.");
   if (!status) pushError(errors, "trips", rowNumber, "estado", "El estado no es válido.");
   if (!amount.valid) pushError(errors, "trips", rowNumber, "montoClp", "El monto debe ser un número igual o mayor que cero.");
-  if (status && ["Emitido", "Volado", "No presentado"].includes(status) && !pnr) pushError(errors, "trips", rowNumber, "pnr", "Este estado necesita un PNR.");
+  if (status && ["Emitido", "Completado", "No presentado"].includes(status) && !pnr) pushError(errors, "trips", rowNumber, "pnr", "Este estado necesita un PNR.");
 
   if (
     errors.length ||
