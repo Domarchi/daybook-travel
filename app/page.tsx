@@ -10,18 +10,20 @@ import {
   Download,
   FileSpreadsheet,
   LogOut,
-  Moon,
   Plane,
   Plus,
   RefreshCw,
   Search,
   SlidersHorizontal,
-  Sun,
   UserPlus,
   Users,
   X,
 } from "lucide-react";
 import YearView from "./year-view";
+import AgendaView from "./components/agenda-view";
+import DialogActions from "./components/dialog-actions";
+import EmptyState from "./components/empty-state";
+import ThemeToggle from "./components/theme-toggle";
 import ExcelSyncPanel from "./excel-sync-panel";
 import { db } from "../lib/supabase";
 import { addDays, pulseDates } from "../lib/calendar";
@@ -914,20 +916,6 @@ export default function App() {
     };
   }, [modal]);
 
-  const themeButton = (
-    <button
-      type="button"
-      className="theme-toggle"
-      onClick={toggleTheme}
-      aria-label={
-        theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
-      }
-    >
-      {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
-      <span>{theme === "dark" ? "Claro" : "Oscuro"}</span>
-    </button>
-  );
-
   if (!ready) {
     return (
       <main className="login-state" aria-live="polite">
@@ -944,7 +932,7 @@ export default function App() {
           <span className="brand">FCC TRAVEL</span>
           <div className="entry-tools">
             <span>FCC / COPIAPÓ</span>
-            {themeButton}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>
         </header>
         <section className="entry-center">
@@ -1059,7 +1047,7 @@ export default function App() {
             ))}
           </nav>
           <div className="account">
-            {themeButton}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <span className="account-name">
               {demo ? "Demostración" : email}
             </span>
@@ -2326,144 +2314,4 @@ export default function App() {
     (form.elements.namedItem("baggage") as HTMLSelectElement).value =
       person.baggage;
   }
-}
-
-function AgendaView({
-  nextTrip,
-  plannedCount,
-  requestedCount,
-  activeCount,
-  personName,
-  onTrip,
-  onPlanned,
-  onRequested,
-  onPeople,
-  onGenerate,
-  children,
-}: {
-  nextTrip?: Trip;
-  plannedCount: number;
-  requestedCount: number;
-  activeCount: number;
-  personName: (id: string) => string;
-  onTrip: (trip: Trip) => void;
-  onPlanned: () => void;
-  onRequested: () => void;
-  onPeople: () => void;
-  onGenerate: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <section className="overview-strip" aria-label="Resumen operativo">
-        <button
-          type="button"
-          className="overview-card next"
-          onClick={() => nextTrip && onTrip(nextTrip)}
-          disabled={!nextTrip}
-        >
-          <span>Próximo movimiento</span>
-          {nextTrip ? (
-            <>
-              <strong>{formatDate(nextTrip.date)}</strong>
-              <small>
-                {personName(nextTrip.person_id)} ·{" "}
-                {nextTrip.requested_time?.slice(0, 5) || "hora pendiente"}
-              </small>
-            </>
-          ) : (
-            <>
-              <strong>Sin viajes próximos</strong>
-              <small>La agenda está despejada</small>
-            </>
-          )}
-          <ChevronRight size={18} />
-        </button>
-        <button type="button" className="overview-card" onClick={onPlanned}>
-          <span>Por solicitar</span>
-          <strong>{plannedCount}</strong>
-          <small>Viajes planificados</small>
-          <ChevronRight size={18} />
-        </button>
-        <button type="button" className="overview-card" onClick={onRequested}>
-          <span>Pendientes de confirmación</span>
-          <strong>{requestedCount}</strong>
-          <small>Solicitudes enviadas</small>
-          <ChevronRight size={18} />
-        </button>
-        <button type="button" className="overview-card" onClick={onPeople}>
-          <span>Personas activas</span>
-          <strong>{activeCount}</strong>
-          <small>En el proyecto</small>
-          <ChevronRight size={18} />
-        </button>
-      </section>
-      <div className="agenda-actions">
-        <button
-          type="button"
-          className="shift-action four"
-          onClick={onGenerate}
-        >
-          <CalendarDays size={17} /> Planificar turnos 4×3
-        </button>
-        <p>
-          <span className="shift-dot ten" /> Los turnos 10×10 se agregan con sus
-          fechas confirmadas.
-        </p>
-      </div>
-      {children}
-    </>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  description,
-  action,
-  onAction,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  action?: string;
-  onAction?: () => void;
-}) {
-  return (
-    <div className="empty-state">
-      <span className="empty-icon">{icon}</span>
-      <h3>{title}</h3>
-      <p>{description}</p>
-      {action && onAction && (
-        <button type="button" onClick={onAction}>
-          {action}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function DialogActions({
-  busy,
-  busyLabel,
-  submitLabel,
-  submitDisabled = false,
-  onCancel,
-}: {
-  busy: boolean;
-  busyLabel: string;
-  submitLabel: string;
-  submitDisabled?: boolean;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="dialog-actions">
-      <button type="button" onClick={onCancel} disabled={busy}>
-        Cancelar
-      </button>
-      <button className="primary" disabled={busy || submitDisabled}>
-        {busy ? busyLabel : submitLabel}
-      </button>
-    </div>
-  );
 }
