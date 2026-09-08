@@ -4,6 +4,8 @@ Aplicación interna para organizar personas, turnos y pasajes del proyecto FCC e
 
 Producción: [relevo-chi.vercel.app](https://relevo-chi.vercel.app/)
 
+Manual para Katy y Tamara: [docs/Manual_FCC_TRAVEL.pdf](docs/Manual_FCC_TRAVEL.pdf)
+
 ## Funciones principales
 
 - Agenda mensual navegable con movimientos 4×3 y 10×10.
