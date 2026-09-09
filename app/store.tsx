@@ -20,18 +20,7 @@ import {
 import { db } from "../lib/supabase";
 import { addDays, pulseDates } from "../lib/calendar";
 import { makeDemoPeople, makeDemoTrips } from "../lib/demo";
-import {
-  formatDate,
-  formatDateTime,
-  localDate,
-  nextWeekday,
-  normalize,
-  statusClass,
-} from "../lib/format";
-import {
-  BAGGAGE_OPTIONS as baggageOptions,
-  TRIP_STATUSES as statuses,
-} from "../lib/types";
+import { localDate, normalize } from "../lib/format";
 import type {
   AccessStatus,
   HistoryItem,

@@ -1,59 +1,32 @@
 "use client";
 
-import DialogActions from "./dialog-actions";
-import EmptyState from "./empty-state";
 import GenerateDialog from "./generate-dialog";
 import HistoryDialog from "./history-dialog";
 import PersonDialog from "./person-dialog";
 import TripDialog from "./trip-dialog";
 import ExcelSyncPanel from "../excel-sync-panel";
-import { ArrowDownLeft, ChevronRight, Clock, X } from "lucide-react";
-import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../../lib/types";
-import { formatDate, formatDateTime, localDate, nextWeekday } from "../../lib/format";
+import { X } from "lucide-react";
+import { formatDate } from "../../lib/format";
 import { useApp } from "../store";
 
 export default function ModalLayer() {
   const {
-    activePeople,
     busy,
     busyRef,
     closeModal,
     demo,
     editPerson,
     editTrip,
-    eligibleFourByThree,
     formError,
-    generateSelection,
-    generateTrips,
-    generateUntil,
-    generationPeople,
-    generationPreview,
     history,
-    historyLoading,
-    loading,
     modal,
-    newDate,
-    newPerson,
-    openTrip,
     pendingTripDate,
     people,
-    peopleById,
     personName,
     reload,
-    reservationOpen,
-    reservationRequired,
-    savePerson,
-    saveTrip,
     setBusy,
-    setGenerateSelection,
-    setGenerateUntil,
     setNotice,
-    setReservationOpen,
-    setTripStatus,
-    showHistory,
-    tripStatus,
     trips,
-    view,
   } = useApp();
 
   if (!modal) return null;

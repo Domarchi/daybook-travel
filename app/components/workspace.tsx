@@ -1,62 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  CalendarDays,
-  ChevronRight,
-  Clock,
-  Download,
-  FileSpreadsheet,
-  LogOut,
-  Plane,
-  Plus,
-  RefreshCw,
-  Search,
-  SlidersHorizontal,
-  UserPlus,
-  Users,
-  X,
-} from "lucide-react";
-import YearView from "../year-view";
+import { X } from "lucide-react";
 import AccessState from "./access-state";
 import AgendaPanel from "./agenda-panel";
-import PeopleView from "./people-view";
+import { LoadingView, LoginView } from "./login-view";
 import ModalLayer from "./modal-layer";
 import PageHead from "./page-head";
+import PeopleView from "./people-view";
 import TopBar from "./top-bar";
-import AgendaView from "./agenda-view";
-import DialogActions from "./dialog-actions";
-import EmptyState from "./empty-state";
-import { LoadingView, LoginView } from "./login-view";
-import ThemeToggle from "./theme-toggle";
 import TripsView from "./trips-view";
-import ExcelSyncPanel from "../excel-sync-panel";
 import { useApp } from "../store";
-import { db } from "../../lib/supabase";
-import { addDays, pulseDates } from "../../lib/calendar";
-import { makeDemoPeople, makeDemoTrips } from "../../lib/demo";
-import {
-  formatDate,
-  formatDateTime,
-  localDate,
-  nextWeekday,
-  normalize,
-  statusClass,
-} from "../../lib/format";
-// Se importan con los nombres locales de siempre para no tocar el JSX que los usa.
-import {
-  BAGGAGE_OPTIONS as baggageOptions,
-  TRIP_STATUSES as statuses,
-} from "../../lib/types";
-import type {
-  AccessStatus,
-  HistoryItem,
-  ModalName,
-  Person,
-  Trip,
-} from "../../lib/types";
+
+// Workspace es el armazon: decide que pantalla se ve y ordena las piezas.
+// Cada pieza pide su estado a useApp(); aqui no se pasan props.
 
 export default function Workspace() {
   const {
@@ -64,87 +20,17 @@ export default function Workspace() {
     ready,
     email,
     demo,
-    setDemo,
     accessStatus,
-    setAccessStatus,
     people,
-    setPeople,
     trips,
-    setTrips,
     view,
-    query,
-    setQuery,
-    statusFilter,
-    setStatusFilter,
-    dateFilter,
-    setDateFilter,
-    personFilter,
-    peopleFilter,
-    setPeopleFilter,
-    onlyUpcoming,
-    setOnlyUpcoming,
-    selectedTrips,
-    setSelectedTrips,
-    calendarMonth,
-    setCalendarMonth,
-    selectedDay,
-    setSelectedDay,
     modal,
-    setModal,
-    editPerson,
-    editTrip,
-    newDate,
-    newPerson,
-    pendingTripDate,
-    tripStatus,
-    setTripStatus,
-    reservationOpen,
-    setReservationOpen,
-    generateSelection,
-    setGenerateSelection,
-    generateUntil,
-    setGenerateUntil,
-    history,
     notice,
     setNotice,
-    formError,
     busy,
-    setBusy,
-    loading,
-    historyLoading,
-    busyRef,
-    reload,
-    peopleById,
-    personName,
-    activePeople,
-    eligibleFourByThree,
-    visiblePeople,
-    visibleTrips,
-    requestableTrips,
-    plannedCount,
-    requestedCount,
-    nextTrip,
-    generationPeople,
-    generationPreview,
-    reservationRequired,
     toggleTheme,
-    clearMessages,
     login,
     enterDemo,
-    navigate,
-    closeModal,
-    openPerson,
-    openTrip,
-    openGenerate,
-    showPersonTrips,
-    showTripGroup,
-    clearTripFilters,
-    savePerson,
-    saveTrip,
-    generateTrips,
-    exportCsv,
-    markSelectedRequested,
-    showHistory,
   } = useApp();
 
   if (!ready) {
@@ -224,12 +110,4 @@ export default function Workspace() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
 
