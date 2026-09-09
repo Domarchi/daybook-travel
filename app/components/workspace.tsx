@@ -20,6 +20,10 @@ import {
   X,
 } from "lucide-react";
 import YearView from "../year-view";
+import AccessState from "./access-state";
+import AgendaPanel from "./agenda-panel";
+import PageHead from "./page-head";
+import TopBar from "./top-bar";
 import AgendaView from "./agenda-view";
 import DialogActions from "./dialog-actions";
 import EmptyState from "./empty-state";
@@ -50,12 +54,6 @@ import type {
   Person,
   Trip,
 } from "../../lib/types";
-
-const navItems = [
-  { label: "Agenda", icon: CalendarDays },
-  { label: "Personas", icon: Users },
-  { label: "Viajes", icon: Plane },
-];
 
 export default function Workspace() {
   const {
@@ -177,46 +175,7 @@ export default function Workspace() {
         inert={modal ? true : undefined}
         aria-hidden={modal ? true : undefined}
       >
-        <header className="topbar">
-          <div className="brand-block">
-            <span className="brand">FCC TRAVEL</span>
-            <span className="worksite">Copiapó</span>
-          </div>
-          <nav aria-label="Navegación principal">
-            {navItems.map(({ label, icon: Icon }) => (
-              <button
-                type="button"
-                key={label}
-                className={view === label ? "selected" : ""}
-                aria-current={view === label ? "page" : undefined}
-                onClick={() => navigate(label)}
-              >
-                <Icon size={17} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="account">
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
-            <span className="account-name">
-              {demo ? "Demostración" : email}
-            </span>
-            <button
-              type="button"
-              className="icon-button"
-              aria-label={demo ? "Salir de la demostración" : "Cerrar sesión"}
-              onClick={async () => {
-                if (!demo) await db.auth.signOut();
-                setDemo(false);
-                setAccessStatus("checking");
-                setPeople([]);
-                setTrips([]);
-              }}
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-        </header>
+        <TopBar />
 
         <main className="workspace">
           {demo && (
@@ -244,100 +203,13 @@ export default function Workspace() {
           )}
 
           {accessStatus !== "allowed" && !demo ? (
-            <section className="access-state" aria-live="polite">
-              {accessStatus === "checking" ? (
-                <>
-                  <span className="loading-mark" aria-hidden="true" />
-                  <h1>Comprobando tu acceso…</h1>
-                  <p>Estamos conectando con la agenda del proyecto.</p>
-                </>
-              ) : accessStatus === "error" ? (
-                <>
-                  <RefreshCw size={25} />
-                  <h1>No pudimos comprobar tu acceso</h1>
-                  <p>Revisa la conexión y vuelve a intentarlo.</p>
-                  <button type="button" className="primary" onClick={reload}>
-                    Intentar nuevamente
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Users size={25} />
-                  <h1>Tu cuenta todavía no está habilitada</h1>
-                  <p>
-                    Solicita al responsable de FCC TRAVEL que agregue tu correo
-                    al equipo.
-                  </p>
-                  <button type="button" onClick={reload}>
-                    Volver a comprobar
-                  </button>
-                </>
-              )}
-            </section>
+            <AccessState />
           ) : (
             <>
-              <header className="page-head">
-                <div>
-                  <span className="section-kicker">
-                    {view === "Agenda"
-                      ? "OPERACIÓN DEL PROYECTO"
-                      : view === "Personas"
-                        ? "DIRECTORIO DE OBRA"
-                        : "SOLICITUDES Y RESERVAS"}
-                  </span>
-                  <h1>
-                    {view === "Agenda"
-                      ? "Agenda de viajes"
-                      : view === "Personas"
-                        ? "Personas del proyecto"
-                        : "Viajes y solicitudes"}
-                  </h1>
-                  <p className="page-description">
-                    {view === "Agenda"
-                      ? "Revisa el movimiento del equipo y atiende lo que sigue."
-                      : view === "Personas"
-                        ? "Administra rutas, turnos, vigencia y equipaje."
-                        : "Prepara solicitudes y completa cada reserva."}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="primary page-primary"
-                  onClick={() =>
-                    view === "Personas" ? openPerson() : openTrip(null)
-                  }
-                >
-                  <Plus size={18} />
-                  {view === "Personas" ? "Nueva persona" : "Nuevo viaje"}
-                </button>
-              </header>
+              <PageHead />
 
               {view === "Agenda" ? (
-                <AgendaView
-                  nextTrip={nextTrip}
-                  plannedCount={plannedCount}
-                  requestedCount={requestedCount}
-                  activeCount={activePeople.length}
-                  personName={personName}
-                  onTrip={(trip) => openTrip(trip)}
-                  onPlanned={() => showTripGroup("Planificado")}
-                  onRequested={() => showTripGroup("Solicitado")}
-                  onPeople={() => navigate("Personas")}
-                  onGenerate={() => openGenerate()}
-                >
-                  <YearView
-                    selected={selectedDay}
-                    onSelect={setSelectedDay}
-                    month={calendarMonth}
-                    onMonthChange={setCalendarMonth}
-                    trips={trips}
-                    people={people}
-                    onTrip={(id) =>
-                      openTrip(trips.find((trip) => trip.id === id) ?? null)
-                    }
-                    onAdd={(date) => openTrip(null, date)}
-                  />
-                </AgendaView>
+                <AgendaPanel />
               ) : view === "Personas" ? (
                 <section aria-labelledby="people-results">
                   <div className="toolbar people-toolbar">
@@ -1465,3 +1337,8 @@ export default function Workspace() {
       person.baggage;
   }
 }
+
+
+
+
+
