@@ -4,10 +4,10 @@ import { useRef } from "react";
 
 import EmptyState from "@/components/ui/empty-state";
 import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
-import { formatDate, localDate, statusClass } from "../../lib/format";
-import { TRIP_STATUSES as statuses } from "../../lib/types";
-import { claseDeCompra, diasParaVolar } from "../../lib/purchase";
-import { useApp } from "../store";
+import { formatDate, localDate, statusClass } from "../lib/format";
+import { TRIP_STATUSES as statuses } from "../lib/types";
+import { claseDeCompra, diasParaVolar } from "../lib/purchase";
+import { useApp } from "../app/store";
 
 export default function TripsView() {
   const {

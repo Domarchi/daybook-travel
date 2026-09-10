@@ -2,7 +2,7 @@
 
 import { FormEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
-import DotField from "./dot-field";
+import DotField from "@/components/dot-field";
 import ThemeToggle from "@/components/ui/theme-toggle";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.

@@ -1,17 +1,18 @@
 "use client";
 
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
 import CostsView from "@/components/costs-view";
-import DotField from "./dot-field";
+import DotField from "@/components/dot-field";
 import AgendaPanel from "@/components/agenda-panel";
-import { LoadingView, LoginView } from "./login-view";
+import { LoadingView, LoginView } from "@/components/login-view";
 import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";
 import PeopleView from "@/components/people-view";
-import TopBar from "./top-bar";
-import TripsView from "./trips-view";
-import { useApp } from "../store";
+import TopBar from "@/components/top-bar";
+import TripsView from "@/components/trips-view";
+import { useApp } from "../app/store";
 
 // Workspace es el armazon: decide que pantalla se ve y ordena las piezas.
 // Cada pieza pide su estado a useApp(); aqui no se pasan props.
@@ -65,10 +66,13 @@ export default function Workspace() {
       >
         <TopBar />
 
-        <main className="workspace">
+        <main className="mx-auto min-h-[calc(100vh-70px)] w-[min(100%,1480px)] px-[clamp(18px,3vw,44px)] pt-7 pb-6 max-[820px]:pt-[22px] max-[760px]:px-[14px]">
           {demo && (
-            <div className="demo-banner">
-              <span className="demo-dot" aria-hidden="true" />
+            <div className="mb-[22px] flex min-h-[42px] items-center gap-[10px] rounded-md border border-line bg-surface px-[13px] py-2 text-[12px] text-foreground-soft">
+              <span
+                className="size-[7px] shrink-0 rounded-[999px] bg-success shadow-[0_0_0_4px_color-mix(in_srgb,var(--success)_16%,transparent)]"
+                aria-hidden="true"
+              />
               <span>
                 Demostración con datos ficticios. Los cambios duran hasta que
                 cierres esta sesión.
@@ -77,16 +81,19 @@ export default function Workspace() {
           )}
 
           {notice && (
-            <div className="message global-message" role="status">
+            <div
+              className="mb-[22px] flex min-h-12 translate-y-0 items-center justify-between gap-4 rounded-md border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] bg-surface py-[7px] pr-2 pl-[14px] text-[13px] text-foreground-soft opacity-100 transition-[opacity,transform] duration-[220ms] ease-[var(--ease-out)] starting:-translate-y-[6px] starting:opacity-0"
+              role="status"
+            >
               <span>{notice}</span>
-              <button
+              <Button
                 type="button"
-                className="icon-button"
+                variant="icon"
                 aria-label="Cerrar aviso"
                 onClick={() => setNotice("")}
               >
                 <X size={16} />
-              </button>
+              </Button>
             </div>
           )}
 
@@ -107,7 +114,7 @@ export default function Workspace() {
               )}
             </>
           )}
-          <footer className="workspace-footer">
+          <footer className="mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]">
             <span>FCC TRAVEL / Copiapó</span>
             <span>Personas · Planificación · Pasajes</span>
           </footer>
