@@ -320,8 +320,11 @@ small {
   --dot-alpha: 1;
 }
 
-.shell > .app-content,
-.shell > .overlay {
+/* Solo el contenido. El velo de los diálogos NO va aquí: es position: fixed y
+   ponerle position: relative lo devolvía al flujo del documento, así que dejaba
+   de cubrir la pantalla y aparecía a media página. Ya tiene z-index 100, que
+   dentro de este contexto lo pone por encima del campo de puntos igual. */
+.shell > .app-content {
   position: relative;
   z-index: 1;
 }

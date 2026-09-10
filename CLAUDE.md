@@ -237,6 +237,12 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 
 ## Trampas conocidas
 
+- **El velo de los diálogos (`.overlay`) es `position: fixed` y no se le toca la posición.**
+  Al meter el campo de puntos en el armazón se le puso `position: relative` para levantarlo
+  por encima del canvas, y eso lo devolvió al flujo del documento: dejó de cubrir la pantalla
+  y aparecía a media página, con el encabezado y media agenda sin tapar. Ya tiene `z-index: 100`,
+  que dentro del contexto de `.shell` lo pone por encima del canvas sin tocar la posición.
+
 - El indicador de desarrollo de Next agrega botones y texto que no son de la aplicación. Si
   mides el DOM para comparar antes y después, mide `.shell`, no `document.body`.
 
