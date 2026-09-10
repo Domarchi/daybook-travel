@@ -2,8 +2,8 @@
 
 import GenerateDialog from "@/components/generate-dialog";
 import HistoryDialog from "@/components/history-dialog";
-import ManifestDialog from "./manifest-dialog";
-import PersonDialog from "./person-dialog";
+import ManifestDialog from "@/components/manifest-dialog";
+import PersonDialog from "@/components/person-dialog";
 import TripDialog from "./trip-dialog";
 import ExcelSyncPanel from "../excel-sync-panel";
 import { X } from "lucide-react";

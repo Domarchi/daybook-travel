@@ -1,11 +1,13 @@
 "use client";
 
 import DialogActions from "@/components/ui/dialog-actions";
-import { BAGGAGE_OPTIONS as baggageOptions } from "../../lib/types";
-import { localDate, nextWeekday } from "../../lib/format";
+import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
+import { Checkbox, Input, Label, Select } from "@/components/ui/field";
+import { BAGGAGE_OPTIONS as baggageOptions } from "../lib/types";
+import { localDate, nextWeekday } from "../lib/format";
 import { useState } from "react";
-import { DIAS_SEMANA } from "../../lib/cycles";
-import { useApp } from "../store";
+import { DIAS_SEMANA } from "../lib/cycles";
+import { useApp } from "../app/store";
 
 export default function PersonDialog() {
   const {
@@ -21,15 +23,12 @@ export default function PersonDialog() {
 
   return (
     <form onSubmit={savePerson} aria-busy={busy}>
-      <div className="dialog-body">
-        <section
-          className="form-section"
-          aria-labelledby="person-main"
-        >
-          <h3 id="person-main">Datos de la persona</h3>
-          <label>
+      <DialogBody>
+        <FormSection aria-labelledby="person-main">
+          <h3 id="person-main" className="text-foreground">Datos de la persona</h3>
+          <Label>
             Nombre completo
-            <input
+            <Input
               data-autofocus
               name="name"
               required
@@ -37,36 +36,33 @@ export default function PersonDialog() {
               maxLength={180}
               defaultValue={editPerson?.name}
             />
-          </label>
-          <div className="form-grid">
-            <label>
+          </Label>
+          <FormGrid>
+            <Label>
               Origen habitual
-              <input
+              <Input
                 name="origin"
                 required
                 defaultValue={editPerson?.origin}
                 placeholder="Santiago"
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Destino de subida
-              <input
+              <Input
                 name="destination"
                 required
                 defaultValue={editPerson?.destination ?? "Copiapó"}
               />
-            </label>
-          </div>
-        </section>
-        <section
-          className="form-section"
-          aria-labelledby="person-schedule"
-        >
-          <h3 id="person-schedule">Turno y vigencia</h3>
-          <div className="form-grid">
-            <label>
+            </Label>
+          </FormGrid>
+        </FormSection>
+        <FormSection aria-labelledby="person-schedule">
+          <h3 id="person-schedule" className="text-foreground">Turno y vigencia</h3>
+          <FormGrid>
+            <Label>
               Turno
-              <select
+              <Select
                 name="shift"
                 value={shift}
                 onChange={(event) => setShift(event.target.value)}
@@ -74,13 +70,13 @@ export default function PersonDialog() {
                 <option>Por confirmar</option>
                 <option>4×3</option>
                 <option>10×10</option>
-              </select>
-            </label>
+              </Select>
+            </Label>
             {shift === "4×3" && (
               <>
-                <label>
+                <Label>
                   Sube los
-                  <select
+                  <Select
                     name="up_weekday"
                     defaultValue={String(editPerson?.up_weekday ?? 1)}
                   >
@@ -89,11 +85,11 @@ export default function PersonDialog() {
                         {dia.nombre}
                       </option>
                     ))}
-                  </select>
-                </label>
-                <label>
+                  </Select>
+                </Label>
+                <Label>
                   Baja los
-                  <select
+                  <Select
                     name="down_weekday"
                     defaultValue={String(editPerson?.down_weekday ?? 4)}
                   >
@@ -102,13 +98,13 @@ export default function PersonDialog() {
                         {dia.nombre}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </Select>
+                </Label>
               </>
             )}
-            <label>
+            <Label>
               {shift === "10×10" ? "Primera subida" : "Inicio de vigencia"}
-              <input
+              <Input
                 name="start_date"
                 type="date"
                 required
@@ -117,47 +113,46 @@ export default function PersonDialog() {
                   nextWeekday(localDate(), 1)
                 }
               />
-            </label>
-            <label>
-              Vigente hasta <small>(opcional)</small>
-              <input
+            </Label>
+            <Label>
+              Vigente hasta <small className="text-muted">(opcional)</small>
+              <Input
                 name="end_date"
                 type="date"
                 defaultValue={editPerson?.end_date ?? ""}
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Equipaje habitual
-              <select
+              <Select
                 name="baggage"
                 defaultValue={editPerson?.baggage ?? "Por confirmar"}
               >
                 {baggageOptions.map((option) => (
                   <option key={option}>{option}</option>
                 ))}
-              </select>
-            </label>
-          </div>
-          <label className="check-field">
-            <input
+              </Select>
+            </Label>
+          </FormGrid>
+          <Label className="grid-cols-[20px_1fr] items-start gap-[10px] rounded-sm border border-line bg-surface-soft p-3">
+            <Checkbox
               name="active"
-              type="checkbox"
               defaultChecked={editPerson?.active ?? true}
             />
             <span>
-              <strong>Persona activa</strong>
-              <small>
+              <strong className="text-foreground">Persona activa</strong>{" "}
+              <small className="text-muted">
                 Puede recibir nuevos viajes y planificación.
               </small>
             </span>
-          </label>
-          <p className="hint">
+          </Label>
+          <Hint>
             Para 4×3, el inicio debe ser lunes. Las fechas 10×10 se
             registran manualmente. Si aún no conoces el turno, déjalo
             por confirmar y podrás completar sus viajes uno a uno.
-          </p>
-        </section>
-      </div>
+          </Hint>
+        </FormSection>
+      </DialogBody>
       <DialogActions
         busy={busy}
         busyLabel="Guardando…"

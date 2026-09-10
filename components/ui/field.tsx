@@ -43,6 +43,27 @@ export function Textarea({
   );
 }
 
+// La casilla no usa la base de arriba: la regla `input[type="checkbox"]` la
+// achicaba a 18px, le sacaba el relleno y le ponia el color de acento. Sin esto
+// saldria del ancho completo y con 44px de alto.
+export function Checkbox({
+  className,
+  ...props
+}: Omit<React.ComponentProps<"input">, "type">) {
+  return (
+    <input
+      type="checkbox"
+      className={cn(
+        "size-[18px] min-h-[18px] min-w-[18px] p-0 accent-[var(--action)]",
+        "focus-visible:outline-2 focus-visible:outline-offset-[3px]",
+        "focus-visible:outline-[var(--focus)]",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 // La etiqueta envuelve al campo, no lo precede: por eso es grid con separacion,
 // igual que la regla `label { display: grid }` de siempre.
 export function Label({ className, ...props }: React.ComponentProps<"label">) {

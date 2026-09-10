@@ -6,9 +6,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Download } from "lucide-react";
-import { localDate } from "../../lib/format";
-import { agruparManifiesto, textoDeManifiesto } from "../../lib/manifest";
-import { useApp } from "../store";
+import { Button } from "@/components/ui/button";
+import { DialogBody } from "@/components/ui/dialog-parts";
+import { localDate } from "../lib/format";
+import { agruparManifiesto, textoDeManifiesto } from "../lib/manifest";
+import { useApp } from "../app/store";
 
 export default function ManifestDialog() {
   const {
@@ -25,7 +27,10 @@ export default function ManifestDialog() {
     () => agruparManifiesto(manifestTrips, personName),
     [manifestTrips, personName],
   );
-  const texto = useMemo(() => textoDeManifiesto(bloques, localDate()), [bloques]);
+  const texto = useMemo(
+    () => textoDeManifiesto(bloques, localDate()),
+    [bloques],
+  );
   const pasajes = manifestTrips.length;
   // Cuando Katy marcó solo algunos, se lo decimos: el correo lleva menos de lo
   // que hay pendiente, y eso tiene que estar a la vista, no adivinarse.
@@ -62,65 +67,79 @@ export default function ManifestDialog() {
   }
 
   return (
-    <div className="manifest-view">
-      <div className="dialog-body">
-        <div className="manifest-summary">
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* El cuerpo se reparte: el texto crece o se encoge, y la frase de abajo
+          queda siempre visible. Antes el textarea imponía su alto y cortaba esa
+          frase por la mitad. */}
+      <DialogBody className="flex flex-col">
+        <div className="mb-3 flex shrink-0 items-center justify-between gap-3 text-[13px] text-foreground-soft">
           <span>
-            <strong>{pasajes}</strong> {pasajes === 1 ? "pasaje" : "pasajes"} en{" "}
-            <strong>{bloques.length}</strong> {bloques.length === 1 ? "vuelo" : "vuelos"}
+            <strong className="text-foreground">{pasajes}</strong>{" "}
+            {pasajes === 1 ? "pasaje" : "pasajes"} en{" "}
+            <strong className="text-foreground">{bloques.length}</strong>{" "}
+            {bloques.length === 1 ? "vuelo" : "vuelos"}
             {esParcial && (
-              <em className="manifest-parcial">
+              <em className="font-semibold text-[var(--warning)] not-italic">
                 {" "}
                 · de {requestableTrips.length} pendientes
               </em>
             )}
           </span>
-          <button
+          {/* "Copiado" mantiene el mismo ancho que "Copiar" para que nada salte. */}
+          <Button
             type="button"
-            className={copiado ? "copy-button copied" : "copy-button"}
+            className={
+              "min-w-[112px]" +
+              (copiado
+                ? " border-[color-mix(in_srgb,var(--success)_45%,var(--border))] bg-[color-mix(in_srgb,var(--success)_12%,var(--surface-raised))] text-success"
+                : "")
+            }
             onClick={() => void copiar()}
             aria-live="polite"
           >
             {copiado ? <Check size={16} /> : <Copy size={16} />}
             {copiado ? "Copiado" : "Copiar"}
-          </button>
+          </Button>
         </div>
         {fallo && (
-          <p className="message error-message" role="alert">
+          <p
+            className="mb-3 shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[10px] text-[13px] text-danger"
+            role="alert"
+          >
             No se pudo copiar solo. El texto quedó seleccionado: cópialo con ⌘C
             (o Ctrl+C).
           </p>
         )}
         <textarea
           ref={textoRef}
-          className="manifest-text"
+          className="min-h-40 flex-auto resize-none overflow-auto rounded-sm border border-line-strong bg-surface px-4 py-[14px] font-mono text-[13px] leading-[1.55] tab-2 whitespace-pre text-foreground focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
           aria-label="Manifiesto para la agencia"
           readOnly
           value={texto}
           rows={Math.min(24, texto.split("\n").length + 1)}
         />
-        <p className="manifest-hint">
-          Pega este texto en el correo a la agencia. Cuando lo envíes, marca
-          los viajes como solicitados para que la agenda lo refleje.
+        <p className="mt-3 shrink-0 text-[12px] text-muted">
+          Pega este texto en el correo a la agencia. Cuando lo envíes, marca los
+          viajes como solicitados para que la agenda lo refleje.
         </p>
-      </div>
-      <div className="dialog-actions">
-        <button type="button" onClick={exportCsv} disabled={busy}>
+      </DialogBody>
+      <div className="flex min-h-[72px] shrink-0 items-center justify-end gap-2 border-t border-line bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-6 py-3 backdrop-blur-[14px]">
+        <Button type="button" onClick={exportCsv} disabled={busy}>
           <Download size={16} /> Descargar CSV
-        </button>
-        <button type="button" onClick={closeModal} disabled={busy}>
+        </Button>
+        <Button type="button" onClick={closeModal} disabled={busy}>
           Cerrar
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="primary"
+          variant="primary"
           disabled={busy || pasajes === 0}
           onClick={() => void markSelectedRequested().then(closeModal)}
         >
           {busy
             ? "Actualizando…"
             : `Marcar ${pasajes} como ${pasajes === 1 ? "solicitado" : "solicitados"}`}
-        </button>
+        </Button>
       </div>
     </div>
   );
