@@ -33,6 +33,10 @@ export type Person = {
   shift: string;
   start_date: string;
   end_date: string | null;
+  /** Día de subida en 4×3: 1 = lunes … 7 = domingo. No se usa en 10×10. */
+  up_weekday?: number | null;
+  /** Día de bajada en 4×3: 1 = lunes … 7 = domingo. No se usa en 10×10. */
+  down_weekday?: number | null;
   baggage: string;
   active: boolean;
   updated_at?: string;

@@ -55,7 +55,7 @@ export default function PeopleView() {
         </div>
         <button type="button" onClick={() => openGenerate()}>
           <CalendarDays size={18} />
-          Planificar 4×3
+          Planificar turnos
         </button>
         <button
           type="button"

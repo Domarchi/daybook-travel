@@ -30,7 +30,8 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
 | `app/year-view.tsx` | Vista anual de calor. |
 | `app/globals.css` | ~3.000 líneas. Tokens en `:root` y `:root[data-theme="light"]`. |
-| `lib/calendar.ts` | `pulseDates()` — genera el 4×3 en TypeScript. **Solo se usa en modo demo.** |
+| `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
+| `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |
 | `supabase/00*.sql` | Migraciones, se aplican **en orden numérico**. Aquí vive la verdad del sistema. |
@@ -67,11 +68,20 @@ se agrega una nueva con el número siguiente.
    líneas. Si algún día los redibujos molestan, eso se resuelve aparte (dividir el store o
    memorizar), no partiendo archivos.
 
-2. **Un solo motor de ciclos.** Hoy el 4×3 está duplicado: `lib/calendar.ts` (demo) y
-   `generate_pulse()` en SQL (real). Ambos tienen **lunes y jueves grabados a fuego** y exigen
-   que la fecha de inicio sea lunes. El 10×10 **no se genera**: se carga viaje por viaje a mano.
-   Objetivo: un motor único en TypeScript, con días configurables, que cubra 4×3 (pulso semanal)
-   y 10×10 (relevo cruzado A/B cada 10 días), con tests. La base solo guarda lo que el motor genera.
+2. **Un solo motor de ciclos. HECHO** (rama `motor-de-ciclos`). `lib/cycles.ts` es ahora el
+   único que decide fechas de viaje, y la base solo guarda lo que él genera.
+
+   - **4×3**: semanal, con el día de subida y el de bajada en la ficha de cada persona
+     (`up_weekday` / `down_weekday`, por omisión lunes y jueves). La fecha de inicio ya no
+     tiene que caer un lunes. Si el día de bajada cae antes en la semana que el de subida,
+     la bajada es de la semana siguiente.
+   - **10×10**: ciclo de veinte días desde la fecha de inicio, que es además la primera
+     subida. **Sin grupos A y B**: dos personas desfasadas diez días quedan cruzadas solas.
+     Es la decisión que tomó Joaquín, y evita agregar columnas de grupo.
+   - `generate_pulse()` en SQL **ya no se llama**: la aplicación inserta los viajes con
+     `upsert` e `ignoreDuplicates`, así que nunca pisa un viaje existente.
+   - Una prueba compara el motor nuevo contra el calendario retirado en cuatro fechas de
+     inicio y tres períodos: nadie que ya esté cargado cambia de fechas.
 
 3. **Ventana de compra.** Hoy todo dice "Planificado" sin importar si el vuelo es mañana o en
    tres semanas. Falta la pregunta del día: *¿qué hay que comprar ya?* Colorear la agenda por
@@ -86,7 +96,11 @@ se agrega una nueva con el número siguiente.
 6. **Manifiesto por día y ruta.** Los viajes se compran por bloque (fecha + ruta), no de a uno.
    Mejorar "Lista para solicitar" hacia un manifiesto agrupado, listo para pegar en un correo.
 
-7. **Cliente de Supabase perezoso.** `lib/supabase.ts` crea el cliente al cargar el módulo, lo
+7. **Retirar `generate_pulse()`.** Quedó en la base sin que nadie la llame. Una migración
+   nueva puede eliminarla; conviene esperar a que la versión nueva lleve un tiempo en
+   producción, para poder volver atrás sin tocar SQL.
+
+8. **Cliente de Supabase perezoso.** `lib/supabase.ts` crea el cliente al cargar el módulo, lo
    que rompe `npm run build` en un clon sin `.env.local` (ver Trampas conocidas). Crearlo la
    primera vez que se usa y dar un mensaje claro si faltan las variables.
 

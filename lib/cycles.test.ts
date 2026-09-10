@@ -1,7 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { movimientos, diaSemana, type CicloPersona } from "./cycles.ts";
-import { pulseDates, addDays } from "./calendar.ts";
+import { addDays } from "./calendar.ts";
+
+// Copia exacta del calendario que se retira de lib/calendar.ts. Vive aquí, y
+// solo aquí, para que la primera prueba pueda comparar el motor nuevo contra el
+// comportamiento viejo sin dejar código muerto en producción.
+function calendarioAnterior(start: string, end: string) {
+  if (new Date(start + "T12:00:00Z").getUTCDay() !== 1) {
+    throw new Error("La primera subida debe ser un lunes.");
+  }
+  const out: { date: string; direction: string }[] = [];
+  for (let d = start; d <= end; d = addDays(d, 7)) {
+    out.push({ date: d, direction: "SUBIDA" });
+    const down = addDays(d, 3);
+    if (down <= end) out.push({ date: down, direction: "BAJADA" });
+  }
+  return out;
+}
 
 const cuatroPorTres = (extra: Partial<CicloPersona> = {}): CicloPersona => ({
   shift: "4×3",
@@ -28,7 +44,7 @@ test("4×3 por omisión reproduce exactamente el calendario anterior", () => {
       const hasta = addDays(inicio, meses * 30);
       assert.deepEqual(
         movimientos(cuatroPorTres({ start_date: inicio }), hasta),
-        pulseDates(inicio, hasta),
+        calendarioAnterior(inicio, hasta),
         `difieren desde ${inicio} por ${meses} meses`,
       );
     }
@@ -217,4 +233,10 @@ test("rechaza una jornada que no existe", () => {
     () => movimientos({ shift: "7×7", start_date: "2026-09-07" } as never, "2026-12-31"),
     /desconocida/,
   );
+});
+
+test("addDays no se corre un día en los cambios de horario ni en fin de año", () => {
+  assert.equal(addDays("2026-09-05", 3), "2026-09-08");
+  assert.equal(addDays("2026-04-03", 3), "2026-04-06");
+  assert.equal(addDays("2026-12-31", 1), "2027-01-01");
 });

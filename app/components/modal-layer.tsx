@@ -53,7 +53,7 @@ export default function ModalLayer() {
                 : modal === "person"
                   ? "DIRECTORIO"
                   : modal === "generate"
-                    ? "PLANIFICACIÓN 4×3"
+                    ? "PLANIFICACIÓN DE TURNOS"
                     : modal === "history"
                       ? "TRAZABILIDAD"
                       : "REGISTRO DE VIAJE"}
@@ -72,7 +72,7 @@ export default function ModalLayer() {
                       ? "Editar viaje"
                       : "Nuevo viaje"
                     : modal === "generate"
-                      ? "Crear calendario 4×3"
+                      ? "Crear calendario de turnos"
                       : "Historial del viaje"}
             </h2>
             <p id="dialog-description">
@@ -85,7 +85,7 @@ export default function ModalLayer() {
                   : modal === "trip"
                     ? "Registra el movimiento y completa la reserva cuando corresponda."
                     : modal === "generate"
-                      ? "Crea subidas los lunes y bajadas los jueves sin duplicar viajes."
+                      ? "Crea las subidas y bajadas de cada turno sin duplicar viajes."
                       : editTrip
                         ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
                         : "Cambios registrados en este viaje."}

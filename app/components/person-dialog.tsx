@@ -3,6 +3,8 @@
 import DialogActions from "./dialog-actions";
 import { BAGGAGE_OPTIONS as baggageOptions } from "../../lib/types";
 import { localDate, nextWeekday } from "../../lib/format";
+import { useState } from "react";
+import { DIAS_SEMANA } from "../../lib/cycles";
 import { useApp } from "../store";
 
 export default function PersonDialog() {
@@ -12,6 +14,10 @@ export default function PersonDialog() {
     editPerson,
     savePerson,
   } = useApp();
+
+  // El turno decide si los días de viaje tienen sentido: el 10×10 no los usa,
+  // porque su ciclo es de veinte días y no depende del día de la semana.
+  const [shift, setShift] = useState(editPerson?.shift ?? "Por confirmar");
 
   return (
     <form onSubmit={savePerson} aria-busy={busy}>
@@ -62,15 +68,46 @@ export default function PersonDialog() {
               Turno
               <select
                 name="shift"
-                defaultValue={editPerson?.shift ?? "Por confirmar"}
+                value={shift}
+                onChange={(event) => setShift(event.target.value)}
               >
                 <option>Por confirmar</option>
                 <option>4×3</option>
                 <option>10×10</option>
               </select>
             </label>
+            {shift === "4×3" && (
+              <>
+                <label>
+                  Sube los
+                  <select
+                    name="up_weekday"
+                    defaultValue={String(editPerson?.up_weekday ?? 1)}
+                  >
+                    {DIAS_SEMANA.map((dia) => (
+                      <option key={dia.valor} value={dia.valor}>
+                        {dia.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Baja los
+                  <select
+                    name="down_weekday"
+                    defaultValue={String(editPerson?.down_weekday ?? 4)}
+                  >
+                    {DIAS_SEMANA.map((dia) => (
+                      <option key={dia.valor} value={dia.valor}>
+                        {dia.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
             <label>
-              Primera subida / inicio
+              {shift === "10×10" ? "Primera subida" : "Inicio de vigencia"}
               <input
                 name="start_date"
                 type="date"

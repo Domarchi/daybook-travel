@@ -1,43 +1,45 @@
 "use client";
 
 import DialogActions from "./dialog-actions";
-import { ChevronRight } from "lucide-react";
-import { localDate } from "../../lib/format";
+import { formatDate, localDate } from "../../lib/format";
+import { DIAS_SEMANA } from "../../lib/cycles";
 import { useApp } from "../store";
+
+const nombreDia = (valor: number | null | undefined) =>
+  DIAS_SEMANA.find((dia) => dia.valor === valor)?.nombre.toLowerCase() ?? "";
 
 export default function GenerateDialog() {
   const {
     busy,
     closeModal,
-    eligibleFourByThree,
     generateSelection,
     generateTrips,
     generateUntil,
     generationPeople,
     generationPreview,
+    planificables,
     setGenerateSelection,
     setGenerateUntil,
   } = useApp();
+
+  // Cuando hay una sola persona elegida se puede decir exactamente qué va a
+  // pasar. Con varias, cada una sigue los días de su propia ficha.
+  const persona = generationPeople.length === 1 ? generationPeople[0] : null;
+  const ritmo = !persona
+    ? "Cada persona sigue la jornada y los días de viaje de su ficha."
+    : persona.shift === "4×3"
+      ? `Sube los ${nombreDia(persona.up_weekday ?? 1)} y baja los ${nombreDia(
+          persona.down_weekday ?? 4,
+        )}, todas las semanas.`
+      : `Ciclo de veinte días desde el ${formatDate(
+          persona.start_date,
+        )}: sube, baja a los diez días y vuelve a subir a los veinte.`;
 
   return (
     <form onSubmit={generateTrips} aria-busy={busy}>
       <div className="dialog-body">
         <section className="form-section generate-section">
-          <div
-            className="pulse-example"
-            aria-label="Regla de turno 4 por 3"
-          >
-            <span className="four">
-              Lun <strong>Subida</strong>
-            </span>
-            <ChevronRight size={16} />
-            <span>Mar</span>
-            <span>Mié</span>
-            <ChevronRight size={16} />
-            <span className="four">
-              Jue <strong>Bajada</strong>
-            </span>
-          </div>
+          <p aria-live="polite">{ritmo}</p>
           <label>
             Personas a planificar
             <select
@@ -49,10 +51,10 @@ export default function GenerateDialog() {
               }
             >
               <option value="all">
-                Todas las personas 4×3 activas (
-                {eligibleFourByThree.length})
+                Todas las personas activas con jornada (
+                {planificables.length})
               </option>
-              {eligibleFourByThree.map((person) => (
+              {planificables.map((person) => (
                 <option key={person.id} value={person.id}>
                   {person.name}
                 </option>

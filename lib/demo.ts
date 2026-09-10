@@ -1,7 +1,8 @@
 // Datos ficticios del botón "Abrir demostración": permiten recorrer la aplicación
-// sin credenciales y sin tocar Supabase. Ojo: este camino usa `pulseDates` de
-// TypeScript, mientras que la operación real genera el 4×3 con `generate_pulse` en SQL.
-import { addDays, pulseDates } from "./calendar.ts";
+// sin credenciales y sin tocar Supabase. Las fechas salen del mismo motor que
+// usa la operación real, así que la demostración no puede mentir sobre ellas.
+import { addDays } from "./calendar.ts";
+import { movimientos } from "./cycles.ts";
 import { localDate, nextWeekday } from "./format.ts";
 import type { Person, Trip } from "./types.ts";
 
@@ -16,6 +17,8 @@ export function makeDemoPeople(): Person[] {
       shift: "4×3",
       start_date: firstMonday,
       end_date: null,
+      up_weekday: 1,
+      down_weekday: 4,
       baggage: "Mochila",
       active: true,
     },
@@ -35,7 +38,7 @@ export function makeDemoPeople(): Person[] {
 
 export function makeDemoTrips(people: Person[]): Trip[] {
   const firstMonday = people[0].start_date;
-  const fourByThree = pulseDates(firstMonday, addDays(firstMonday, 35)).map(
+  const fourByThree = movimientos(people[0], addDays(firstMonday, 35)).map(
     (row, index) => ({
       id: "t" + index,
       person_id: "p1",
@@ -52,38 +55,23 @@ export function makeDemoTrips(people: Person[]): Trip[] {
       notes: "",
     }),
   );
-  const tenByTen: Trip[] = [
-    {
-      id: "t-10x10-up",
+  // El 10×10 tambien sale del motor: antes eran dos viajes escritos a mano.
+  const tenByTen: Trip[] = movimientos(people[1], addDays(firstMonday, 35)).map(
+    (row, index) => ({
+      id: "t-10x10-" + index,
       person_id: "p2",
-      date: firstMonday,
-      direction: "SUBIDA",
-      origin: "Concepción",
-      destination: "Copiapó",
-      requested_time: "09:00",
+      ...row,
+      origin: row.direction === "SUBIDA" ? "Concepción" : "Copiapó",
+      destination: row.direction === "SUBIDA" ? "Copiapó" : "Concepción",
+      requested_time: index === 0 ? "09:00" : index === 1 ? "17:00" : null,
       baggage: "Maleta en bodega",
       status: "Planificado",
       pnr: "",
       flight: "",
       amount: null,
       notes: "",
-    },
-    {
-      id: "t-10x10-down",
-      person_id: "p2",
-      date: addDays(firstMonday, 10),
-      direction: "BAJADA",
-      origin: "Copiapó",
-      destination: "Concepción",
-      requested_time: "17:00",
-      baggage: "Maleta en bodega",
-      status: "Planificado",
-      pnr: "",
-      flight: "",
-      amount: null,
-      notes: "",
-    },
-  ];
+    }),
+  );
   return [...fourByThree, ...tenByTen].sort((a, b) =>
     a.date.localeCompare(b.date),
   );

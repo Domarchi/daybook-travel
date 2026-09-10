@@ -319,7 +319,7 @@ export default function TripsView() {
             hasTripFilters
               ? "Cambia los filtros para ampliar la búsqueda."
               : people.length
-                ? "Agrega un viaje o planifica el calendario de los turnos 4×3."
+                ? "Agrega un viaje o planifica el calendario de los turnos."
                 : "Primero registra a las personas que viajarán."
           }
           action={

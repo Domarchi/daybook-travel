@@ -80,7 +80,7 @@ export default function AgendaView({
           className="shift-action four"
           onClick={onGenerate}
         >
-          <CalendarDays size={17} /> Planificar turnos 4×3
+          <CalendarDays size={17} /> Planificar turnos
         </button>
         <p>
           <span className="shift-dot ten" /> Los turnos 10×10 se agregan con sus

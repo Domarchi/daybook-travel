@@ -18,7 +18,8 @@ import {
   useState,
 } from "react";
 import { db } from "../lib/supabase";
-import { addDays, pulseDates } from "../lib/calendar";
+import { addDays } from "../lib/calendar";
+import { movimientos } from "../lib/cycles";
 import { makeDemoPeople, makeDemoTrips } from "../lib/demo";
 import { localDate, normalize } from "../lib/format";
 import type {
@@ -164,8 +165,14 @@ function useStoreValue() {
     [people],
   );
 
-  const eligibleFourByThree = useMemo(
-    () => people.filter((person) => person.active && person.shift === "4×3"),
+  // Personas a las que el motor les puede armar el calendario: activas y con
+  // jornada definida. Antes solo el 4×3; el 10×10 se cargaba viaje por viaje.
+  const planificables = useMemo(
+    () =>
+      people.filter(
+        (person) =>
+          person.active && (person.shift === "4×3" || person.shift === "10×10"),
+      ),
     [people],
   );
 
@@ -259,35 +266,37 @@ function useStoreValue() {
   const nextTrip = upcomingTrips[0];
 
   const generationPeople = useMemo(() => {
-    if (generateSelection === "all") return eligibleFourByThree;
-    return eligibleFourByThree.filter(
-      (person) => person.id === generateSelection,
-    );
-  }, [eligibleFourByThree, generateSelection]);
+    if (generateSelection === "all") return planificables;
+    return planificables.filter((person) => person.id === generateSelection);
+  }, [planificables, generateSelection]);
 
-  const generationPreview = useMemo(
-    () =>
-      generationPeople.reduce((total, person) => {
-        const until =
-          person.end_date && person.end_date < generateUntil
-            ? person.end_date
-            : generateUntil;
-        if (until < person.start_date) return total;
-        return (
-          total +
-          pulseDates(person.start_date, until).filter(
-            (row) =>
-              !trips.some(
-                (trip) =>
-                  trip.person_id === person.id &&
-                  trip.date === row.date &&
-                  trip.direction === row.direction,
-              ),
-          ).length
-        );
-      }, 0),
-    [generationPeople, generateUntil, trips],
-  );
+  // Lo que el motor generaria para una persona y que todavia no existe. Es la
+  // unica cuenta que se hace: la vista previa y la generacion usan esta misma
+  // funcion, asi que no pueden decir cosas distintas.
+  const porGenerar = (persona: Person, hasta: string) =>
+    movimientos(persona, hasta).filter(
+      (paso) =>
+        !trips.some(
+          (trip) =>
+            trip.person_id === persona.id &&
+            trip.date === paso.date &&
+            trip.direction === paso.direction,
+        ),
+    );
+
+  const generationPreview = useMemo(() => {
+    try {
+      return generationPeople.reduce(
+        (total, person) => total + porGenerar(person, generateUntil).length,
+        0,
+      );
+    } catch {
+      // Un periodo imposible o unos dias mal puestos: el mensaje sale al
+      // intentar generar, no en la vista previa.
+      return 0;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generationPeople, generateUntil, trips]);
 
   const reservationRequired = ["Emitido", "Completado", "No presentado"].includes(
     tripStatus,
@@ -420,15 +429,15 @@ function useStoreValue() {
 
   function openGenerate(personId?: string) {
     clearMessages();
-    if (!eligibleFourByThree.length) {
+    if (!planificables.length) {
       navigate("Personas");
       setNotice(
-        "Agrega una persona activa con turno 4×3 para crear su calendario.",
+        "Agrega una persona activa con jornada 4×3 o 10×10 para crear su calendario.",
       );
       return;
     }
     setGenerateSelection(
-      personId && eligibleFourByThree.some((person) => person.id === personId)
+      personId && planificables.some((person) => person.id === personId)
         ? personId
         : "all",
     );
@@ -467,17 +476,18 @@ function useStoreValue() {
         shift: String(form.get("shift")),
         start_date: String(form.get("start_date")),
         end_date: String(form.get("end_date")) || null,
+        // El 10×10 no usa dias de la semana: quedan en lunes y jueves y el
+        // motor los ignora.
+        up_weekday: Number(form.get("up_weekday") ?? 1) || 1,
+        down_weekday: Number(form.get("down_weekday") ?? 4) || 4,
         baggage: String(form.get("baggage")),
         active: form.get("active") === "on",
       };
       if (person.end_date && person.end_date < person.start_date) {
         throw new Error("La fecha de término debe ser posterior al inicio.");
       }
-      if (
-        person.shift === "4×3" &&
-        new Date(person.start_date + "T12:00:00Z").getUTCDay() !== 1
-      ) {
-        throw new Error("En un turno 4×3, la primera subida debe ser lunes.");
+      if (person.shift === "4×3" && person.up_weekday === person.down_weekday) {
+        throw new Error("La subida y la bajada no pueden ser el mismo día.");
       }
       let savedId = editPerson?.id ?? "";
       if (demo) {
@@ -619,70 +629,65 @@ function useStoreValue() {
     event.preventDefault();
     await runAction(async () => {
       if (!generationPeople.length) {
-        throw new Error("Selecciona al menos una persona con turno 4×3.");
+        throw new Error(
+          "Selecciona al menos una persona con jornada 4×3 o 10×10.",
+        );
       }
       if (generateUntil < localDate()) {
         throw new Error("La fecha final debe ser hoy o posterior.");
       }
-      let count = 0;
+
+      // El motor decide las fechas una sola vez, aqui. La demostracion y la
+      // operacion real guardan exactamente las mismas filas; lo unico distinto
+      // es donde las guardan.
+      const nuevos = generationPeople.flatMap((person) =>
+        porGenerar(person, generateUntil).map((paso) => ({
+          person_id: person.id,
+          date: paso.date,
+          direction: paso.direction,
+          origin:
+            paso.direction === "SUBIDA" ? person.origin : person.destination,
+          destination:
+            paso.direction === "SUBIDA" ? person.destination : person.origin,
+          requested_time: null,
+          baggage: person.baggage,
+          status: "Planificado",
+          pnr: "",
+          flight: "",
+          amount: null,
+          notes: "",
+        })),
+      );
+
+      let count = nuevos.length;
       if (demo) {
-        const generated = generationPeople.flatMap((person) => {
-          const until =
-            person.end_date && person.end_date < generateUntil
-              ? person.end_date
-              : generateUntil;
-          if (until < person.start_date) return [];
-          return pulseDates(person.start_date, until)
-            .filter(
-              (row) =>
-                !trips.some(
-                  (trip) =>
-                    trip.person_id === person.id &&
-                    trip.date === row.date &&
-                    trip.direction === row.direction,
-                ),
-            )
-            .map((row) => ({
-              id: crypto.randomUUID(),
-              person_id: person.id,
-              ...row,
-              origin:
-                row.direction === "SUBIDA" ? person.origin : person.destination,
-              destination:
-                row.direction === "SUBIDA" ? person.destination : person.origin,
-              requested_time: null,
-              baggage: person.baggage,
-              status: "Planificado",
-              pnr: "",
-              flight: "",
-              amount: null,
-              notes: "",
-            }));
-        });
-        count = generated.length;
+        const generated = nuevos.map((fila) => ({
+          id: crypto.randomUUID(),
+          ...fila,
+        }));
         setTrips((current) =>
           [...current, ...generated].sort((a, b) =>
             a.date.localeCompare(b.date),
           ),
         );
-      } else {
-        for (let index = 0; index < generationPeople.length; index += 10) {
-          const batch = generationPeople.slice(index, index + 10);
-          const results = await Promise.all(
-            batch.map((person) =>
-              db.rpc("generate_pulse", {
-                p_id: person.id,
-                p_until: generateUntil,
-              }),
-            ),
-          );
-          for (const result of results) {
-            if (result.error) throw result.error;
-            count += Number(result.data ?? 0);
-          }
+      } else if (nuevos.length) {
+        count = 0;
+        for (let index = 0; index < nuevos.length; index += 200) {
+          // ignoreDuplicates deja pasar lo que otra persona haya creado entre
+          // medio: nunca se pisa un viaje que ya existe.
+          const { data, error } = await db
+            .from("trips")
+            .upsert(nuevos.slice(index, index + 200), {
+              onConflict: "person_id,date,direction",
+              ignoreDuplicates: true,
+            })
+            .select("id");
+          if (error) throw error;
+          count += data?.length ?? 0;
         }
         await reload();
       }
+
       const peopleCount = generationPeople.length;
       closeModal();
       setNotice(
@@ -963,7 +968,7 @@ function useStoreValue() {
     peopleById,
     personName,
     activePeople,
-    eligibleFourByThree,
+    planificables,
     visiblePeople,
     visibleTrips,
     requestableTrips,

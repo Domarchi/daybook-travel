@@ -27,8 +27,12 @@ export type Sentido = "SUBIDA" | "BAJADA";
 export type Movimiento = { date: string; direction: Sentido };
 
 export type CicloPersona = {
-  /** Jornada de la persona. */
-  shift: Jornada;
+  /**
+   * Jornada de la persona. Se declara como texto y no como `Jornada` porque la
+   * base acepta además "Por confirmar": el motor rechaza al ejecutarse lo que
+   * no sabe generar, en vez de fingir que no puede pasar.
+   */
+  shift: string;
   /**
    * Inicio de vigencia. En 10×10 es además el primer día de subida.
    * En 4×3 no necesita caer en ningún día en particular: la primera subida es
