@@ -1,8 +1,11 @@
 "use client";
 
 import { CalendarDays, ChevronRight } from "lucide-react";
-import { formatDate } from "../../lib/format";
-import type { Trip } from "../../lib/types";
+import { formatDate } from "../lib/format";
+import type { Trip } from "../lib/types";
+import { Button } from "@/components/ui/button";
+import { OverviewCard } from "@/components/ui/overview-card";
+import { Select } from "@/components/ui/field";
 
 const VENTANAS_SUGERIDAS = [7, 14, 21, 30, 45, 60];
 
@@ -48,10 +51,13 @@ export default function AgendaView({
 
   return (
     <>
-      <section className="overview-strip" aria-label="Resumen operativo">
-        <button
+      <section
+        className="mb-3 grid grid-cols-[1.45fr_repeat(3,1fr)] gap-[10px] max-[1120px]:grid-cols-2 max-[760px]:grid-cols-[repeat(2,minmax(0,1fr))] max-[760px]:gap-[7px]"
+        aria-label="Resumen operativo"
+      >
+        <OverviewCard
           type="button"
-          className="overview-card next"
+          variante="next"
           onClick={() => nextTrip && onTrip(nextTrip)}
           disabled={!nextTrip}
         >
@@ -71,12 +77,10 @@ export default function AgendaView({
             </>
           )}
           <ChevronRight size={18} />
-        </button>
-        <button
+        </OverviewCard>
+        <OverviewCard
           type="button"
-          className={
-            porComprar > 0 ? "overview-card urgente" : "overview-card"
-          }
+          variante={porComprar > 0 ? "urgente" : "normal"}
           onClick={onPurchase}
         >
           <span>Por comprar ahora</span>
@@ -93,31 +97,32 @@ export default function AgendaView({
                   }`}
           </small>
           <ChevronRight size={18} />
-        </button>
-        <button type="button" className="overview-card" onClick={onRequested}>
+        </OverviewCard>
+        <OverviewCard type="button" onClick={onRequested}>
           <span>Pendientes de confirmación</span>
           <strong>{requestedCount}</strong>
           <small>Solicitudes enviadas</small>
           <ChevronRight size={18} />
-        </button>
-        <button type="button" className="overview-card" onClick={onPeople}>
+        </OverviewCard>
+        <OverviewCard type="button" onClick={onPeople}>
           <span>Personas activas</span>
           <strong>{activeCount}</strong>
           <small>En el proyecto</small>
           <ChevronRight size={18} />
-        </button>
+        </OverviewCard>
       </section>
-      <div className="agenda-actions">
-        <button
+      <div className="mb-3 flex min-h-[52px] items-center justify-between gap-[18px] max-[760px]:my-[11px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-2">
+        <Button
           type="button"
-          className="shift-action four"
+          className="border-four-line bg-four-soft text-four hover:border-four max-[760px]:w-full"
           onClick={onGenerate}
         >
           <CalendarDays size={17} /> Planificar turnos
-        </button>
-        <label className="window-field">
+        </Button>
+        <label className="m-0 inline-flex items-center gap-2 text-[12px] text-foreground-soft">
           Comprar con
-          <select
+          <Select
+            className="w-auto min-h-11 py-0"
             value={purchaseWindow}
             onChange={(event) => onWindowChange(Number(event.target.value))}
           >
@@ -126,7 +131,7 @@ export default function AgendaView({
                 {dias} días
               </option>
             ))}
-          </select>
+          </Select>
           de anticipación
         </label>
       </div>

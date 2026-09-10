@@ -1,6 +1,6 @@
 "use client";
 
-import AgendaView from "../app/components/agenda-view";
+import AgendaView from "@/components/agenda-view";
 import YearView from "../app/year-view";
 import { useApp } from "../app/store";
 

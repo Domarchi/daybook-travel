@@ -1,6 +1,7 @@
 "use client";
 
 import { formatoCLP } from "../lib/costs";
+import { StaticOverviewCard } from "@/components/ui/overview-card";
 import { TableWrap } from "@/components/ui/table-wrap";
 import { useApp } from "../app/store";
 
@@ -33,13 +34,13 @@ export default function CostsView() {
   return (
     <section aria-labelledby="costs-results">
       <div className="mb-[18px] grid gap-3">
-        <div className="overview-card estatico">
+        <StaticOverviewCard>
           <span>Gasto registrado</span>
           <strong>{formatoCLP(total)}</strong>
           <small>
             {cobertura.conMonto} de {cobertura.viajes} viajes tienen monto
           </small>
-        </div>
+        </StaticOverviewCard>
         {faltan > 0 && (
           <p
             className="m-0 rounded-sm border border-[color-mix(in_srgb,var(--warning)_34%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_7%,var(--surface))] px-[14px] py-3 text-[12px] leading-[1.5] text-foreground-soft"
