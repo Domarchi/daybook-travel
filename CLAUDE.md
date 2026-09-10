@@ -135,9 +135,16 @@ se agrega una nueva con el número siguiente.
    nueva puede eliminarla; conviene esperar a que la versión nueva lleve un tiempo en
    producción, para poder volver atrás sin tocar SQL.
 
-8. **Cliente de Supabase perezoso.** `lib/supabase.ts` crea el cliente al cargar el módulo, lo
-   que rompe `npm run build` en un clon sin `.env.local` (ver Trampas conocidas). Crearlo la
-   primera vez que se usa y dar un mensaje claro si faltan las variables.
+8. **Cliente de Supabase perezoso. HECHO** (rama `entrada`). `lib/supabase.ts` exporta ahora
+   `db()`, una función que crea el cliente la primera vez que alguien lo pide y lo reutiliza
+   después. `npm run build` funciona en un clon sin `.env.local` — comprobado sacando el
+   archivo y compilando.
+
+   - Si faltan las variables, el mensaje dice qué copiar y qué completar, en vez del
+     `supabaseUrl is required` de antes.
+   - El efecto que revisa la sesión atrapa ese error: sin variables se ve la pantalla de
+     entrada con el motivo, no una página en blanco, y la demostración entra igual.
+   - Todas las llamadas pasaron de `db.from(...)` a `db().from(...)`.
 
 ## Convenciones
 
@@ -203,10 +210,6 @@ probar la interfaz sin credenciales — pero ojo, ese camino usa `lib/calendar.t
 
 ## Trampas conocidas
 
-- **`npm run build` falla en un clon limpio** con `Error: supabaseUrl is required`. La causa
-  está en `lib/supabase.ts`: crea el cliente al cargar el módulo, y Next evalúa ese módulo al
-  prerenderizar `/`. Solución de parche: tener un `.env.local`, aunque sea con valores de
-  relleno. Arreglo de verdad: crear el cliente de forma perezosa, la primera vez que se usa.
 - El indicador de desarrollo de Next agrega botones y texto que no son de la aplicación. Si
   mides el DOM para comparar antes y después, mide `.shell`, no `document.body`.
 

@@ -518,7 +518,7 @@ export default function ExcelSyncPanel({
     setMessage("");
     onBusyChange?.(true);
     try {
-      const { data, error } = await db.rpc("sync_excel_batch", {
+      const { data, error } = await db().rpc("sync_excel_batch", {
         p_sync_id: syncId,
         p_payload: actionablePayload,
       });

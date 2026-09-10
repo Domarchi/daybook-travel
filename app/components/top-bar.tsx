@@ -56,7 +56,7 @@ export default function TopBar() {
           className="icon-button"
           aria-label={demo ? "Salir de la demostración" : "Cerrar sesión"}
           onClick={async () => {
-            if (!demo) await db.auth.signOut();
+            if (!demo) await db().auth.signOut();
             setDemo(false);
             setAccessStatus("checking");
             setPeople([]);

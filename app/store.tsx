@@ -96,11 +96,26 @@ function useStoreValue() {
   }, []);
 
   useEffect(() => {
-    db.auth.getSession().then(({ data }) => {
+    let sesion;
+    try {
+      sesion = db().auth;
+    } catch (error) {
+      // Sin variables de entorno no hay a quién preguntarle por la sesión. Se
+      // muestra la pantalla de entrada con el motivo, en vez de una página en
+      // blanco, y la demostración sigue funcionando sin credenciales.
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Falta configurar el acceso a la base de datos.",
+      );
+      setReady(true);
+      return;
+    }
+    sesion.getSession().then(({ data }) => {
       setEmail(data.session?.user.email ?? null);
       setReady(true);
     });
-    const { data } = db.auth.onAuthStateChange((_event, session) => {
+    const { data } = sesion.onAuthStateChange((_event, session) => {
       setEmail(session?.user.email ?? null);
       setReady(true);
     });
@@ -110,7 +125,7 @@ function useStoreValue() {
   async function allRows(table: string) {
     const rows: Record<string, unknown>[] = [];
     for (let offset = 0; ; offset += 1000) {
-      const { data, error } = await db
+      const { data, error } = await db()
         .from(table)
         .select("*")
         .order("id")
@@ -127,7 +142,7 @@ function useStoreValue() {
       current === "allowed" ? current : "checking",
     );
     try {
-      const { data: member, error } = await db.rpc("is_member");
+      const { data: member, error } = await db().rpc("is_member");
       if (error) throw error;
       if (!member) {
         setAccessStatus("denied");
@@ -151,7 +166,7 @@ function useStoreValue() {
       );
       // Si la tabla todavia no existe, se sigue con la ventana por omision en
       // vez de dejar la aplicacion sin cargar.
-      const ajustes = await db
+      const ajustes = await db()
         .from("settings")
         .select("purchase_window_days")
         .maybeSingle();
@@ -420,7 +435,7 @@ function useStoreValue() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     await runAction(async () => {
-      const { error } = await db.auth.signInWithPassword({
+      const { error } = await db().auth.signInWithPassword({
         email: String(form.get("email")),
         password: String(form.get("password")),
       });
@@ -575,8 +590,8 @@ function useStoreValue() {
         );
       } else {
         const result = editPerson
-          ? await db.from("people").update(person).eq("id", editPerson.id)
-          : await db.from("people").insert(person).select("id").single();
+          ? await db().from("people").update(person).eq("id", editPerson.id)
+          : await db().from("people").insert(person).select("id").single();
         if (result.error) throw result.error;
         if (!editPerson) savedId = String(result.data?.id ?? "");
         await reload();
@@ -670,7 +685,7 @@ function useStoreValue() {
           ).sort((a, b) => a.date.localeCompare(b.date)),
         );
       } else if (editTrip) {
-        const result = await db
+        const result = await db()
           .from("trips")
           .update(trip)
           .eq("id", editTrip.id)
@@ -684,7 +699,7 @@ function useStoreValue() {
         }
         await reload();
       } else {
-        const result = await db.from("trips").insert(trip);
+        const result = await db().from("trips").insert(trip);
         if (result.error) throw result.error;
         await reload();
       }
@@ -747,7 +762,7 @@ function useStoreValue() {
         for (let index = 0; index < nuevos.length; index += 200) {
           // ignoreDuplicates deja pasar lo que otra persona haya creado entre
           // medio: nunca se pisa un viaje que ya existe.
-          const { data, error } = await db
+          const { data, error } = await db()
             .from("trips")
             .upsert(nuevos.slice(index, index + 200), {
               onConflict: "person_id,date,direction",
@@ -777,7 +792,7 @@ function useStoreValue() {
     const anterior = purchaseWindow;
     setPurchaseWindow(dias);
     if (demo) return;
-    const { error } = await db
+    const { error } = await db()
       .from("settings")
       .update({
         purchase_window_days: dias,
@@ -920,7 +935,7 @@ function useStoreValue() {
         for (let index = 0; index < rows.length; index += 10) {
           const results = await Promise.all(
             rows.slice(index, index + 10).map((trip) =>
-              db
+              db()
                 .from("trips")
                 .update({
                   status: "Solicitado",
@@ -963,7 +978,7 @@ function useStoreValue() {
     setModal("history");
     if (demo) return;
     try {
-      const { data, error } = await db
+      const { data, error } = await db()
         .from("history")
         .select("*")
         .eq("record_id", trip.id)
