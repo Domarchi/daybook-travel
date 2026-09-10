@@ -30,6 +30,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
 | `app/year-view.tsx` | Vista anual de calor. |
 | `app/globals.css` | ~3.000 líneas. Tokens en `:root` y `:root[data-theme="light"]`. |
+| `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
@@ -83,9 +84,16 @@ se agrega una nueva con el número siguiente.
    - Una prueba compara el motor nuevo contra el calendario retirado en cuatro fechas de
      inicio y tres períodos: nadie que ya esté cargado cambia de fechas.
 
-3. **Ventana de compra.** Hoy todo dice "Planificado" sin importar si el vuelo es mañana o en
-   tres semanas. Falta la pregunta del día: *¿qué hay que comprar ya?* Colorear la agenda por
-   urgencia (dentro de la ventana y sin gestionar = urgente) y una cola de fechas abiertas.
+3. **Ventana de compra. HECHO** (rama `ventana-de-compra`). `lib/purchase.ts` clasifica cada
+   viaje y la agenda muestra la tarjeta "Por comprar ahora", que lleva a la cola filtrada.
+
+   - Un viaje está **resuelto** cuando tiene PNR. Solicitado sin PNR sigue pendiente: decisión
+     de la obra, porque hasta que no hay código nadie tiene asiento.
+   - La ventana vive en `public.settings` (una sola fila, auditada), por omisión 21 días, y se
+     cambia desde la agenda. Es política de la obra, no preferencia de cada persona: lo que
+     cambia Katy lo ve Tamara.
+   - Las **fechas abiertas** son fechas distintas, no viajes: los pasajes se compran por bloque.
+   - Cada fila de Viajes lleva "Faltan N días" coloreado, y hay un filtro "Solo por comprar".
 
 4. **Costos.** El campo `amount` existe en `trips` pero nada lo suma. Falta: precio de referencia
    por ruta, costo por persona/mes/ruta, y comparación de una cotización nueva contra el historial.

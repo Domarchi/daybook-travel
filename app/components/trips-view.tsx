@@ -4,6 +4,7 @@ import EmptyState from "./empty-state";
 import { ArrowDownLeft, ArrowUpRight, Clock, Download, Plane, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { formatDate, localDate, statusClass } from "../../lib/format";
 import { TRIP_STATUSES as statuses } from "../../lib/types";
+import { claseDeCompra, diasParaVolar } from "../../lib/purchase";
 import { useApp } from "../store";
 
 export default function TripsView() {
@@ -17,6 +18,9 @@ export default function TripsView() {
     markSelectedRequested,
     navigate,
     onlyUpcoming,
+    compraDe,
+    purchaseFilter,
+    setPurchaseFilter,
     openTrip,
     people,
     peopleById,
@@ -43,6 +47,7 @@ export default function TripsView() {
     Boolean(dateFilter) ||
     statusFilter !== "Todos" ||
     Boolean(personFilter) ||
+    purchaseFilter !== "todos" ||
     !onlyUpcoming;
 
   return (
@@ -110,6 +115,19 @@ export default function TripsView() {
           <SlidersHorizontal size={17} />
           {onlyUpcoming ? "Próximos" : "Todos los periodos"}
         </button>
+        <button
+          type="button"
+          className={purchaseFilter === "abiertos" ? "active-filter" : ""}
+          aria-pressed={purchaseFilter === "abiertos"}
+          onClick={() =>
+            setPurchaseFilter(
+              purchaseFilter === "abiertos" ? "todos" : "abiertos",
+            )
+          }
+        >
+          <Clock size={17} />
+          {purchaseFilter === "abiertos" ? "Solo por comprar" : "Por comprar"}
+        </button>
         <button type="button" onClick={exportCsv}>
           <Download size={17} /> Lista para solicitar
         </button>
@@ -134,6 +152,7 @@ export default function TripsView() {
           {onlyUpcoming ? " desde hoy" : " en total"}
           {statusFilter !== "Todos" ? ` · ${statusFilter}` : ""}
           {dateFilter ? ` · ${formatDate(dateFilter)}` : ""}
+          {purchaseFilter === "abiertos" ? " · por comprar" : ""}
         </span>
         {hasTripFilters && visibleTrips.length > 0 && (
           <button type="button" onClick={clearTripFilters}>
@@ -259,6 +278,17 @@ export default function TripsView() {
                   </td>
                   <td data-label="Fecha">
                     {formatDate(trip.date)}
+                    <small className={`compra-pill ${claseDeCompra(compraDe(trip))}`}>
+                      {(() => {
+                        const estado = compraDe(trip);
+                        if (estado === "resuelto") return "Con reserva";
+                        if (estado === "cerrado") return "Anulado";
+                        const faltan = diasParaVolar(trip.date, localDate());
+                        if (faltan < 0) return "Fecha vencida";
+                        if (faltan === 0) return "Vuela hoy";
+                        return `Faltan ${faltan} ${faltan === 1 ? "día" : "días"}`;
+                      })()}
+                    </small>
                   </td>
                   <td data-label="Movimiento">
                     <span

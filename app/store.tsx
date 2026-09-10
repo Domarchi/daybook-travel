@@ -20,6 +20,12 @@ import {
 import { db } from "../lib/supabase";
 import { addDays } from "../lib/calendar";
 import { movimientos } from "../lib/cycles";
+import {
+  VENTANA_POR_OMISION,
+  estadoDeCompra,
+  resumenDeCompra,
+  ventanaValida,
+} from "../lib/purchase";
 import { makeDemoPeople, makeDemoTrips } from "../lib/demo";
 import { localDate, normalize } from "../lib/format";
 import type {
@@ -68,6 +74,10 @@ function useStoreValue() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  // Dias de anticipacion con que se compran los pasajes. Es una politica de la
+  // obra: vive en la base, no en el navegador. Mientras carga vale la de siempre.
+  const [purchaseWindow, setPurchaseWindow] = useState(VENTANA_POR_OMISION);
+  const [purchaseFilter, setPurchaseFilter] = useState("todos");
   const busyRef = useRef(false);
 
   useEffect(() => {
@@ -131,6 +141,17 @@ function useStoreValue() {
           a.date.localeCompare(b.date),
         ),
       );
+      // Si la tabla todavia no existe, se sigue con la ventana por omision en
+      // vez de dejar la aplicacion sin cargar.
+      const ajustes = await db
+        .from("settings")
+        .select("purchase_window_days")
+        .maybeSingle();
+      if (!ajustes.error && ajustes.data) {
+        setPurchaseWindow(
+          Number(ajustes.data.purchase_window_days) || VENTANA_POR_OMISION,
+        );
+      }
       setAccessStatus("allowed");
     } catch {
       setAccessStatus((current) => (current === "allowed" ? current : "error"));
@@ -219,7 +240,12 @@ function useStoreValue() {
           (statusFilter === "Todos" || trip.status === statusFilter) &&
           (!dateFilter || trip.date === dateFilter) &&
           (!personFilter || trip.person_id === personFilter) &&
-          (!onlyUpcoming || trip.date >= localDate())
+          (!onlyUpcoming || trip.date >= localDate()) &&
+          (purchaseFilter === "todos" ||
+            (purchaseFilter === "abiertos" &&
+              ["urgente", "vencido"].includes(
+                estadoDeCompra(trip, localDate(), purchaseWindow),
+              )))
         );
       })
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -231,7 +257,18 @@ function useStoreValue() {
     personFilter,
     onlyUpcoming,
     peopleById,
+    purchaseFilter,
+    purchaseWindow,
   ]);
+
+  // En que situacion de compra esta cada viaje, segun la ventana vigente.
+  const compraDe = (trip: Pick<Trip, "date" | "status" | "pnr">) =>
+    estadoDeCompra(trip, localDate(), purchaseWindow);
+
+  const resumenCompra = useMemo(
+    () => resumenDeCompra(trips, localDate(), purchaseWindow),
+    [trips, purchaseWindow],
+  );
 
   const requestableTrips = useMemo(
     () =>
@@ -457,6 +494,7 @@ function useStoreValue() {
   }
 
   function clearTripFilters() {
+    setPurchaseFilter("todos");
     setQuery("");
     setStatusFilter("Todos");
     setDateFilter("");
@@ -694,6 +732,41 @@ function useStoreValue() {
         `${count} viajes nuevos para ${peopleCount} ${peopleCount === 1 ? "persona" : "personas"}. Los registros existentes se conservaron.`,
       );
     }, "form");
+  }
+
+  async function savePurchaseWindow(dias: number) {
+    clearMessages();
+    if (!ventanaValida(dias)) {
+      setNotice("La ventana de compra va de 1 a 120 dias.");
+      return;
+    }
+    const anterior = purchaseWindow;
+    setPurchaseWindow(dias);
+    if (demo) return;
+    const { error } = await db
+      .from("settings")
+      .update({
+        purchase_window_days: dias,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", "00000000-0000-0000-0000-000000000001");
+    if (error) {
+      setPurchaseWindow(anterior);
+      setNotice("No pudimos guardar la ventana de compra.");
+    }
+  }
+
+  // La cola de compra: los viajes que hay que atender ahora, en la vista Viajes.
+  function showPurchaseQueue() {
+    clearMessages();
+    setQuery("");
+    setStatusFilter("Todos");
+    setDateFilter("");
+    setPersonFilter("");
+    setOnlyUpcoming(false);
+    setPurchaseFilter("abiertos");
+    setView("Viajes");
+    setSelectedTrips([]);
   }
 
   function exportCsv() {
@@ -965,6 +1038,13 @@ function useStoreValue() {
     busyRef,
     allRows,
     reload,
+    purchaseWindow,
+    savePurchaseWindow,
+    purchaseFilter,
+    setPurchaseFilter,
+    showPurchaseQueue,
+    compraDe,
+    resumenCompra,
     peopleById,
     personName,
     activePeople,

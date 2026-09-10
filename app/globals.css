@@ -2953,3 +2953,69 @@ td > strong {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Ventana de compra
+   Marca cuánto falta para cada vuelo y cuánto de eso ya es urgente. Los colores
+   salen de los mismos tokens que el resto: nada nuevo que mantener aparte.
+   --------------------------------------------------------------------------- */
+
+.compra-pill {
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.compra-pill.compra-urgente {
+  border-color: color-mix(in srgb, var(--warning) 38%, var(--border));
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  color: var(--warning);
+}
+
+.compra-pill.compra-vencido {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--border));
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  color: var(--danger);
+}
+
+.compra-pill.compra-cerrado {
+  opacity: 0.55;
+}
+
+/* La tarjeta de la agenda solo se enciende cuando de verdad hay algo que hacer. */
+.overview-card.urgente {
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+  background: color-mix(in srgb, var(--warning) 7%, var(--surface));
+}
+
+.overview-card.urgente strong {
+  color: var(--warning);
+}
+
+/* El selector de días de anticipación, en la fila de acciones de la agenda. */
+.window-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.window-field select {
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+}

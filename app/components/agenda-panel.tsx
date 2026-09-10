@@ -7,7 +7,10 @@ import { useApp } from "../store";
 export default function AgendaPanel() {
   const {
     nextTrip,
-    plannedCount,
+    resumenCompra,
+    purchaseWindow,
+    savePurchaseWindow,
+    showPurchaseQueue,
     requestedCount,
     activePeople,
     personName,
@@ -26,12 +29,14 @@ export default function AgendaPanel() {
   return (
     <AgendaView
       nextTrip={nextTrip}
-      plannedCount={plannedCount}
+      purchaseSummary={resumenCompra}
+      purchaseWindow={purchaseWindow}
+      onPurchase={showPurchaseQueue}
+      onWindowChange={(dias) => void savePurchaseWindow(dias)}
       requestedCount={requestedCount}
       activeCount={activePeople.length}
       personName={personName}
       onTrip={(trip) => openTrip(trip)}
-      onPlanned={() => showTripGroup("Planificado")}
       onRequested={() => showTripGroup("Solicitado")}
       onPeople={() => navigate("Personas")}
       onGenerate={() => openGenerate()}
