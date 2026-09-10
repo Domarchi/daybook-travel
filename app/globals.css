@@ -3076,3 +3076,38 @@ td > strong {
   color: var(--text-soft);
   font-weight: 700;
 }
+
+/* ---------------------------------------------------------------------------
+   Encabezado compacto
+   FCC TRAVEL es una herramienta de uso diario, no una página de presentación.
+   El encabezado ocupaba 126px y repetía tres veces la misma información: el
+   kicker, el título y la pestaña activa de la barra superior dicen lo mismo.
+   Ese espacio vale más como filas de datos: medido en una ventana de 936px,
+   la primera fila sube de 443px a 369px y se pasa de 6 a 7 viajes visibles
+   sin desplazar (8 con los datos de producción, que traen filas más cortas).
+   --------------------------------------------------------------------------- */
+
+.page-head {
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.page-head h1 {
+  font-size: clamp(22px, 1.9vw, 27px);
+  letter-spacing: -0.03em;
+}
+
+/* La pestaña activa ya dice en qué sección estás. */
+.page-head .section-kicker {
+  display: none;
+}
+
+.page-head .page-description {
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.results-line {
+  min-height: 28px;
+  margin-bottom: 6px;
+}
