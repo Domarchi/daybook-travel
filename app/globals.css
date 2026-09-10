@@ -44,7 +44,10 @@
   --surface-hover: #e7ecef;
   --text: #151b23;
   --text-soft: #485360;
-  --muted: #687482;
+  /* Oscurecido desde #687482, que daba 4.36 sobre el fondo de pagina y no
+     alcanzaba el minimo AA de 4.5. Este da 5.0 sobre el fondo y 5.4 sobre las
+     tarjetas blancas. El tema oscuro ya iba holgado y no se toca. */
+  --muted: #5f6b78;
   --border: #dce2e7;
   --border-strong: #c5ced7;
   --action: #18212c;
