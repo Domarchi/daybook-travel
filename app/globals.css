@@ -35,6 +35,9 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --radius-sm: var(--rad-sm);
+  --radius-md: var(--rad);
+  --radius-lg: var(--rad-lg);
   --ease-out-fcc: var(--ease-out);
   --ease-drawer-fcc: var(--ease-drawer);
 }

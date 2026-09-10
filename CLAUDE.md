@@ -146,6 +146,55 @@ se agrega una nueva con el número siguiente.
      entrada con el motivo, no una página en blanco, y la demostración entra igual.
    - Todas las llamadas pasaron de `db.from(...)` a `db().from(...)`.
 
+## Reconstrucción en Tailwind (en curso, rama `tailwind`)
+
+Decisión de Joaquín: reescribir la interfaz en Tailwind + shadcn, para aprender esa forma de
+trabajar y para poder traer componentes de 21st.dev. **La aplicación está en producción y la
+usan dos personas todos los días**, así que se migra pieza por pieza y producción nunca queda
+rota. Nada de reescritura de una sentada.
+
+### Reglas del proceso
+
+1. **Traducir, no rediseñar.** Cada componente migrado tiene que verse idéntico al anterior.
+   Si algo parece mejorable, se anota y se cambia después, en un paso aparte. Rediseñar y
+   migrar a la vez es la forma más segura de no saber cuál de los dos rompió algo.
+2. **Se comprueba midiendo, no mirando.** Antes de tocar, se registran los estilos calculados
+   del componente; después, los mismos. Tienen que coincidir propiedad por propiedad. La
+   página `/prueba-tailwind` existe para eso: pone el viejo y el nuevo uno al lado del otro.
+3. **Los colores salen de los tokens**, nunca de la paleta de Tailwind. `bg-surface`, sí;
+   `bg-zinc-900`, no. Si un color no tiene token, se agrega al bloque `@theme` primero.
+4. Una rama por paso, con `npm run build` y `npm test` en verde antes de guardar.
+
+### Orden
+
+1. **Primitivas** — `Button` (HECHO), `Input`, `Select`, `Badge`. Son las que usan todas las
+   demás; migrar un componente antes que sus primitivas obliga a hacerlas dos veces.
+2. **Piezas sin lógica** — `empty-state`, `theme-toggle`, `dialog-actions`, `page-head`.
+3. **Diálogos** — manifest, history, generate, person, trip, y el armazón de `modal-layer`.
+4. **Vistas** — personas, costos, agenda, y **viajes al final**: es la tabla más densa y la
+   que más se usa.
+5. **Armazón** — top-bar, workspace, login-view, access-state.
+6. **Limpieza** — borrar de `@layer fcc` lo que ya no usa nadie. Al final ese archivo debería
+   quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre (el campo de puntos).
+
+### Lo que ya está montado
+
+- `@layer fcc` envuelve todo el CSS propio y lo deja **por debajo** de las utilidades de
+  Tailwind. Sin eso, `button { ... }` le ganaba a `bg-primary` y los componentes de shadcn
+  llegaban con el estilo viejo pegado.
+- Los tokens que chocaban con los espacios de nombres de Tailwind se renombraron:
+  `--text-soft` → `--fg-soft`, `--radius-*` → `--rad-*`. **No vuelvas a nombrar un token
+  `--text-algo` ni `--radius-algo`**: Tailwind se los apropia y el choque es silencioso.
+- El bloque `@theme inline` conecta los tokens con los nombres que espera Tailwind, incluidos
+  los radios. `--ease-out` y `--ease-drawer` se dejaron sin renombrar a propósito: ahí el
+  choque es deseable, hace que `ease-out` de Tailwind use la curva de la aplicación.
+- Tailwind se importa **sin su preflight**, que es su reset. Con preflight puesto, las reglas
+  de la capa `fcc` que cuentan con los valores por omisión del navegador se desarman. El costo:
+  los componentes de shadcn dan por hecho que preflight está, así que algunos necesitan
+  retoques. Cuando la migración termine y la capa `fcc` esté vacía, se puede volver a evaluar.
+- `components/ui/` es donde viven las primitivas, con el alias `@/`. TypeScript 7 eliminó
+  `baseUrl`, así que el alias va solo con `paths`.
+
 ## Convenciones
 
 - Español en UI, nombres de dominio y comentarios.
