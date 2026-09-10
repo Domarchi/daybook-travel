@@ -1,11 +1,14 @@
 "use client";
 
 import DialogActions from "@/components/ui/dialog-actions";
-import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../../lib/types";
+import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
+import { Checkbox, Input, Label, Select, Textarea } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
 import { ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
-import { avisoDePrecio, formatoCLP } from "../../lib/costs";
-import { useApp } from "../store";
+import { avisoDePrecio, formatoCLP } from "../lib/costs";
+import { useApp } from "../app/store";
 
 export default function TripDialog() {
   const {
@@ -62,28 +65,28 @@ export default function TripDialog() {
 
   return (
     <form onSubmit={saveTrip} aria-busy={busy}>
-      <div className="dialog-body">
+      <DialogBody>
         {editTrip && (
-          <button
+          <Button
             type="button"
-            className="context-link"
+            className="mb-[18px] w-fit border-transparent bg-transparent"
             onClick={() => void showHistory(editTrip)}
           >
             <Clock size={16} /> Ver historial del viaje
-          </button>
+          </Button>
         )}
-        <section className="form-section" aria-labelledby="trip-main">
-          <h3 id="trip-main">Movimiento</h3>
-          <label>
+        <FormSection aria-labelledby="trip-main">
+          <h3 id="trip-main" className="text-foreground">Movimiento</h3>
+          <Label>
             Persona
             {editTrip && (
-              <input
+              <Input
                 type="hidden"
                 name="person_id"
                 value={editTrip.person_id}
               />
             )}
-            <select
+            <Select
               data-autofocus
               disabled={Boolean(editTrip)}
               name="person_id"
@@ -109,33 +112,33 @@ export default function TripDialog() {
                   {!person.active ? " · inactiva" : ""}
                 </option>
               ))}
-            </select>
+            </Select>
             {editTrip && (
               <small>
                 La persona se mantiene para conservar la trazabilidad.
               </small>
             )}
-          </label>
-          <div className="form-grid">
-            <label>
+          </Label>
+          <FormGrid>
+            <Label>
               Fecha
-              <input
+              <Input
                 name="date"
                 type="date"
                 required
                 defaultValue={editTrip?.date ?? newDate}
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Movimiento
               {editTrip && (
-                <input
+                <Input
                   type="hidden"
                   name="direction"
                   value={editTrip.direction}
                 />
               )}
-              <select
+              <Select
                 disabled={Boolean(editTrip)}
                 name="direction"
                 defaultValue={editTrip?.direction ?? "SUBIDA"}
@@ -149,16 +152,16 @@ export default function TripDialog() {
               >
                 <option value="SUBIDA">Subida</option>
                 <option value="BAJADA">Bajada</option>
-              </select>
+              </Select>
               {editTrip && (
                 <small>
                   El sentido identifica este registro y no se cambia.
                 </small>
               )}
-            </label>
-            <label>
+            </Label>
+            <Label>
               Origen
-              <input
+              <Input
                 name="origin"
                 defaultValue={
                   editTrip?.origin ??
@@ -167,10 +170,10 @@ export default function TripDialog() {
                 }
                 placeholder="Usar ruta habitual"
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Destino
-              <input
+              <Input
                 name="destination"
                 defaultValue={
                   editTrip?.destination ??
@@ -179,18 +182,18 @@ export default function TripDialog() {
                 }
                 placeholder="Usar ruta habitual"
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Hora requerida
-              <input
+              <Input
                 name="requested_time"
                 type="time"
                 defaultValue={editTrip?.requested_time?.slice(0, 5)}
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Equipaje
-              <select
+              <Select
                 name="baggage"
                 defaultValue={
                   editTrip?.baggage ??
@@ -202,19 +205,16 @@ export default function TripDialog() {
                 {baggageOptions.map((option) => (
                   <option key={option}>{option}</option>
                 ))}
-              </select>
-            </label>
-          </div>
-        </section>
+              </Select>
+            </Label>
+          </FormGrid>
+        </FormSection>
 
-        <section
-          className="form-section"
-          aria-labelledby="trip-status"
-        >
-          <h3 id="trip-status">Estado</h3>
-          <label>
+        <FormSection aria-labelledby="trip-status">
+          <h3 id="trip-status" className="text-foreground">Estado</h3>
+          <Label>
             Estado del viaje
-            <select
+            <Select
               name="status"
               value={tripStatus}
               onChange={(event) => {
@@ -227,10 +227,10 @@ export default function TripDialog() {
               {statuses.map((status) => (
                 <option key={status}>{status}</option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </Label>
           <details
-            className="form-disclosure"
+            className="overflow-hidden rounded-md border border-line bg-surface-soft open:[&_summary_svg]:rotate-90"
             open={reservationOpen || reservationRequired}
             onToggle={(event) => {
               if (reservationRequired && !event.currentTarget.open) {
@@ -242,40 +242,41 @@ export default function TripDialog() {
             }}
           >
             <summary
+              className="flex min-h-[60px] cursor-pointer list-none items-center justify-between gap-4 px-[13px] py-[10px] text-foreground-soft [&::-webkit-details-marker]:hidden [&_svg]:transition-transform [&_svg]:duration-[180ms] [&_svg]:ease-[var(--ease-out)]"
               aria-disabled={reservationRequired || undefined}
               onClick={(event) => {
                 if (reservationRequired) event.preventDefault();
               }}
             >
-              <span>
-                <strong>Datos de reserva</strong>
-                <small>
+              <span className="grid gap-[2px]">
+                <strong className="text-foreground">Datos de reserva</strong>
+                <small className="text-muted">
                   PNR, vuelo y monto cuando estén disponibles
                 </small>
               </span>
               <ChevronRight size={18} />
             </summary>
-            <div className="form-grid disclosure-content">
-              <label>
+            <div className="grid grid-cols-2 gap-[15px] border-t border-line bg-surface p-[14px] max-[760px]:grid-cols-1">
+              <Label>
                 Código de reserva
-                <input
+                <Input
                   name="pnr"
                   defaultValue={editTrip?.pnr}
                   maxLength={40}
                   required={reservationRequired}
                 />
-              </label>
-              <label>
+              </Label>
+              <Label>
                 Aerolínea y vuelo
-                <input
+                <Input
                   name="flight"
                   defaultValue={editTrip?.flight}
                   placeholder="Ej. LA 112"
                 />
-              </label>
-              <label>
+              </Label>
+              <Label>
                 Monto por persona (CLP)
-                <input
+                <Input
                   name="amount"
                   type="number"
                   min="0"
@@ -300,40 +301,37 @@ export default function TripDialog() {
                     {precio.viajes === 1 ? "viaje" : "viajes"}.
                   </small>
                 )}
-              </label>
+              </Label>
             </div>
           </details>
-        </section>
+        </FormSection>
 
-        <section
-          className="form-section"
-          aria-labelledby="trip-notes"
-        >
-          <h3 id="trip-notes">Observaciones</h3>
-          <label>
-            Información útil <small>(opcional)</small>
-            <textarea
+        <FormSection aria-labelledby="trip-notes">
+          <h3 id="trip-notes" className="text-foreground">Observaciones</h3>
+          <Label>
+            Información útil <small className="text-muted">(opcional)</small>
+            <Textarea
               name="notes"
               defaultValue={editTrip?.notes}
               placeholder="Restricciones horarias, equipaje o acuerdos."
             />
-          </label>
+          </Label>
           {editTrip && (
-            <label>
+            <Label>
               Motivo de este cambio
-              <textarea
+              <Textarea
                 name="change_reason"
                 required
                 placeholder="Describe brevemente qué cambió y por qué."
               />
-            </label>
+            </Label>
           )}
-          <p className="hint">
+          <Hint>
             Los montos los registra el equipo. Cambiar a Solicitado
             indica que la solicitud ya fue enviada.
-          </p>
-        </section>
-      </div>
+          </Hint>
+        </FormSection>
+      </DialogBody>
       <DialogActions
         busy={busy}
         busyLabel="Guardando…"
