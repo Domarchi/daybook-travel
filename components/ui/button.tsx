@@ -23,7 +23,7 @@ const buttonVariants = cva(
     "duration-[140ms] ease-[var(--ease-out)]",
     "active:not-disabled:scale-[0.97]",
     "disabled:cursor-not-allowed disabled:opacity-[0.48]",
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]",
+    "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]",
   ].join(" "),
   {
     variants: {
