@@ -14,7 +14,7 @@
    existen mas abajo. Asi un componente de 21st que pida "bg-surface" toma el
    mismo gris que el resto de la aplicacion, y cambia solo con el tema.
    --------------------------------------------------------------------------- */
-@layer theme, base, components, utilities;
+@layer theme, fcc, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
@@ -25,7 +25,7 @@
   --color-surface-soft: var(--surface-soft);
   --color-surface-hover: var(--surface-hover);
   --color-foreground: var(--text);
-  --color-foreground-soft: var(--text-soft);
+  --color-foreground-soft: var(--fg-soft);
   --color-muted: var(--muted);
   --color-line: var(--border);
   --color-line-strong: var(--border-strong);
@@ -38,6 +38,20 @@
   --ease-out-fcc: var(--ease-out);
   --ease-drawer-fcc: var(--ease-drawer);
 }
+
+/* ---------------------------------------------------------------------------
+   Desde aquí hasta el final va el CSS propio de FCC TRAVEL, dentro de una capa.
+
+   Estar en una capa lo pone POR DEBAJO de las utilidades de Tailwind en la
+   prioridad de CSS. Sin esto, una clase como "bg-primary" de un componente de
+   shadcn perdía contra la regla `button { ... }` de más abajo, y el componente
+   llegaba con el estilo viejo pegado encima.
+
+   Lo que NO cambia: el orden entre estas reglas es exactamente el mismo que
+   antes, porque están todas en la misma capa. Y las reglas con !important
+   siguen ganando, porque en CSS lo importante invierte el orden de las capas.
+   --------------------------------------------------------------------------- */
+@layer fcc {
 
 :root {
   color-scheme: dark;
@@ -58,7 +72,7 @@
   --surface-soft: #1f1f1f;
   --surface-hover: #272727;
   --text: #f5f5f5;
-  --text-soft: #cacaca;
+  --fg-soft: #cacaca;
   --muted: #949494;
   --border: #2b2b2b;
   --border-strong: #3d3d3d;
@@ -81,9 +95,9 @@
   --danger: #ee7b83;
   --info: #8cb7df;
   --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 18px;
+  --rad-sm: 8px;
+  --rad: 12px;
+  --rad-lg: 18px;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   /* Para lo que se mueve dentro de la pantalla, no lo que entra o sale. */
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -102,7 +116,7 @@
   --surface-soft: #edf1f4;
   --surface-hover: #e7ecef;
   --text: #151b23;
-  --text-soft: #485360;
+  --fg-soft: #485360;
   /* Oscurecido desde #687482, que daba 4.36 sobre el fondo de pagina y no
      alcanzaba el minimo AA de 4.5. Este da 5.0 sobre el fondo y 5.4 sobre las
      tarjetas blancas. El tema oscuro ya iba holgado y no se toca. */
@@ -178,9 +192,9 @@ button {
   gap: 8px;
   padding: 0 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface-raised);
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-weight: 650;
   font-size: 13px;
   line-height: 1.2;
@@ -236,7 +250,7 @@ textarea {
   min-height: 44px;
   padding: 10px 12px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface);
   color: var(--text);
   transition:
@@ -268,7 +282,7 @@ textarea {
 label {
   display: grid;
   gap: 7px;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 13px;
   font-weight: 650;
 }
@@ -463,7 +477,7 @@ small {
 .bulk-action-bar,
 .integration-note {
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: var(--surface);
 }
 
@@ -474,7 +488,7 @@ small {
   gap: 10px;
   margin-bottom: 22px;
   padding: 8px 13px;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 12px;
 }
 
@@ -488,7 +502,7 @@ small {
 }
 
 .message {
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 13px;
 }
 
@@ -567,7 +581,7 @@ small {
   justify-items: start;
   gap: 3px 12px;
   padding: 17px;
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   text-align: left;
 }
 
@@ -646,7 +660,7 @@ small {
 .calendar-section {
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--rad-lg);
   background: var(--surface);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02);
 }
@@ -812,7 +826,7 @@ small {
   border-color: var(--border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--surface-raised) 70%, var(--bg));
-  color: var(--text-soft);
+  color: var(--fg-soft);
   text-align: left;
 }
 
@@ -919,7 +933,7 @@ small {
 .shift-badge.pending {
   border-color: var(--border-strong);
   background: var(--surface-soft);
-  color: var(--text-soft);
+  color: var(--fg-soft);
 }
 
 .calendar-summary {
@@ -1078,7 +1092,7 @@ small {
   min-height: 46px;
   padding: 0 12px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface);
   color: var(--muted);
 }
@@ -1136,7 +1150,7 @@ small {
 .people-list {
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--rad-lg);
   background: var(--surface);
 }
 
@@ -1207,7 +1221,7 @@ small {
   align-items: center;
   gap: 4px;
   overflow: hidden;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1241,7 +1255,7 @@ small {
   gap: 16px;
   margin-bottom: 10px;
   padding: 7px 9px 7px 14px;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 13px;
 }
 
@@ -1299,7 +1313,7 @@ small {
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--rad-lg);
   background: var(--surface);
 }
 
@@ -1337,7 +1351,7 @@ tbody tr:last-child td {
 }
 
 td {
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 13px;
 }
 
@@ -1401,7 +1415,7 @@ td > strong {
   padding: 4px 8px;
   border: 1px solid var(--border-strong);
   background: var(--surface-soft);
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 10px;
   font-weight: 750;
 }
@@ -1453,7 +1467,7 @@ td > strong {
 }
 
 .integration-note strong {
-  color: var(--text-soft);
+  color: var(--fg-soft);
 }
 
 /* De los pocos momentos raros de esta aplicación donde cabe un gesto: cuando
@@ -1481,7 +1495,7 @@ td > strong {
   gap: 9px;
   padding: 42px 20px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--rad-lg);
   background: var(--surface);
   text-align: center;
 }
@@ -1659,7 +1673,7 @@ td > strong {
 .entry-form {
   padding: clamp(24px, 4vw, 38px);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--rad-lg);
   /* Translúcida para que se adivinen los puntos por detrás, pero no tanto como
      para que el texto pierda contraste: 92% deja el fondo casi opaco. */
   background: color-mix(in srgb, var(--surface) 92%, transparent);
@@ -1836,7 +1850,7 @@ td > strong {
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface-soft);
 }
 
@@ -1866,7 +1880,7 @@ td > strong {
 .form-disclosure {
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: var(--surface-soft);
 }
 
@@ -1877,7 +1891,7 @@ td > strong {
   justify-content: space-between;
   gap: 16px;
   padding: 10px 13px;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   cursor: pointer;
   list-style: none;
 }
@@ -1926,7 +1940,7 @@ td > strong {
   gap: 8px;
   padding: 18px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: var(--surface-soft);
   color: var(--muted);
   font-size: 11px;
@@ -1959,7 +1973,7 @@ td > strong {
   gap: 2px;
   padding: 17px;
   border: 1px solid var(--four-border);
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: var(--four-soft);
 }
 
@@ -2010,7 +2024,7 @@ td > strong {
   margin-top: 5px;
   border: 2px solid var(--surface);
   border-radius: 999px;
-  background: var(--text-soft);
+  background: var(--fg-soft);
   box-shadow: 0 0 0 1px var(--border-strong);
 }
 
@@ -2022,9 +2036,9 @@ td > strong {
 .history-item p {
   margin-top: 4px;
   padding: 10px 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface-soft);
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 12px;
   white-space: pre-wrap;
 }
@@ -2087,7 +2101,7 @@ td > strong {
 }
 
 .excel-steps li.current span {
-  border-color: var(--text-soft);
+  border-color: var(--fg-soft);
   background: var(--text);
   color: var(--surface);
 }
@@ -2112,7 +2126,7 @@ td > strong {
   gap: 24px;
   padding: 18px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: var(--surface-soft);
 }
 
@@ -2145,7 +2159,7 @@ td > strong {
   padding: 28px;
   overflow: hidden;
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: var(--rad-lg);
   background: var(--surface);
   color: var(--text);
   text-align: center;
@@ -2182,7 +2196,7 @@ td > strong {
   justify-content: center;
   border: 1px solid var(--border);
   background: var(--surface-soft);
-  color: var(--text-soft);
+  color: var(--fg-soft);
 }
 
 .excel-upload-icon {
@@ -2196,9 +2210,9 @@ td > strong {
 .excel-demo-note,
 .excel-inline-message {
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface-soft);
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 12px;
 }
 
@@ -2249,7 +2263,7 @@ td > strong {
   gap: 11px;
   padding: 11px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: var(--surface-soft);
 }
 
@@ -2289,7 +2303,7 @@ td > strong {
   gap: 1px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface);
 }
 
@@ -2332,7 +2346,7 @@ td > strong {
 .excel-issues {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--danger) 38%, var(--border));
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: color-mix(in srgb, var(--danger) 6%, var(--surface));
 }
 
@@ -2369,7 +2383,7 @@ td > strong {
   gap: 14px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 12px;
 }
 
@@ -2386,7 +2400,7 @@ td > strong {
 .excel-preview-table {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--rad);
   background: var(--surface);
 }
 
@@ -2480,7 +2494,7 @@ td > strong {
   }
 
   .calendar-day:hover:not(:disabled) {
-    border-color: var(--text-soft);
+    border-color: var(--fg-soft);
     background: var(--surface-hover);
   }
 
@@ -2838,7 +2852,7 @@ td > strong {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--rad);
     background: var(--surface);
   }
 
@@ -2989,7 +3003,7 @@ td > strong {
   .excel-more-rows {
     margin-top: 8px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--rad-sm);
     background: var(--surface);
   }
 
@@ -3193,7 +3207,7 @@ td > strong {
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--surface-soft);
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
@@ -3231,7 +3245,7 @@ td > strong {
   align-items: center;
   gap: 8px;
   margin: 0;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 12px;
 }
 
@@ -3239,7 +3253,7 @@ td > strong {
   min-height: 32px;
   padding: 4px 8px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -3268,9 +3282,9 @@ td > strong {
   margin: 0;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--warning) 34%, var(--border));
-  border-radius: var(--radius-sm);
+  border-radius: var(--rad-sm);
   background: color-mix(in srgb, var(--warning) 7%, var(--surface));
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -3285,7 +3299,7 @@ td > strong {
 
 .precio-aviso {
   margin-top: 6px;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -3296,7 +3310,7 @@ td > strong {
 }
 
 .precio-aviso.barato {
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-weight: 700;
 }
 
@@ -3349,7 +3363,7 @@ td > strong {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
-  color: var(--text-soft);
+  color: var(--fg-soft);
   font-size: 13px;
 }
 
@@ -3416,4 +3430,6 @@ td > strong {
   margin-bottom: 12px;
   padding: 10px 12px;
   font-size: 13px;
+}
+
 }
