@@ -3019,3 +3019,57 @@ td > strong {
   font: inherit;
   font-weight: 700;
 }
+
+/* ---------------------------------------------------------------------------
+   Costos
+   Un total siempre viene con su cobertura: cuántos viajes tienen monto. Sin eso
+   un número parece el gasto completo cuando cubre una parte.
+   --------------------------------------------------------------------------- */
+
+.costs-summary {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.overview-card.estatico {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: default;
+}
+
+.costs-warning {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--warning) 34%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warning) 7%, var(--surface));
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.costs-warning strong {
+  color: var(--warning);
+}
+
+.cobertura-parcial {
+  color: var(--warning);
+}
+
+.precio-aviso {
+  margin-top: 6px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.precio-aviso.caro {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.precio-aviso.barato {
+  color: var(--text-soft);
+  font-weight: 700;
+}

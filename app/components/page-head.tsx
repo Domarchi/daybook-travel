@@ -18,33 +18,41 @@ export default function PageHead() {
             ? "OPERACIÓN DEL PROYECTO"
             : view === "Personas"
               ? "DIRECTORIO DE OBRA"
-              : "SOLICITUDES Y RESERVAS"}
+              : view === "Costos"
+                ? "GASTO EN PASAJES"
+                : "SOLICITUDES Y RESERVAS"}
         </span>
         <h1>
           {view === "Agenda"
             ? "Agenda de viajes"
             : view === "Personas"
               ? "Personas del proyecto"
-              : "Viajes y solicitudes"}
+              : view === "Costos"
+                ? "Costos de la obra"
+                : "Viajes y solicitudes"}
         </h1>
         <p className="page-description">
           {view === "Agenda"
             ? "Revisa el movimiento del equipo y atiende lo que sigue."
             : view === "Personas"
               ? "Administra rutas, turnos, vigencia y equipaje."
-              : "Prepara solicitudes y completa cada reserva."}
+              : view === "Costos"
+                ? "Cuánto se ha gastado, en qué rutas, y qué tan completo está el registro."
+                : "Prepara solicitudes y completa cada reserva."}
         </p>
       </div>
-      <button
-        type="button"
-        className="primary page-primary"
-        onClick={() =>
-          view === "Personas" ? openPerson() : openTrip(null)
-        }
-      >
-        <Plus size={18} />
-        {view === "Personas" ? "Nueva persona" : "Nuevo viaje"}
-      </button>
+      {view !== "Costos" && (
+        <button
+          type="button"
+          className="primary page-primary"
+          onClick={() =>
+            view === "Personas" ? openPerson() : openTrip(null)
+          }
+        >
+          <Plus size={18} />
+          {view === "Personas" ? "Nueva persona" : "Nuevo viaje"}
+        </button>
+      )}
     </header>
   );
 }

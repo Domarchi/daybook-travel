@@ -30,6 +30,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
 | `app/year-view.tsx` | Vista anual de calor. |
 | `app/globals.css` | ~3.000 líneas. Tokens en `:root` y `:root[data-theme="light"]`. |
+| `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
@@ -95,8 +96,17 @@ se agrega una nueva con el número siguiente.
    - Las **fechas abiertas** son fechas distintas, no viajes: los pasajes se compran por bloque.
    - Cada fila de Viajes lleva "Faltan N días" coloreado, y hay un filtro "Solo por comprar".
 
-4. **Costos.** El campo `amount` existe en `trips` pero nada lo suma. Falta: precio de referencia
-   por ruta, costo por persona/mes/ruta, y comparación de una cotización nueva contra el historial.
+4. **Costos. HECHO** (rama `costos`). Vista "Costos" con gasto por mes, por ruta y por persona.
+
+   - **El monto es por pasajero.** Dos personas en la misma reserva son dos montos que se suman;
+     el Excel de la agencia repite el valor en cada fila y esa fila es una persona. Lo confirmó
+     la obra a partir de la reserva DJVHQQ, que trae dos pasajeros con el mismo monto.
+   - **Todo total muestra su cobertura**: cuántos de esos viajes tienen monto. Sin eso, un total
+     que cubre 3 de 41 viajes parece el gasto completo. Es deliberado y no se debe quitar.
+   - El precio de referencia de una ruta es la **mediana**, no el promedio: una tarifa de última
+     hora carísima no debe mover la referencia contra la que se comparan las demás.
+   - Al escribir un monto que se aparta más de un 40% de esa referencia, el diálogo lo dice. No
+     bloquea: una tarifa cara puede ser legítima. Existe para que un cero de más no pase.
 
 5. **Elegibilidad.** Hoy solo se valida vigencia por fechas. Falta acreditación (documentos al día)
    como condición para que alguien entre a un manifiesto — visible y con motivo, nunca oculto.

@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import AccessState from "./access-state";
+import CostsView from "./costs-view";
 import AgendaPanel from "./agenda-panel";
 import { LoadingView, LoginView } from "./login-view";
 import ModalLayer from "./modal-layer";
@@ -94,6 +95,8 @@ export default function Workspace() {
                 <AgendaPanel />
               ) : view === "Personas" ? (
                 <PeopleView />
+              ) : view === "Costos" ? (
+                <CostsView />
               ) : (
                 <TripsView />
               )}

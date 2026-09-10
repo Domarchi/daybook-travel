@@ -3,10 +3,13 @@
 import DialogActions from "./dialog-actions";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../../lib/types";
 import { ChevronRight, Clock } from "lucide-react";
+import { useState } from "react";
+import { avisoDePrecio, formatoCLP } from "../../lib/costs";
 import { useApp } from "../store";
 
 export default function TripDialog() {
   const {
+    referenciaDe,
     activePeople,
     busy,
     closeModal,
@@ -23,6 +26,39 @@ export default function TripDialog() {
     showHistory,
     tripStatus,
   } = useApp();
+
+  // Lo que costó normalmente esta ruta, para comparar el monto que se escribe.
+  // Se recalcula al escribir porque la ruta puede cambiar en el mismo diálogo.
+  const [precio, setPrecio] = useState(() => {
+    if (!editTrip) return null;
+    const { referencia, viajes } = referenciaDe(editTrip);
+    return {
+      referencia,
+      viajes,
+      nivel: editTrip.amount
+        ? avisoDePrecio(Number(editTrip.amount), referencia)
+        : null,
+    };
+  });
+
+  function revisarMonto(campo: HTMLInputElement) {
+    const form = campo.form;
+    const valor = (nombre: string) =>
+      (form?.elements.namedItem(nombre) as HTMLInputElement | null)?.value ?? "";
+    const { referencia, viajes } = referenciaDe({
+      origin: valor("origin"),
+      destination: valor("destination"),
+    });
+    const monto = Number(campo.value);
+    setPrecio({
+      referencia,
+      viajes,
+      nivel:
+        campo.value.trim() && Number.isFinite(monto) && monto > 0
+          ? avisoDePrecio(monto, referencia)
+          : null,
+    });
+  }
 
   return (
     <form onSubmit={saveTrip} aria-busy={busy}>
@@ -245,7 +281,25 @@ export default function TripDialog() {
                   min="0"
                   step="1"
                   defaultValue={editTrip?.amount ?? ""}
+                  onChange={(event) => revisarMonto(event.currentTarget)}
                 />
+                {precio && precio.referencia !== null && (
+                  <small
+                    className={
+                      precio.nivel ? `precio-aviso ${precio.nivel}` : "precio-aviso"
+                    }
+                    aria-live="polite"
+                  >
+                    {precio.nivel === "caro"
+                      ? "Más caro de lo habitual. "
+                      : precio.nivel === "barato"
+                        ? "Más barato de lo habitual. "
+                        : ""}
+                    Esta ruta ha costado {formatoCLP(precio.referencia)} en{" "}
+                    {precio.viajes}{" "}
+                    {precio.viajes === 1 ? "viaje" : "viajes"}.
+                  </small>
+                )}
               </label>
             </div>
           </details>

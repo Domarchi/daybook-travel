@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, LogOut, Plane, Users } from "lucide-react";
+import { CalendarDays, Coins, LogOut, Plane, Users } from "lucide-react";
 import ThemeToggle from "./theme-toggle";
 import { useApp } from "../store";
 import { db } from "../../lib/supabase";
@@ -9,6 +9,7 @@ const navItems = [
   { label: "Agenda", icon: CalendarDays },
   { label: "Personas", icon: Users },
   { label: "Viajes", icon: Plane },
+  { label: "Costos", icon: Coins },
 ];
 
 export default function TopBar() {

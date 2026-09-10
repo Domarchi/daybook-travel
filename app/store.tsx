@@ -21,6 +21,14 @@ import { db } from "../lib/supabase";
 import { addDays } from "../lib/calendar";
 import { movimientos } from "../lib/cycles";
 import {
+  cobertura,
+  porMes,
+  porPersona,
+  porRuta,
+  referenciaDeRuta,
+  rutaDe,
+} from "../lib/costs";
+import {
   VENTANA_POR_OMISION,
   estadoDeCompra,
   resumenDeCompra,
@@ -269,6 +277,22 @@ function useStoreValue() {
     () => resumenDeCompra(trips, localDate(), purchaseWindow),
     [trips, purchaseWindow],
   );
+
+  // Las cuentas de costos. Se rehacen solo cuando cambian los viajes.
+  const costos = useMemo(
+    () => ({
+      cobertura: cobertura(trips),
+      porMes: porMes(trips),
+      porRuta: porRuta(trips),
+      porPersona: porPersona(trips),
+    }),
+    [trips],
+  );
+
+  // El precio de referencia de la ruta de un viaje, para comparar al registrar
+  // un monto nuevo.
+  const referenciaDe = (trip: Pick<Trip, "origin" | "destination">) =>
+    referenciaDeRuta(trips, rutaDe(trip));
 
   const requestableTrips = useMemo(
     () =>
@@ -1044,6 +1068,8 @@ function useStoreValue() {
     setPurchaseFilter,
     showPurchaseQueue,
     compraDe,
+    costos,
+    referenciaDe,
     resumenCompra,
     peopleById,
     personName,
