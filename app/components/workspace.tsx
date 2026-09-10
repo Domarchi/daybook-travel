@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import AccessState from "@/components/access-state";
-import CostsView from "./costs-view";
+import CostsView from "@/components/costs-view";
 import DotField from "./dot-field";
 import AgendaPanel from "@/components/agenda-panel";
 import { LoadingView, LoginView } from "./login-view";

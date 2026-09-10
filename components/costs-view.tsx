@@ -1,7 +1,8 @@
 "use client";
 
-import { formatoCLP } from "../../lib/costs";
-import { useApp } from "../store";
+import { formatoCLP } from "../lib/costs";
+import { TableWrap } from "@/components/ui/table-wrap";
+import { useApp } from "../app/store";
 
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -14,9 +15,9 @@ const nombreDelMes = (clave: string) => {
 };
 
 function Cobertura({ conMonto, viajes }: { conMonto: number; viajes: number }) {
-  if (!viajes) return <small>Sin viajes</small>;
+  if (!viajes) return <small className="text-muted">Sin viajes</small>;
   return (
-    <small className={conMonto === viajes ? "" : "cobertura-parcial"}>
+    <small className={conMonto === viajes ? "text-muted" : "text-[var(--warning)]"}>
       {conMonto} de {viajes} con monto
     </small>
   );
@@ -31,7 +32,7 @@ export default function CostsView() {
 
   return (
     <section aria-labelledby="costs-results">
-      <div className="costs-summary">
+      <div className="mb-[18px] grid gap-3">
         <div className="overview-card estatico">
           <span>Gasto registrado</span>
           <strong>{formatoCLP(total)}</strong>
@@ -40,7 +41,10 @@ export default function CostsView() {
           </small>
         </div>
         {faltan > 0 && (
-          <p className="costs-warning" role="note">
+          <p
+            className="m-0 rounded-sm border border-[color-mix(in_srgb,var(--warning)_34%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_7%,var(--surface))] px-[14px] py-3 text-[12px] leading-[1.5] text-foreground-soft"
+            role="note"
+          >
             Este total cubre {cobertura.conMonto} de {cobertura.viajes} viajes.
             {" "}
             <strong>
@@ -52,8 +56,8 @@ export default function CostsView() {
         )}
       </div>
 
-      <div className="table-wrap" role="region" aria-label="Costos por mes" tabIndex={0}>
-        <h3 id="costs-results">Por mes</h3>
+      <TableWrap role="region" aria-label="Costos por mes" tabIndex={0}>
+        <h3 id="costs-results" className="text-foreground">Por mes</h3>
         <table>
           <thead>
             <tr>
@@ -84,11 +88,11 @@ export default function CostsView() {
             )}
           </tbody>
         </table>
-      </div>
+      </TableWrap>
 
-      <div className="table-wrap" role="region" aria-label="Costos por ruta" tabIndex={0}>
-        <h3>Por ruta</h3>
-        <p className="page-description">
+      <TableWrap role="region" aria-label="Costos por ruta" tabIndex={0}>
+        <h3 className="text-foreground">Por ruta</h3>
+        <p className="max-w-[660px] text-[13px] text-muted">
           La referencia es la mediana de lo pagado en esa ruta: no se mueve
           porque una vez haya tocado comprar caro.
         </p>
@@ -113,7 +117,7 @@ export default function CostsView() {
                   </td>
                   <td data-label="Referencia">
                     {grupo.referencia === null ? (
-                      <small>Sin datos aún</small>
+                      <small className="text-muted">Sin datos aún</small>
                     ) : (
                       formatoCLP(grupo.referencia)
                     )}
@@ -130,10 +134,10 @@ export default function CostsView() {
             )}
           </tbody>
         </table>
-      </div>
+      </TableWrap>
 
-      <div className="table-wrap" role="region" aria-label="Costos por persona" tabIndex={0}>
-        <h3>Por persona</h3>
+      <TableWrap role="region" aria-label="Costos por persona" tabIndex={0}>
+        <h3 className="text-foreground">Por persona</h3>
         <table>
           <thead>
             <tr>
@@ -170,7 +174,7 @@ export default function CostsView() {
             )}
           </tbody>
         </table>
-      </div>
+      </TableWrap>
     </section>
   );
 }
