@@ -3,3 +3,6 @@ node_modules
 .env*
 !.env.example
 .vercel
+
+# Capturas y archivos que Claude deja en la carpeta; no son del proyecto.
+Claude outputs/
