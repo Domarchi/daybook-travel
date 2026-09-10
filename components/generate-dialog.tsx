@@ -1,9 +1,11 @@
 "use client";
 
 import DialogActions from "@/components/ui/dialog-actions";
-import { formatDate, localDate } from "../../lib/format";
-import { DIAS_SEMANA } from "../../lib/cycles";
-import { useApp } from "../store";
+import { DialogBody, FormSection } from "@/components/ui/dialog-parts";
+import { Input, Label, Select } from "@/components/ui/field";
+import { formatDate, localDate } from "../lib/format";
+import { DIAS_SEMANA } from "../lib/cycles";
+import { useApp } from "../app/store";
 
 const nombreDia = (valor: number | null | undefined) =>
   DIAS_SEMANA.find((dia) => dia.valor === valor)?.nombre.toLowerCase() ?? "";
@@ -37,54 +39,58 @@ export default function GenerateDialog() {
 
   return (
     <form onSubmit={generateTrips} aria-busy={busy}>
-      <div className="dialog-body">
-        <section className="form-section generate-section">
-          <p aria-live="polite">{ritmo}</p>
-          <label>
+      <DialogBody>
+        <FormSection>
+          <p className="text-muted" aria-live="polite">
+            {ritmo}
+          </p>
+          <Label>
             Personas a planificar
-            <select
+            <Select
               data-autofocus
               name="person_id"
               value={generateSelection}
-              onChange={(event) =>
-                setGenerateSelection(event.target.value)
-              }
+              onChange={(event) => setGenerateSelection(event.target.value)}
             >
               <option value="all">
-                Todas las personas activas con jornada (
-                {planificables.length})
+                Todas las personas activas con jornada ({planificables.length})
               </option>
               {planificables.map((person) => (
                 <option key={person.id} value={person.id}>
                   {person.name}
                 </option>
               ))}
-            </select>
-          </label>
-          <label>
+            </Select>
+          </Label>
+          <Label>
             Generar hasta
-            <input
+            <Input
               type="date"
               name="until"
               required
               min={localDate()}
               value={generateUntil}
-              onChange={(event) =>
-                setGenerateUntil(event.target.value)
-              }
+              onChange={(event) => setGenerateUntil(event.target.value)}
             />
-          </label>
-          <div className="generation-preview" aria-live="polite">
-            <span>Se agregarán</span>
-            <strong>{generationPreview} viajes</strong>
-            <small>
+          </Label>
+          <div
+            className="grid gap-[2px] rounded-md border border-[var(--four-border)] bg-[var(--four-soft)] p-[17px]"
+            aria-live="polite"
+          >
+            <span className="text-[color-mix(in_srgb,var(--four)_72%,var(--text))]">
+              Se agregarán
+            </span>
+            <strong className="text-[27px] tracking-[-0.035em] text-[var(--four)]">
+              {generationPreview} viajes
+            </strong>
+            <small className="text-[color-mix(in_srgb,var(--four)_72%,var(--text))]">
               para {generationPeople.length}{" "}
-              {generationPeople.length === 1 ? "persona" : "personas"}
-              . Los viajes existentes no se duplican.
+              {generationPeople.length === 1 ? "persona" : "personas"}. Los
+              viajes existentes no se duplican.
             </small>
           </div>
-        </section>
-      </div>
+        </FormSection>
+      </DialogBody>
       <DialogActions
         busy={busy}
         busyLabel="Generando…"

@@ -173,7 +173,9 @@ rota. Nada de reescritura de una sentada.
 2. **Piezas sin lógica. HECHO** — `empty-state`, `theme-toggle`, `dialog-actions` y
    `page-head` viven ahora en `components/ui/` y la aplicación ya los usa. Los archivos
    viejos de `app/components/` se borraron.
-3. **Diálogos** — manifest, history, generate, person, trip, y el armazón de `modal-layer`.
+3. **Diálogos** — generate e history HECHOS; faltan manifest, person, trip y el armazón de
+   `modal-layer`. Las piezas de armado que comparten (cuerpo, sección, rejilla, nota, ruedita
+   de carga) ya están traducidas en `components/ui/dialog-parts.tsx`.
 4. **Vistas** — personas, costos, agenda, y **viajes al final**: es la tabla más densa y la
    que más se usa.
 5. **Armazón** — top-bar, workspace, login-view, access-state.
@@ -203,7 +205,9 @@ rota. Nada de reescritura de una sentada.
   a medida que se avanza.
 - La regla `.empty-state` sigue en la capa `fcc` aunque el componente ya esté migrado: la
   comparte con `.access-state`, que todavía no lo está. Se borra cuando migre esa.
-- `components/ui/` es donde viven las primitivas, con el alias `@/`. TypeScript 7 eliminó
+- **Dónde va cada cosa**: `components/ui/` son las piezas reutilizables (botón, campos,
+  pastilla, partes de diálogo, estado vacío, encabezado, barra de botones, interruptor);
+  `components/` son las pantallas y diálogos concretos. Todo con el alias `@/`. TypeScript 7 eliminó
   `baseUrl`, así que el alias va solo con `paths`.
 
 ## Convenciones

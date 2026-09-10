@@ -1,7 +1,7 @@
 "use client";
 
-import GenerateDialog from "./generate-dialog";
-import HistoryDialog from "./history-dialog";
+import GenerateDialog from "@/components/generate-dialog";
+import HistoryDialog from "@/components/history-dialog";
 import ManifestDialog from "./manifest-dialog";
 import PersonDialog from "./person-dialog";
 import TripDialog from "./trip-dialog";
