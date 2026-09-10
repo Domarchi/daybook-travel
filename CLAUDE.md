@@ -203,10 +203,22 @@ npm run build
 ```
 
 Variables en `.env.local` (copiar de `.env.example`):
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Tienen que ser las del
+proyecto **RELEVO** (`bdavsvymilxxeqfookci`), no de `relevo1`, que es otro proyecto.
+
+**No pongas valores de relleno.** Hasta el 10-sep-2026 esta guía recomendaba rellenar el
+archivo con cualquier cosa para que `npm run build` no fallara, y en la máquina de Joaquín
+quedó apuntando a `placeholder.supabase.co`: la aplicación levantaba, el modo demostración
+andaba, y entrar con correo y clave fallaba sin decir por qué. Ese parche ya no hace falta —
+el cliente se crea perezosamente (pendiente 8) y el build funciona sin el archivo. Si faltan
+las variables, el mensaje lo dice; con valores falsos, no.
+
+Next lee `.env.local` **al arrancar**. Si lo cambias, hay que detener `npm run dev` y volver
+a levantarlo.
 
 Modo demo: hay un botón en el login que carga datos ficticios sin tocar Supabase. Útil para
 probar la interfaz sin credenciales — pero ojo, ese camino usa `lib/calendar.ts` y el real no.
+Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son caminos distintos.
 
 ## Trampas conocidas
 
