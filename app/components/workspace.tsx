@@ -8,7 +8,7 @@ import AgendaPanel from "@/components/agenda-panel";
 import { LoadingView, LoginView } from "./login-view";
 import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";
-import PeopleView from "./people-view";
+import PeopleView from "@/components/people-view";
 import TopBar from "./top-bar";
 import TripsView from "./trips-view";
 import { useApp } from "../store";

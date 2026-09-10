@@ -175,8 +175,9 @@ rota. Nada de reescritura de una sentada.
    viejos de `app/components/` se borraron.
 3. **Diálogos. HECHO** — los cinco, más el armazón de `modal-layer`. Las piezas de armado
    que comparten están en `components/ui/dialog-parts.tsx`.
-4. **Vistas** — personas, costos, agenda, y **viajes al final**: es la tabla más densa y la
-   que más se usa.
+4. **Vistas** — costos y personas HECHAS; faltan agenda y **viajes al final**, que es la
+   tabla más densa y la que más se usa. Las pastillas de jornada y el grupo de filtros ya
+   están traducidos como primitivas, porque los comparten las tres.
 5. **Armazón** — top-bar, workspace, login-view, access-state.
 6. **Limpieza** — borrar de `@layer fcc` lo que ya no usa nadie. Al final ese archivo debería
    quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre (el campo de puntos).

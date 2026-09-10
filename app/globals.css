@@ -43,6 +43,13 @@
   --color-success-soft: color-mix(in srgb, var(--success) 10%, var(--surface));
   --color-danger-line: color-mix(in srgb, var(--danger) 34%, var(--border));
   --color-danger-soft: color-mix(in srgb, var(--danger) 9%, var(--surface));
+  /* Los colores de las jornadas, para las pastillas de turno. */
+  --color-four: var(--four);
+  --color-four-line: var(--four-border);
+  --color-four-soft: var(--four-soft);
+  --color-ten: var(--ten);
+  --color-ten-line: var(--ten-border);
+  --color-ten-soft: var(--ten-soft);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --radius-sm: var(--rad-sm);
