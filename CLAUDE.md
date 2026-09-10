@@ -167,9 +167,11 @@ rota. Nada de reescritura de una sentada.
 
 ### Orden
 
-1. **Primitivas** — `Button` (HECHO), `Input`, `Select`, `Badge`. Son las que usan todas las
-   demás; migrar un componente antes que sus primitivas obliga a hacerlas dos veces.
-2. **Piezas sin lógica** — `empty-state`, `theme-toggle`, `dialog-actions`, `page-head`.
+1. **Primitivas. HECHO** — `components/ui/button.tsx`, `field.tsx` (input, select, textarea,
+   label) y `status-pill.tsx`. Son las que usan todas las demás; migrar un componente antes
+   que sus primitivas obliga a hacerlas dos veces.
+2. **Piezas sin lógica** — `empty-state` (HECHO, vive en `components/ui/` y ya lo usan los
+   tres lugares que lo mostraban), `theme-toggle`, `dialog-actions`, `page-head`.
 3. **Diálogos** — manifest, history, generate, person, trip, y el armazón de `modal-layer`.
 4. **Vistas** — personas, costos, agenda, y **viajes al final**: es la tabla más densa y la
    que más se usa.
@@ -192,6 +194,8 @@ rota. Nada de reescritura de una sentada.
   de la capa `fcc` que cuentan con los valores por omisión del navegador se desarman. El costo:
   los componentes de shadcn dan por hecho que preflight está, así que algunos necesitan
   retoques. Cuando la migración termine y la capa `fcc` esté vacía, se puede volver a evaluar.
+- La regla `.empty-state` sigue en la capa `fcc` aunque el componente ya esté migrado: la
+  comparte con `.access-state`, que todavía no lo está. Se borra cuando migre esa.
 - `components/ui/` es donde viven las primitivas, con el alias `@/`. TypeScript 7 eliminó
   `baseUrl`, así que el alias va solo con `paths`.
 

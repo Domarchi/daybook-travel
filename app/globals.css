@@ -33,6 +33,16 @@
   --color-primary-foreground: var(--action-text);
   --color-ring: var(--focus);
   --color-success: var(--success);
+  --color-info: var(--info);
+  /* Las mezclas de las pastillas de estado, con los mismos porcentajes que
+     tenian en el CSS. Ojo: peligro usa 34% y 9%, no 35% y 10% como las otras
+     dos. No es un descuido antiguo, es lo que se veia bien. */
+  --color-info-line: color-mix(in srgb, var(--info) 35%, var(--border));
+  --color-info-soft: color-mix(in srgb, var(--info) 10%, var(--surface));
+  --color-success-line: color-mix(in srgb, var(--success) 35%, var(--border));
+  --color-success-soft: color-mix(in srgb, var(--success) 10%, var(--surface));
+  --color-danger-line: color-mix(in srgb, var(--danger) 34%, var(--border));
+  --color-danger-soft: color-mix(in srgb, var(--danger) 9%, var(--surface));
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --radius-sm: var(--rad-sm);

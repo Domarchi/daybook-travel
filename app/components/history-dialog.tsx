@@ -1,6 +1,6 @@
 "use client";
 
-import EmptyState from "./empty-state";
+import EmptyState from "@/components/ui/empty-state";
 import { ArrowDownLeft, Clock } from "lucide-react";
 import { formatDateTime } from "../../lib/format";
 import { useApp } from "../store";

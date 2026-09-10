@@ -1,6 +1,6 @@
 "use client";
 
-import EmptyState from "./empty-state";
+import EmptyState from "@/components/ui/empty-state";
 import { ArrowUpRight, CalendarDays, ChevronRight, FileSpreadsheet, Search, UserPlus, Users } from "lucide-react";
 import { formatDate } from "../../lib/format";
 import { useApp } from "../store";
