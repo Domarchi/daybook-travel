@@ -1,3 +1,44 @@
+/* ---------------------------------------------------------------------------
+   Tailwind, para poder traer componentes de shadcn y de 21st.dev.
+
+   Ojo con la primera linea: se importan el tema y las utilidades, pero NO el
+   "preflight" de Tailwind, que es su propio reset. Ese reset borra margenes,
+   bordes y estilos de boton, y este proyecto tiene 3.378 lineas de CSS escritas
+   a mano que dependen de los valores del navegador. Con preflight, la
+   aplicacion entera se desarma.
+
+   El costo de dejarlo fuera: los componentes de shadcn dan por hecho que
+   preflight esta puesto, asi que algunos van a necesitar retoques.
+
+   El bloque @theme no define colores nuevos: apunta a los tokens que ya
+   existen mas abajo. Asi un componente de 21st que pida "bg-surface" toma el
+   mismo gris que el resto de la aplicacion, y cambia solo con el tema.
+   --------------------------------------------------------------------------- */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-hover: var(--surface-hover);
+  --color-foreground: var(--text);
+  --color-foreground-soft: var(--text-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-primary: var(--action);
+  --color-primary-foreground: var(--action-text);
+  --color-ring: var(--focus);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --ease-out-fcc: var(--ease-out);
+  --ease-drawer-fcc: var(--ease-drawer);
+}
+
 :root {
   color-scheme: dark;
   /* Grises neutros, sin tinte azul. Antes toda esta escala tiraba a azul
