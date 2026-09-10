@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent } from "react";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import DotField from "./dot-field";
 import ThemeToggle from "./theme-toggle";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
@@ -15,8 +16,12 @@ export function LoadingView() {
 }
 
 // Pantalla de entrada: acceso con correo y acceso a la demostracion.
-// Todo lo que antes leia del ambito de App() entra ahora por props, con los
-// mismos nombres, para que el JSX quede igual.
+//
+// Antes tenía dos columnas: a la izquierda un titular grande ("Tu equipo viaja.
+// La obra continúa.") con las rutas, y a la derecha el formulario. Se quitó por
+// decisión de Joaquín: quien entra aquí ya sabe qué es esto y viene a entrar,
+// no a que le expliquen el producto. Queda el formulario solo, centrado, sobre
+// el fondo de puntos.
 export function LoginView({
   theme,
   toggleTheme,
@@ -34,6 +39,7 @@ export function LoginView({
 }) {
   return (
     <main className="entry">
+      <DotField theme={theme} />
       <header className="entry-top">
         <span className="brand">FCC TRAVEL</span>
         <div className="entry-tools">
@@ -42,29 +48,6 @@ export function LoginView({
         </div>
       </header>
       <section className="entry-center">
-        <div className="entry-heading">
-          <p className="eyebrow">COORDINACIÓN DE VIAJES</p>
-          <h1>
-            Tu equipo viaja.
-            <br />
-            La obra continúa.
-          </h1>
-          <p className="entry-copy">
-            Personas, turnos y pasajes organizados en una sola agenda para
-            Copiapó.
-          </p>
-          <div
-            className="entry-route"
-            role="group"
-            aria-label="Rutas habituales"
-          >
-            <span>Santiago</span>
-            <ArrowUpRight size={17} />
-            <strong>Copiapó</strong>
-            <ArrowDownLeft size={17} />
-            <span>Concepción</span>
-          </div>
-        </div>
         <div className="entry-form">
           <span className="section-kicker">Acceso al equipo</span>
           <h2>Entra a tu agenda</h2>

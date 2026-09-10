@@ -163,6 +163,19 @@ opinión.
   recibe el clic. Ya me equivoqué una vez midiendo el input; no repitas la medición mala.
 - Las skills de diseño de Emil Kowalski están en `.claude/skills/`, versionadas. Se
   reinstalan con `npx skills add emilkowalski/skill`.
+- **La pantalla de entrada es una sola columna centrada sobre un campo de puntos**
+  (`app/components/dot-field.tsx`). Se quitó el titular "Tu equipo viaja. La obra continúa."
+  y la tira de rutas: lo pidió Joaquín, quien entra ahí viene a entrar, no a que le expliquen
+  el producto.
+- **El campo de puntos está escrito con canvas normal, a propósito.** La referencia que lo
+  inspiró (21st.dev) usa three.js, @react-three/fiber, framer-motion y Tailwind. Traer una
+  librería 3D para dibujar cuadraditos en un proyecto de siete dependencias no se justifica.
+  Si alguien propone reemplazarlo por la versión original, esa es la razón por la que no.
+  Además la referencia era una maqueta: su "login" daba por buena cualquier clave.
+- **Tres cosas del campo de puntos que no son adorno**: el color sale del token `--dot`, así
+  que funciona en los dos temas; respeta `prefers-reduced-motion`; y si la pestaña está en
+  segundo plano dibuja el estado asentado y se salta la entrada, porque el navegador congela
+  `requestAnimationFrame` y si no el fondo quedaría vacío.
 - **El recuadro del manifiesto crece con `flex: 1 1 auto`.** Si se le pone el alto del texto
   queda un hueco suelto entre la frase de abajo y los botones; si se le deja imponer su alto
   con `rows`, esa frase se corta por la mitad. Ya se probaron las tres.

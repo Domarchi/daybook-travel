@@ -1,6 +1,9 @@
 :root {
   color-scheme: dark;
   --bg: #0a0f16;
+  /* Color de los puntos del fondo de la pantalla de entrada, en componentes
+     RGB sueltos: dot-field.tsx los lee y les pone su propia opacidad. */
+  --dot: 198, 222, 255;
   --surface: #101722;
   --surface-raised: #151e2b;
   --surface-soft: #1a2534;
@@ -38,6 +41,7 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #f3f5f7;
+  --dot: 46, 66, 92;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-soft: #edf1f4;
@@ -1394,17 +1398,45 @@ td > strong {
 }
 
 .entry {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   display: grid;
   grid-template-rows: auto 1fr auto;
   padding: 0 clamp(22px, 5vw, 74px) 22px;
-  background:
-    radial-gradient(
-      circle at 72% 12%,
-      color-mix(in srgb, var(--surface-soft) 42%, transparent),
-      transparent 34%
-    ),
-    var(--bg);
+  background: var(--bg);
+}
+
+/* El fondo de puntos. Va detrás de todo y no recibe clics. */
+.dot-field {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Oscurece los bordes para que los puntos no compitan con el formulario. */
+.entry::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    color-mix(in srgb, var(--bg) 78%, transparent) 62%,
+    var(--bg) 100%
+  );
+}
+
+.entry > header,
+.entry > section,
+.entry > footer {
+  position: relative;
+  z-index: 1;
 }
 
 .entry-top {
@@ -1427,47 +1459,23 @@ td > strong {
 }
 
 .entry-center {
-  width: min(100%, 1140px);
+  width: min(100%, 430px);
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 440px);
-  align-items: center;
-  gap: clamp(54px, 9vw, 130px);
-  margin: 50px auto;
+  align-content: center;
+  margin: 40px auto;
 }
 
-.entry-heading h1 {
-  max-width: 720px;
-  font-size: clamp(45px, 6.3vw, 84px);
-  line-height: 0.98;
-  letter-spacing: -0.065em;
-}
 
-.entry-copy {
-  max-width: 530px;
-  margin-top: 22px;
-  font-size: clamp(15px, 1.6vw, 18px);
-}
 
-.entry-route {
-  width: fit-content;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-top: 28px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 12px;
-}
 
 .entry-form {
   padding: clamp(24px, 4vw, 38px);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  /* Translúcida para que se adivinen los puntos por detrás, pero no tanto como
+     para que el texto pierda contraste: 92% deja el fondo casi opaco. */
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(12px);
   box-shadow: var(--shadow);
 }
 
