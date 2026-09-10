@@ -6,7 +6,7 @@ import CostsView from "./costs-view";
 import DotField from "./dot-field";
 import AgendaPanel from "./agenda-panel";
 import { LoadingView, LoginView } from "./login-view";
-import ModalLayer from "./modal-layer";
+import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";
 import PeopleView from "./people-view";
 import TopBar from "./top-bar";

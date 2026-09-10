@@ -3,12 +3,14 @@
 import GenerateDialog from "@/components/generate-dialog";
 import HistoryDialog from "@/components/history-dialog";
 import ManifestDialog from "@/components/manifest-dialog";
+import { Button } from "@/components/ui/button";
+import { SectionKicker } from "@/components/ui/section-kicker";
 import PersonDialog from "@/components/person-dialog";
 import TripDialog from "@/components/trip-dialog";
-import ExcelSyncPanel from "../excel-sync-panel";
+import ExcelSyncPanel from "../app/excel-sync-panel";
 import { X } from "lucide-react";
-import { formatDate } from "../../lib/format";
-import { useApp } from "../store";
+import { formatDate } from "../lib/format";
+import { useApp } from "../app/store";
 
 export default function ModalLayer() {
   const {
@@ -48,9 +50,9 @@ export default function ModalLayer() {
         aria-labelledby="dialog-title"
         aria-describedby="dialog-description"
       >
-        <div className="dialog-head">
+        <div className="flex shrink-0 items-start justify-between gap-[22px] border-b border-line bg-surface px-6 pt-[23px] pb-[19px]">
           <div>
-            <span className="section-kicker">
+            <SectionKicker>
               {modal === "excel"
                 ? "CONTROL DE DATOS"
                 : modal === "person"
@@ -62,7 +64,7 @@ export default function ModalLayer() {
                       : modal === "manifest"
                         ? "SOLICITUD A LA AGENCIA"
                         : "REGISTRO DE VIAJE"}
-            </span>
+            </SectionKicker>
             <h2 id="dialog-title">
               {modal === "excel"
                 ? "Gestionar con Excel"
@@ -100,22 +102,22 @@ export default function ModalLayer() {
                         : "Cambios registrados en este viaje."}
             </p>
           </div>
-          <button
+          <Button
             type="button"
-            className="icon-button"
+            variant="icon"
             aria-label="Cerrar"
             disabled={busy}
             onClick={closeModal}
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         {formError && (
           <p
             role="alert"
             tabIndex={-1}
-            className="message error-message dialog-error"
+            className="mx-6 mt-[14px] shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-[13px] text-danger max-[760px]:mx-4 max-[760px]:mt-3"
           >
             {formError}
           </p>

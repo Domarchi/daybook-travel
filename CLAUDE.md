@@ -173,9 +173,8 @@ rota. Nada de reescritura de una sentada.
 2. **Piezas sin lógica. HECHO** — `empty-state`, `theme-toggle`, `dialog-actions` y
    `page-head` viven ahora en `components/ui/` y la aplicación ya los usa. Los archivos
    viejos de `app/components/` se borraron.
-3. **Diálogos** — los cinco HECHOS (generate, history, manifest, person, trip). Falta el
-   armazón de `modal-layer` (velo, cabecera del panel). Las piezas de armado que comparten
-   están en `components/ui/dialog-parts.tsx`.
+3. **Diálogos. HECHO** — los cinco, más el armazón de `modal-layer`. Las piezas de armado
+   que comparten están en `components/ui/dialog-parts.tsx`.
 4. **Vistas** — personas, costos, agenda, y **viajes al final**: es la tabla más densa y la
    que más se usa.
 5. **Armazón** — top-bar, workspace, login-view, access-state.
@@ -205,6 +204,11 @@ rota. Nada de reescritura de una sentada.
   a medida que se avanza.
 - La regla `.empty-state` sigue en la capa `fcc` aunque el componente ya esté migrado: la
   comparte con `.access-state`, que todavía no lo está. Se borra cuando migre esa.
+- **`.overlay` y `.dialog` se quedan en CSS a propósito**, no por pereza. Ahí vive la entrada
+  y la salida del panel: `@starting-style` para entrar y `.overlay[data-cerrando] .dialog`
+  para salir. Eso es un selector de padre que decide el estado de un hijo — CSS lo dice en
+  cuatro líneas legibles y Tailwind lo diría en una sopa de clases. Lo demás de la cabecera
+  sí está traducido.
 - **`rotate-90` de Tailwind no es `transform: rotate(90deg)`**: usa la propiedad `rotate`,
   que es distinta aunque se vea igual. Si mides el giro de la flecha del desplegable, mira
   `rotate` y no `transform`, o vas a creer que no funciona.
