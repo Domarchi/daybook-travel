@@ -4,16 +4,27 @@ import { FormEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
 import DotField from "@/components/dot-field";
 import ThemeToggle from "@/components/ui/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { Input, Label } from "@/components/ui/field";
+import { LoadingMark } from "@/components/ui/dialog-parts";
+import { SectionKicker } from "@/components/ui/section-kicker";
+
+// El pie es el mismo de la aplicación, así que las clases son las mismas.
+const PIE =
+  "mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
 // Lleva el mismo campo de puntos que la entrada, quieto: dura un instante y
 // arrancar una animación para eso sería un parpadeo, no un detalle.
 export function LoadingView({ theme = "dark" }: { theme?: string }) {
   return (
-    <main className="login-state" aria-live="polite">
+    <main
+      className="velo-carga relative isolate flex min-h-screen items-center justify-center gap-3 text-muted"
+      aria-live="polite"
+    >
       <DotField theme={theme} estatico />
-      <span className="loading-mark" aria-hidden="true" />
-      <p>Cargando FCC TRAVEL…</p>
+      <LoadingMark className="relative z-[1]" />
+      <p className="relative z-[1]">Cargando FCC TRAVEL…</p>
     </main>
   );
 }
@@ -41,63 +52,76 @@ export function LoginView({
   enterDemo: () => void;
 }) {
   return (
-    <main className="entry">
+    <main className="velo-entrada relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">
       <DotField theme={theme} />
-      <header className="entry-top">
-        <span className="brand">FCC TRAVEL</span>
-        <div className="entry-tools">
-          <span>FCC / COPIAPÓ</span>
+      <header className="relative z-[1] flex min-h-[78px] items-center justify-between gap-5 border-b border-line">
+        <span className="text-[17px] font-[850] tracking-[-0.02em] whitespace-nowrap text-foreground">
+          FCC TRAVEL
+        </span>
+        <div className="flex items-center gap-[14px] text-[10px] font-[750] tracking-[0.09em] text-muted">
+          <span className="max-[760px]:hidden">FCC / COPIAPÓ</span>
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
       </header>
-      <section className="entry-center">
-        <div className="entry-form">
-          <span className="section-kicker">Acceso al equipo</span>
-          <h2>Entra a tu agenda</h2>
-          <p>Usa el correo habilitado para FCC TRAVEL.</p>
-          <form onSubmit={login} aria-busy={busy}>
-            <label>
+      <section className="relative z-[1] mx-auto my-10 grid w-[min(100%,430px)] content-center max-[760px]:my-[34px]">
+        <div className="rounded-lg border border-line bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] p-[clamp(24px,4vw,38px)] shadow-[var(--shadow)] backdrop-blur-[12px] max-[760px]:px-[18px] max-[760px]:py-[22px]">
+          <SectionKicker>Acceso al equipo</SectionKicker>
+          <h2 className="text-[28px] leading-[1.1] tracking-[-0.04em] text-foreground">
+            Entra a tu agenda
+          </h2>
+          <p className="mt-2 mb-[22px] text-[13px] text-muted">
+            Usa el correo habilitado para FCC TRAVEL.
+          </p>
+          <form onSubmit={login} aria-busy={busy} className="grid gap-[15px]">
+            <Label>
               Correo
-              <input
+              <Input
                 name="email"
                 type="email"
                 autoComplete="username"
                 required
                 placeholder="nombre@empresa.cl"
               />
-            </label>
-            <label>
+            </Label>
+            <Label>
               Contraseña
-              <input
+              <Input
                 name="password"
                 type="password"
                 autoComplete="current-password"
                 required
                 minLength={6}
               />
-            </label>
-            <button disabled={busy} className="primary">
+            </Label>
+            <Button disabled={busy} variant="primary" className="mt-[3px]">
               {busy ? "Ingresando…" : "Entrar"}
               {!busy && <ArrowUpRight size={18} />}
-            </button>
+            </Button>
           </form>
           {notice && (
-            <p role="alert" className="message error-message">
+            <p
+              role="alert"
+              className="mt-3 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-[13px] text-danger"
+            >
               {notice}
             </p>
           )}
-          <div className="try-demo">
+          <div className="mt-[22px] mb-[14px] grid gap-[7px] border-t border-line pt-[18px] text-[11px] text-muted">
             <span>¿Quieres conocerla primero?</span>
-            <button type="button" onClick={enterDemo}>
+            <Button
+              type="button"
+              onClick={enterDemo}
+              className="justify-between"
+            >
               Abrir demostración <ArrowUpRight size={18} />
-            </button>
+            </Button>
           </div>
-          <small>
+          <small className="text-muted">
             El responsable de la aplicación debe habilitar tu correo.
           </small>
         </div>
       </section>
-      <footer className="entry-footer">
+      <footer className={"relative z-[1] " + PIE}>
         <span>FCC TRAVEL</span>
         <span>Coordinación de viajes de obra</span>
       </footer>

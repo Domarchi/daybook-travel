@@ -211,5 +211,13 @@ export default function DotField({
     // El tema cambia el color: se rearma con la variable nueva.
   }, [theme, estatico]);
 
-  return <canvas ref={canvasRef} className="dot-field" aria-hidden="true" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      // La clase dot-field ya no pinta nada: solo sirve para que el CSS pueda
+      // decir "el campo que esta dentro del armazon va fijo y mas apagado".
+      className="dot-field pointer-events-none absolute inset-0 z-0 h-full w-full"
+      aria-hidden="true"
+    />
+  );
 }
