@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 import EmptyState from "./empty-state";
 import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { formatDate, localDate, statusClass } from "../../lib/format";
@@ -41,6 +43,12 @@ export default function TripsView() {
     trips,
     visibleTrips,
   } = useApp();
+
+  // La cuenta que muestra la barra. Mientras se cierra, el número real ya es 0
+  // y se leería "0 viajes seleccionados" encogiéndose; se conserva el último.
+  const ultimaCuenta = useRef(0);
+  if (selectedTrips.length) ultimaCuenta.current = selectedTrips.length;
+  const cuentaSeleccion = selectedTrips.length || ultimaCuenta.current;
 
   const hasTripFilters =
     Boolean(query) ||
@@ -161,11 +169,22 @@ export default function TripsView() {
         )}
       </div>
 
-      {selectedTrips.length > 0 && (
-        <div className="bulk-action-bar" role="status">
+      {/* El hueco existe siempre y crece con la barra, para que la tabla no dé un
+          salto al marcar el primer viaje. La cuenta se congela en el último
+          valor mientras se cierra: si no, se leería "0 viajes" al encogerse. */}
+      <div
+        className="bulk-bar-slot"
+        data-abierto={selectedTrips.length > 0 ? "" : undefined}
+      >
+        <div>
+          <div
+            className="bulk-action-bar"
+            role="status"
+            aria-hidden={selectedTrips.length === 0 ? true : undefined}
+          >
           <span>
-            <strong>{selectedTrips.length}</strong>{" "}
-            {selectedTrips.length === 1
+            <strong>{cuentaSeleccion}</strong>{" "}
+            {cuentaSeleccion === 1
               ? "viaje seleccionado"
               : "viajes seleccionados"}
           </span>
@@ -185,11 +204,12 @@ export default function TripsView() {
             >
               {busy
                 ? "Actualizando…"
-                : `Marcar ${selectedTrips.length} como ${selectedTrips.length === 1 ? "solicitado" : "solicitados"}`}
+                : `Marcar ${cuentaSeleccion} como ${cuentaSeleccion === 1 ? "solicitado" : "solicitados"}`}
             </button>
           </div>
+          </div>
         </div>
-      )}
+      </div>
 
       {visibleTrips.length ? (
         <div

@@ -15,6 +15,7 @@ export default function ModalLayer() {
     busy,
     busyRef,
     closeModal,
+    closingModal,
     demo,
     editPerson,
     editTrip,
@@ -35,6 +36,7 @@ export default function ModalLayer() {
   return (
     <div
       className="overlay"
+      data-cerrando={closingModal ? "" : undefined}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !busy) closeModal();
       }}

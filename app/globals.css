@@ -44,6 +44,11 @@
   --radius: 12px;
   --radius-lg: 18px;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Para lo que se mueve dentro de la pantalla, no lo que entra o sale. */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* La curva de los paneles laterales, tomada de iOS: sale rápido y frena
+     largo, que es lo que hace que un cajón se sienta pesado y no elástico. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 :root[data-theme="light"] {
@@ -443,7 +448,22 @@ small {
   font-size: 13px;
 }
 
+/* Entra desvaneciéndose y bajando un poco, en vez de aparecer de la nada
+   empujando la página. La salida sigue siendo instantánea: la persona acaba de
+   apretar la X y ver cómo se va despacio lo que quiso cerrar molesta. */
+@starting-style {
+  .global-message {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 .global-message {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 220ms var(--ease-out);
   min-height: 48px;
   display: flex;
   align-items: center;
@@ -1181,6 +1201,40 @@ small {
   font-size: 13px;
 }
 
+/* La barra de selección aparecía de golpe y empujaba la tabla 78px hacia abajo
+   al marcar el primer viaje. Ahora el hueco crece con ella. Se anima
+   grid-template-rows, que sí toca el diseño de la página, y es a propósito:
+   el objetivo aquí es justamente que el diseño no dé un salto. Es un elemento,
+   200ms, y el navegador lo resuelve sin despeinarse. */
+.bulk-bar-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin: 0;
+  transition:
+    grid-template-rows 200ms var(--ease-out),
+    margin 200ms var(--ease-out);
+}
+
+.bulk-bar-slot[data-abierto] {
+  grid-template-rows: 1fr;
+  margin: 10px 0;
+}
+
+.bulk-bar-slot > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bulk-bar-slot .bulk-action-bar {
+  margin: 0;
+  opacity: 0;
+  transition: opacity 160ms var(--ease-out);
+}
+
+.bulk-bar-slot[data-abierto] .bulk-action-bar {
+  opacity: 1;
+}
+
 .bulk-action-bar {
   min-height: 58px;
   display: flex;
@@ -1217,6 +1271,10 @@ td {
   border-bottom: 1px solid var(--border);
   text-align: left;
   vertical-align: middle;
+  /* El resaltado de la fila entraba y salía de golpe. Un cambio de color quiere
+     "ease", no una curva de entrada, y 120ms: lo suficiente para que no
+     parpadee y lo bastante corto para que siga la velocidad del mouse. */
+  transition: background-color 120ms ease;
 }
 
 th {
@@ -1354,8 +1412,23 @@ td > strong {
   color: var(--text-soft);
 }
 
+/* De los pocos momentos raros de esta aplicación donde cabe un gesto: cuando
+   un filtro no encuentra nada, o cuando todavía no hay viajes cargados. */
+@starting-style {
+  .empty-state,
+  .access-state {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 .empty-state,
 .access-state {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 240ms var(--ease-out),
+    transform 240ms var(--ease-out);
   min-height: 280px;
   display: flex;
   flex-direction: column;
@@ -1597,7 +1670,23 @@ td > strong {
   justify-content: flex-end;
   background: rgba(0, 0, 0, 0.68);
   backdrop-filter: blur(4px);
-  animation: overlay-in 180ms ease-out both;
+  /* Transición y no keyframes: si alguien abre y cierra rápido, una transición
+     se redirige desde donde va; un keyframe vuelve a empezar de cero. */
+  opacity: 1;
+  transition: opacity 220ms var(--ease-out);
+}
+
+@starting-style {
+  .overlay {
+    opacity: 0;
+  }
+}
+
+/* La salida es más corta que la entrada: al cerrar, la persona ya decidió y
+   lo que quiere es volver a su trabajo. */
+.overlay[data-cerrando] {
+  opacity: 0;
+  transition-duration: 180ms;
 }
 
 .dialog {
@@ -1609,7 +1698,21 @@ td > strong {
   border-left: 1px solid var(--border-strong);
   background: var(--surface);
   box-shadow: var(--shadow);
-  animation: drawer-in 220ms var(--ease-out) both;
+  /* Sale y entra por el mismo borde. El 100% es de su propio ancho, así que
+     funciona igual en una pantalla ancha que en un teléfono. */
+  transform: translateX(0);
+  transition: transform 260ms var(--ease-drawer);
+}
+
+@starting-style {
+  .overlay .dialog {
+    transform: translateX(100%);
+  }
+}
+
+.overlay[data-cerrando] .dialog {
+  transform: translateX(100%);
+  transition-duration: 200ms;
 }
 
 .dialog-head {
@@ -2319,26 +2422,6 @@ td > strong {
   margin-top: 14px;
 }
 
-@keyframes overlay-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes drawer-in {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 @media (hover: hover) and (pointer: fine) {
   button:hover:not(:disabled) {
     border-color: var(--border-strong);
@@ -3021,6 +3104,10 @@ td > strong {
   }
 }
 
+/* Quien pide menos movimiento no pide una interfaz que teletransporte cosas.
+   Antes esto mataba todo a 0,01ms, incluidos los desvanecidos, que son los que
+   ayudan a entender qué cambió. Ahora se quitan los desplazamientos y las
+   escalas —que son los que marean— y se conservan las opacidades, más cortas. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -3030,8 +3117,21 @@ td > strong {
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 140ms !important;
+    animation-duration: 140ms !important;
+  }
+
+  .dialog,
+  .global-message,
+  .empty-state,
+  .access-state,
+  button:active:not(:disabled),
+  .excel-dropzone:active {
+    transform: none !important;
+  }
+
+  .bulk-bar-slot {
     transition-duration: 0.01ms !important;
   }
 }

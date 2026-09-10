@@ -14,7 +14,7 @@ export default function PeopleView() {
     people,
     peopleFilter,
     query,
-    setModal,
+    abrirModal,
     setPeopleFilter,
     setQuery,
     showPersonTrips,
@@ -61,7 +61,7 @@ export default function PeopleView() {
           type="button"
           onClick={() => {
             clearMessages();
-            setModal("excel");
+            abrirModal("excel");
           }}
         >
           <FileSpreadsheet size={18} />

@@ -170,6 +170,21 @@ opinión.
   recibe el clic. Ya me equivoqué una vez midiendo el input; no repitas la medición mala.
 - Las skills de diseño de Emil Kowalski están en `.claude/skills/`, versionadas. Se
   reinstalan con `npx skills add emilkowalski/skill`.
+- **El movimiento sigue el criterio de Emil Kowalski** (`.claude/skills/emil-design-eng`).
+  Tres reglas que no se negocian: nada que se use decenas de veces al día se anima (pestañas,
+  casillas, filtros); la salida es más corta que la entrada; y transiciones, no keyframes, para
+  todo lo que se pueda disparar rápido, porque una transición se redirige y un keyframe vuelve
+  a empezar. Las curvas son `--ease-out` (entra/sale), `--ease-in-out` (se mueve dentro de la
+  pantalla) y `--ease-drawer` (los paneles laterales).
+- **Los diálogos salen por donde entran.** El estado `closingModal` retrasa 200ms el desmontaje;
+  `MS_CIERRE_DIALOGO` en `store.tsx` tiene que calzar con la duración del CSS. `abrirModal()`
+  cancela un cierre en curso: sin eso, cerrar y abrir otro dentro de esos 200ms dejaba el nuevo
+  marcado como "cerrando".
+- **La barra de selección de Viajes vive siempre en el DOM**, dentro de `.bulk-bar-slot`, y el
+  hueco crece con ella. Antes aparecía de golpe y empujaba la tabla 76px. La cuenta se congela
+  en el último valor mientras se cierra, si no se leería "0 viajes" al encogerse.
+- **`prefers-reduced-motion` no apaga todo.** Quita desplazamientos y escalas, y conserva las
+  opacidades a 140ms: quien pide menos movimiento no pide una interfaz que teletransporte cosas.
 - **El tema oscuro es gris neutro, no azul marino.** Toda la escala de grises tiraba a azul
   (`--bg` era `#0a0f16`); se pasó a gris puro manteniendo casi la misma luminosidad de cada
   peldaño, así que ningún contraste bajó. Los colores con significado —turnos, estados, foco—

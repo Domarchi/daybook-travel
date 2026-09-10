@@ -44,6 +44,9 @@ import type {
   Trip,
 } from "../lib/types";
 
+/** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
+const MS_CIERRE_DIALOGO = 200;
+
 function useStoreValue() {
   const [theme, setTheme] = useState("dark");
   const [ready, setReady] = useState(false);
@@ -65,6 +68,7 @@ function useStoreValue() {
   );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalName>(null);
+  const [closingModal, setClosingModal] = useState(false);
   const [editPerson, setEditPerson] = useState<Person | null>(null);
   const [editTrip, setEditTrip] = useState<Trip | null>(null);
   const [newDate, setNewDate] = useState("");
@@ -473,8 +477,27 @@ function useStoreValue() {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }
 
-  function closeModal() {
+  // El diálogo entra deslizándose y hasta ahora desaparecía de golpe. Para que
+  // salga por donde entró hay que darle esos milisegundos antes de desmontarlo:
+  // se marca "cerrando", el CSS lo saca, y recién después se limpia el estado.
+  // La salida es más corta que la entrada a propósito — al cerrar, el usuario ya
+  // decidió y lo que quiere es volver a su trabajo.
+  const cierreRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Abrir cancela cualquier cierre en curso. Sin esto, cerrar un diálogo y
+  // abrir otro dentro de esos 200 ms dejaba el nuevo marcado como "cerrando".
+  function abrirModal(nombre: ModalName) {
+    if (cierreRef.current) {
+      clearTimeout(cierreRef.current);
+      cierreRef.current = null;
+    }
+    setClosingModal(false);
+    setModal(nombre);
+  }
+
+  function limpiarModal() {
     setModal(null);
+    setClosingModal(false);
     setEditPerson(null);
     setEditTrip(null);
     setPendingTripDate(null);
@@ -482,11 +505,25 @@ function useStoreValue() {
     setFormError("");
   }
 
+  function closeModal() {
+    if (!modal) return limpiarModal();
+    if (closingModal) return;
+    setClosingModal(true);
+    if (cierreRef.current) clearTimeout(cierreRef.current);
+    cierreRef.current = setTimeout(limpiarModal, MS_CIERRE_DIALOGO);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (cierreRef.current) clearTimeout(cierreRef.current);
+    };
+  }, []);
+
   function openPerson(person: Person | null = null) {
     clearMessages();
     setPendingTripDate(null);
     setEditPerson(person);
-    setModal("person");
+    abrirModal("person");
   }
 
   function openTrip(trip: Trip | null, date?: string, personId?: string) {
@@ -495,7 +532,7 @@ function useStoreValue() {
       setPendingTripDate(date || selectedDay || dateFilter || localDate());
       setEditPerson(null);
       setFormError("");
-      setModal("person");
+      abrirModal("person");
       return;
     }
     setEditTrip(trip);
@@ -510,7 +547,7 @@ function useStoreValue() {
     );
     setNewDate(date || selectedDay || dateFilter || localDate());
     setNewPerson(personId || personFilter || activePeople[0]?.id || "");
-    setModal("trip");
+    abrirModal("trip");
   }
 
   function openGenerate(personId?: string) {
@@ -528,7 +565,7 @@ function useStoreValue() {
         : "all",
     );
     setGenerateUntil(addDays(localDate(), 90));
-    setModal("generate");
+    abrirModal("generate");
   }
 
   function showPersonTrips(person: Person) {
@@ -833,7 +870,7 @@ function useStoreValue() {
       selectedTrips.includes(trip.id),
     );
     if (!hayMarcados) setSelectedTrips(requestableTrips.map((trip) => trip.id));
-    setModal("manifest");
+    abrirModal("manifest");
   }
 
   function exportCsv() {
@@ -975,7 +1012,7 @@ function useStoreValue() {
     setEditTrip(trip);
     setHistory([]);
     setHistoryLoading(!demo);
-    setModal("history");
+    abrirModal("history");
     if (demo) return;
     try {
       const { data, error } = await db()
@@ -1134,6 +1171,8 @@ function useStoreValue() {
     enterDemo,
     navigate,
     closeModal,
+    closingModal,
+    abrirModal,
     openPerson,
     openTrip,
     openGenerate,
