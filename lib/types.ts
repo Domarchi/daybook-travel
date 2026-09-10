@@ -70,4 +70,11 @@ export type HistoryItem = {
 };
 
 export type AccessStatus = "checking" | "allowed" | "denied" | "error";
-export type ModalName = "person" | "trip" | "generate" | "history" | "excel" | null;
+export type ModalName =
+  | "person"
+  | "trip"
+  | "generate"
+  | "history"
+  | "excel"
+  | "manifest"
+  | null;

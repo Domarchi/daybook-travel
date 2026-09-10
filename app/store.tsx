@@ -302,6 +302,16 @@ function useStoreValue() {
     [visibleTrips],
   );
 
+  // Los viajes que van al manifiesto. Si Katy ya marcó algunos, el manifiesto es
+  // de esos y de nadie más: lo que ve en la pantalla es lo que va en el correo.
+  // Si no marcó ninguno, son todos los que están por solicitar.
+  const manifestTrips = useMemo(() => {
+    const marcados = requestableTrips.filter((trip) =>
+      selectedTrips.includes(trip.id),
+    );
+    return marcados.length ? marcados : requestableTrips;
+  }, [requestableTrips, selectedTrips]);
+
   useEffect(() => {
     setSelectedTrips([]);
   }, [query, statusFilter, dateFilter, personFilter, onlyUpcoming]);
@@ -793,10 +803,26 @@ function useStoreValue() {
     setSelectedTrips([]);
   }
 
-  function exportCsv() {
-    const rows = visibleTrips.filter(
-      (trip) => trip.status === "Planificado" && trip.date >= localDate(),
+  // El manifiesto: los viajes por solicitar de la vista, agrupados por día y
+  // ruta, para copiarlos a un correo. Deja esos viajes seleccionados para que,
+  // una vez enviado el correo, se marquen como solicitados en un solo paso.
+  function openManifest() {
+    if (!requestableTrips.length) {
+      setNotice("No hay viajes futuros por solicitar con estos filtros.");
+      return;
+    }
+    clearMessages();
+    // Si ya hay viajes marcados no se tocan: pisarlos hacía que quien marcaba
+    // tres terminara marcando trece como solicitados sin darse cuenta.
+    const hayMarcados = requestableTrips.some((trip) =>
+      selectedTrips.includes(trip.id),
     );
+    if (!hayMarcados) setSelectedTrips(requestableTrips.map((trip) => trip.id));
+    setModal("manifest");
+  }
+
+  function exportCsv() {
+    const rows = requestableTrips;
     if (!rows.length) {
       setNotice("No hay viajes futuros por solicitar con estos filtros.");
       return;
@@ -1078,6 +1104,7 @@ function useStoreValue() {
     visiblePeople,
     visibleTrips,
     requestableTrips,
+    manifestTrips,
     upcomingTrips,
     plannedCount,
     requestedCount,
@@ -1101,6 +1128,7 @@ function useStoreValue() {
     savePerson,
     saveTrip,
     generateTrips,
+    openManifest,
     exportCsv,
     markSelectedRequested,
     showHistory,

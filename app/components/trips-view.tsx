@@ -1,7 +1,7 @@
 "use client";
 
 import EmptyState from "./empty-state";
-import { ArrowDownLeft, ArrowUpRight, Clock, Download, Plane, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { formatDate, localDate, statusClass } from "../../lib/format";
 import { TRIP_STATUSES as statuses } from "../../lib/types";
 import { claseDeCompra, diasParaVolar } from "../../lib/purchase";
@@ -13,7 +13,7 @@ export default function TripsView() {
     clearTripFilters,
     dateFilter,
     demo,
-    exportCsv,
+    openManifest,
     loading,
     markSelectedRequested,
     navigate,
@@ -128,8 +128,8 @@ export default function TripsView() {
           <Clock size={17} />
           {purchaseFilter === "abiertos" ? "Solo por comprar" : "Por comprar"}
         </button>
-        <button type="button" onClick={exportCsv}>
-          <Download size={17} /> Lista para solicitar
+        <button type="button" onClick={openManifest}>
+          <ClipboardList size={17} /> Lista para solicitar
         </button>
         {!demo && (
           <button type="button" onClick={reload} disabled={loading}>

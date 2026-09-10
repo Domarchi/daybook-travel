@@ -2,6 +2,7 @@
 
 import GenerateDialog from "./generate-dialog";
 import HistoryDialog from "./history-dialog";
+import ManifestDialog from "./manifest-dialog";
 import PersonDialog from "./person-dialog";
 import TripDialog from "./trip-dialog";
 import ExcelSyncPanel from "../excel-sync-panel";
@@ -56,7 +57,9 @@ export default function ModalLayer() {
                     ? "PLANIFICACIÓN DE TURNOS"
                     : modal === "history"
                       ? "TRAZABILIDAD"
-                      : "REGISTRO DE VIAJE"}
+                      : modal === "manifest"
+                        ? "SOLICITUD A LA AGENCIA"
+                        : "REGISTRO DE VIAJE"}
             </span>
             <h2 id="dialog-title">
               {modal === "excel"
@@ -73,7 +76,9 @@ export default function ModalLayer() {
                       : "Nuevo viaje"
                     : modal === "generate"
                       ? "Crear calendario de turnos"
-                      : "Historial del viaje"}
+                      : modal === "manifest"
+                        ? "Manifiesto para solicitar"
+                        : "Historial del viaje"}
             </h2>
             <p id="dialog-description">
               {modal === "excel"
@@ -86,7 +91,9 @@ export default function ModalLayer() {
                     ? "Registra el movimiento y completa la reserva cuando corresponda."
                     : modal === "generate"
                       ? "Crea las subidas y bajadas de cada turno sin duplicar viajes."
-                      : editTrip
+                      : modal === "manifest"
+                        ? "Los viajes por solicitar, agrupados por día y ruta, listos para pegar en un correo."
+                        : editTrip
                         ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
                         : "Cambios registrados en este viaje."}
             </p>
@@ -136,6 +143,8 @@ export default function ModalLayer() {
         {modal === "generate" && <GenerateDialog />}
 
         {modal === "history" && <HistoryDialog />}
+
+        {modal === "manifest" && <ManifestDialog />}
       </section>
     </div>
   );

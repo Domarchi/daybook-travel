@@ -3111,3 +3111,86 @@ td > strong {
   min-height: 28px;
   margin-bottom: 6px;
 }
+
+/* Manifiesto: texto para pegar en el correo a la agencia. */
+.manifest-view {
+  min-height: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.manifest-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.manifest-summary strong {
+  color: var(--text);
+}
+
+/* "Copiado" mantiene el mismo ancho que "Copiar" para que nada salte. */
+.copy-button {
+  min-width: 112px;
+}
+
+.copy-button.copied {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+  background: color-mix(in srgb, var(--success) 12%, var(--surface-raised));
+  color: var(--success);
+}
+
+/* El cuerpo se reparte: el texto crece o se encoge, y la frase de abajo queda
+   siempre visible. Antes el textarea imponía su alto y cortaba esa frase por la
+   mitad. */
+.manifest-view .dialog-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.manifest-summary,
+.manifest-hint,
+.manifest-view .message {
+  flex: 0 0 auto;
+}
+
+.manifest-text {
+  /* El recuadro ocupa el alto que le queda al diálogo y se encoge si hace
+     falta, para que la frase de abajo nunca quede cortada. Con un manifiesto
+     corto sobra espacio dentro del recuadro; se probó dejarlo del alto del
+     texto y era peor: quedaba un hueco suelto entre la frase y los botones. */
+  flex: 1 1 auto;
+  min-height: 160px;
+  padding: 14px 16px;
+  resize: none;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+}
+
+/* "de 13 pendientes": avisa que el correo lleva menos de lo que hay abierto. */
+.manifest-parcial {
+  color: var(--warning, var(--muted));
+  font-style: normal;
+  font-weight: 600;
+}
+
+.manifest-hint {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.manifest-view .message {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+}

@@ -111,8 +111,25 @@ se agrega una nueva con el número siguiente.
 5. **Elegibilidad.** Hoy solo se valida vigencia por fechas. Falta acreditación (documentos al día)
    como condición para que alguien entre a un manifiesto — visible y con motivo, nunca oculto.
 
-6. **Manifiesto por día y ruta.** Los viajes se compran por bloque (fecha + ruta), no de a uno.
-   Mejorar "Lista para solicitar" hacia un manifiesto agrupado, listo para pegar en un correo.
+6. **Manifiesto por día y ruta. HECHO** (rama `manifiesto`). `lib/manifest.ts` arma los bloques
+   y el texto; "Lista para solicitar" abre una ventana con ese texto y un botón para copiarlo.
+
+   - El manifiesto es de **lo que esté marcado**. Si no hay nada marcado, se marcan todos los
+     pendientes. Al revés —pisar la selección al abrir la ventana— hacía que quien marcaba tres
+     terminara marcando trece como solicitados: como aquí nada se borra, deshacerlo son trece
+     ediciones a mano. Cuando el manifiesto es parcial, el resumen dice "de N pendientes".
+   - Copiar no toca la base. Marcar como solicitados sí, y es un botón aparte, para después de
+     mandar el correo.
+   - Copiar tiene tres intentos: portapapeles moderno, método antiguo, y dejar el texto
+     seleccionado. El navegador integrado bloquea el primero; en Chrome sobre HTTPS anda.
+   - Cuando falta la hora o el equipaje se escribe "Por confirmar", **con mayúscula en ambos**.
+     El equipaje que sí existe va en minúscula ("maleta en bodega").
+   - Dentro de un mismo día los bloques van por orden alfabético de origen, así que la bajada
+     sale antes que la subida. Está sin decidir si conviene: alfabético, subidas primero, o por
+     hora de vuelo.
+   - **Ojo al probar en la demo**: los 13 viajes de ejemplo caen en 13 días y rutas distintos, así
+     que todos los bloques dicen "1 pasajero" y el agrupamiento no se ve. Para verlo hacen falta
+     dos personas el mismo día y la misma ruta.
 
 7. **Retirar `generate_pulse()`.** Quedó en la base sin que nadie la llame. Una migración
    nueva puede eliminarla; conviene esperar a que la versión nueva lleve un tiempo en
@@ -146,6 +163,9 @@ opinión.
   recibe el clic. Ya me equivoqué una vez midiendo el input; no repitas la medición mala.
 - Las skills de diseño de Emil Kowalski están en `.claude/skills/`, versionadas. Se
   reinstalan con `npx skills add emilkowalski/skill`.
+- **El recuadro del manifiesto crece con `flex: 1 1 auto`.** Si se le pone el alto del texto
+  queda un hueco suelto entre la frase de abajo y los botones; si se le deja imponer su alto
+  con `rows`, esa frase se corta por la mitad. Ya se probaron las tres.
 
 ## Comandos
 
