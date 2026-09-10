@@ -1,6 +1,6 @@
 "use client";
 
-import DialogActions from "./dialog-actions";
+import DialogActions from "@/components/ui/dialog-actions";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../../lib/types";
 import { ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";

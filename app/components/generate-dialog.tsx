@@ -1,6 +1,6 @@
 "use client";
 
-import DialogActions from "./dialog-actions";
+import DialogActions from "@/components/ui/dialog-actions";
 import { formatDate, localDate } from "../../lib/format";
 import { DIAS_SEMANA } from "../../lib/cycles";
 import { useApp } from "../store";

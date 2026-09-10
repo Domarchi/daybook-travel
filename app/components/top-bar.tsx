@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, Coins, LogOut, Plane, Users } from "lucide-react";
-import ThemeToggle from "./theme-toggle";
+import ThemeToggle from "@/components/ui/theme-toggle";
 import { useApp } from "../store";
 import { db } from "../../lib/supabase";
 

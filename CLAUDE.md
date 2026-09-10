@@ -170,8 +170,9 @@ rota. Nada de reescritura de una sentada.
 1. **Primitivas. HECHO** — `components/ui/button.tsx`, `field.tsx` (input, select, textarea,
    label) y `status-pill.tsx`. Son las que usan todas las demás; migrar un componente antes
    que sus primitivas obliga a hacerlas dos veces.
-2. **Piezas sin lógica** — `empty-state` (HECHO, vive en `components/ui/` y ya lo usan los
-   tres lugares que lo mostraban), `theme-toggle`, `dialog-actions`, `page-head`.
+2. **Piezas sin lógica. HECHO** — `empty-state`, `theme-toggle`, `dialog-actions` y
+   `page-head` viven ahora en `components/ui/` y la aplicación ya los usa. Los archivos
+   viejos de `app/components/` se borraron.
 3. **Diálogos** — manifest, history, generate, person, trip, y el armazón de `modal-layer`.
 4. **Vistas** — personas, costos, agenda, y **viajes al final**: es la tabla más densa y la
    que más se usa.
@@ -194,6 +195,12 @@ rota. Nada de reescritura de una sentada.
   de la capa `fcc` que cuentan con los valores por omisión del navegador se desarman. El costo:
   los componentes de shadcn dan por hecho que preflight está, así que algunos necesitan
   retoques. Cuando la migración termine y la capa `fcc` esté vacía, se puede volver a evaluar.
+- El "kicker" que iba sobre el título ya no se dibuja. No es un cambio de diseño: estaba con
+  `display:none` desde que compactamos el encabezado, así que no lo veía nadie ni lo leía un
+  lector de pantalla. Se sacó el markup muerto en vez de traducirlo escondido.
+- `.dialog-actions` sigue en la capa `fcc` porque hay diálogos que arman esa barra a mano en
+  vez de usar el componente. Igual que con `.empty-state`: el CSS viejo se limpia al final, no
+  a medida que se avanza.
 - La regla `.empty-state` sigue en la capa `fcc` aunque el componente ya esté migrado: la
   comparte con `.access-state`, que todavía no lo está. Se borra cuando migre esa.
 - `components/ui/` es donde viven las primitivas, con el alias `@/`. TypeScript 7 eliminó

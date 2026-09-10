@@ -1,6 +1,6 @@
 "use client";
 
-import DialogActions from "./dialog-actions";
+import DialogActions from "@/components/ui/dialog-actions";
 import { BAGGAGE_OPTIONS as baggageOptions } from "../../lib/types";
 import { localDate, nextWeekday } from "../../lib/format";
 import { useState } from "react";
