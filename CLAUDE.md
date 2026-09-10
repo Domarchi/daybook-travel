@@ -163,6 +163,12 @@ opinión.
   recibe el clic. Ya me equivoqué una vez midiendo el input; no repitas la medición mala.
 - Las skills de diseño de Emil Kowalski están en `.claude/skills/`, versionadas. Se
   reinstalan con `npx skills add emilkowalski/skill`.
+- **El tema oscuro es gris neutro, no azul marino.** Toda la escala de grises tiraba a azul
+  (`--bg` era `#0a0f16`); se pasó a gris puro manteniendo casi la misma luminosidad de cada
+  peldaño, así que ningún contraste bajó. Los colores con significado —turnos, estados, foco—
+  no se tocaron: ahí el color informa y neutralizarlo sería borrar información. El velo de los
+  diálogos también se neutralizó. Si alguien vuelve a meter un azul en los grises, es a
+  contrapelo de una decisión, no un olvido.
 - **La pantalla de entrada es una sola columna centrada sobre un campo de puntos**
   (`app/components/dot-field.tsx`). Se quitó el titular "Tu equipo viaja. La obra continúa."
   y la tira de rutas: lo pidió Joaquín, quien entra ahí viene a entrar, no a que le expliquen
