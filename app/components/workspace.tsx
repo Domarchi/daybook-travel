@@ -1,10 +1,10 @@
 "use client";
 
 import { X } from "lucide-react";
-import AccessState from "./access-state";
+import AccessState from "@/components/access-state";
 import CostsView from "./costs-view";
 import DotField from "./dot-field";
-import AgendaPanel from "./agenda-panel";
+import AgendaPanel from "@/components/agenda-panel";
 import { LoadingView, LoginView } from "./login-view";
 import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";

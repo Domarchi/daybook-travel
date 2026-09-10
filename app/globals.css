@@ -1483,61 +1483,6 @@ td > strong {
   color: var(--fg-soft);
 }
 
-/* De los pocos momentos raros de esta aplicación donde cabe un gesto: cuando
-   un filtro no encuentra nada, o cuando todavía no hay viajes cargados. */
-@starting-style {
-  .empty-state,
-  .access-state {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-.empty-state,
-.access-state {
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 240ms var(--ease-out),
-    transform 240ms var(--ease-out);
-  min-height: 280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 42px 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--rad-lg);
-  background: var(--surface);
-  text-align: center;
-}
-
-.empty-icon {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 3px;
-  border-radius: 12px;
-  background: var(--surface-soft);
-  color: var(--muted);
-}
-
-.empty-state h3,
-.access-state h1 {
-  font-size: 19px;
-  letter-spacing: -0.02em;
-}
-
-.empty-state p,
-.access-state p {
-  max-width: 430px;
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
 .workspace-footer,
 .entry-footer {
   display: flex;
@@ -3191,12 +3136,17 @@ td > strong {
     animation-iteration-count: 1 !important;
     transition-duration: 140ms !important;
     animation-duration: 140ms !important;
+    /* Tailwind escribe los desplazamientos en la propiedad `translate`, no en
+       `transform`. En esta aplicación esa propiedad solo se usa para animar
+       entradas, nunca para colocar algo en su sitio, así que apagarla entera
+       es seguro y es justo lo que hay que apagar. La rotación de la flecha del
+       desplegable NO se apaga: ahí el giro dice si está abierto o cerrado, o
+       sea que informa, y quitarlo sería quitar información. */
+    translate: none !important;
   }
 
   .dialog,
   .global-message,
-  .empty-state,
-  .access-state,
   button:active:not(:disabled),
   .excel-dropzone:active {
     transform: none !important;

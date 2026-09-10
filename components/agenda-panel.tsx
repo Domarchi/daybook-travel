@@ -1,8 +1,8 @@
 "use client";
 
-import AgendaView from "./agenda-view";
-import YearView from "../year-view";
-import { useApp } from "../store";
+import AgendaView from "../app/components/agenda-view";
+import YearView from "../app/year-view";
+import { useApp } from "../app/store";
 
 export default function AgendaPanel() {
   const {
