@@ -130,6 +130,23 @@ se agrega una nueva con el número siguiente.
 - Al cambiar el esquema: nueva migración numerada en `supabase/`, nunca editar una existente.
 - Cambios en lógica de fechas requieren test en `lib/*.test.ts`.
 
+## Decisiones de diseño ya tomadas
+
+No las deshagas sin medir de nuevo; salieron de mirar la aplicación en el navegador, no de
+opinión.
+
+- **Contraste del tema claro.** `--text-soft` y `--muted` estaban en 4.36 sobre el fondo, bajo
+  el mínimo AA de 4.5. Se oscurecieron a `#485360` y `#5f6b78` (5.0 y 5.4). El tema oscuro ya
+  iba holgado y no se toca.
+- **Encabezado compacto.** El kicker (`.section-kicker`) está oculto a propósito: repetía lo
+  que ya dicen el título y la pestaña activa, en 126px. Con el cambio el encabezado mide 51px
+  y se ve una fila más de datos sin desplazar. Si vuelves a mostrarlo, di por qué.
+- **La casilla de selección de viajes NO es un problema de accesibilidad.** El `<input>` mide
+  18×18 pero la etiqueta `.selection-toggle` que lo envuelve mide 44×44 y es el área que
+  recibe el clic. Ya me equivoqué una vez midiendo el input; no repitas la medición mala.
+- Las skills de diseño de Emil Kowalski están en `.claude/skills/`, versionadas. Se
+  reinstalan con `npx skills add emilkowalski/skill`.
+
 ## Comandos
 
 ```bash
