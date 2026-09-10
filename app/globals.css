@@ -9,6 +9,9 @@
   /* Color de los puntos del fondo de la pantalla de entrada, en componentes
      RGB sueltos: dot-field.tsx los lee y les pone su propia opacidad. */
   --dot: 230, 230, 230;
+  /* Fuerza de los puntos. 1 es la entrada, a plena luz; las pantallas con
+     texto encima la bajan por su cuenta más abajo. */
+  --dot-alpha: 1;
   --surface: #131313;
   --surface-raised: #191919;
   --surface-soft: #1f1f1f;
@@ -47,6 +50,7 @@
   color-scheme: light;
   --bg: #f3f5f7;
   --dot: 46, 66, 92;
+  --dot-alpha: 1;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-soft: #edf1f4;
@@ -282,6 +286,39 @@ small {
 .shell,
 .app-content {
   min-height: 100vh;
+}
+
+.shell {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Detrás del trabajo el campo va fijo: se queda quieto mientras la tabla se
+   desplaza, y se pinta una sola vez.
+
+   La fuerza es otra que en la entrada, y no por gusto. Allá el texto va sobre
+   una tarjeta; aquí el título y la línea de resultados van directo sobre el
+   fondo, así que un punto encendido debajo de una letra le come el contraste.
+   Con la entrada a plena luz, "15 viajes desde hoy" caía de 6,5 a 2,0 sobre un
+   punto, y el mínimo legible es 4,5. De ahí estos números: son el punto más
+   visible que no estorba la lectura. Si los subes, mídelo. */
+.shell > .dot-field {
+  position: fixed;
+  --dot-alpha: 0.12;
+}
+
+/* En el tema claro los puntos oscuros ensucian el papel y hunden el texto gris.
+   Aquí se invierten: puntos blancos, más claros que el fondo. La textura se ve
+   igual y el contraste, en vez de bajar, sube. */
+:root[data-theme="light"] .shell > .dot-field {
+  --dot: 255, 255, 255;
+  --dot-alpha: 1;
+}
+
+.shell > .app-content,
+.shell > .overlay {
+  position: relative;
+  z-index: 1;
 }
 
 
@@ -1413,6 +1450,10 @@ td > strong {
   grid-template-rows: auto 1fr auto;
   padding: 0 clamp(22px, 5vw, 74px) 22px;
   background: var(--bg);
+}
+
+.login-state .dot-field {
+  --dot-alpha: 0.55;
 }
 
 .login-state > span,

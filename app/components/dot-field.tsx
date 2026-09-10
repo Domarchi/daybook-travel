@@ -49,15 +49,11 @@ type Celda = { x: number; y: number; nivel: number; retraso: number; fase: numbe
 export default function DotField({
   theme,
   estatico = false,
-  intensidad = 1,
 }: {
   theme: string;
   /** Dibuja una sola vez y no anima nunca. Es lo que usa la aplicación: una
    *  herramienta que queda abierta ocho horas no debe estar animando de fondo. */
   estatico?: boolean;
-  /** Multiplica la opacidad de los puntos. 1 en la entrada; más bajo detrás
-   *  del trabajo, donde el fondo no debe competir con los datos. */
-  intensidad?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -77,6 +73,7 @@ export default function DotField({
     let ancho = 0;
     let alto = 0;
     let color = "255, 255, 255";
+    let alfa = 1;
     let cuadro = 0;
     let ultimo = 0;
     let inicio = 0;
@@ -84,9 +81,14 @@ export default function DotField({
     // Los niveles se pintan juntos: un array de coordenadas por nivel.
     const cubos: number[][] = NIVELES.map(() => []);
 
+    // El color y la fuerza salen del CSS, así que cada tema y cada pantalla
+    // eligen los suyos sin tocar este archivo. En la entrada los puntos van a
+    // plena luz; detrás del trabajo van apagados, porque ahí hay texto encima.
     function leerColor() {
-      const crudo = getComputedStyle(canvas).getPropertyValue("--dot").trim();
-      color = crudo || "255, 255, 255";
+      const estilo = getComputedStyle(canvas);
+      color = estilo.getPropertyValue("--dot").trim() || "255, 255, 255";
+      const crudo = parseFloat(estilo.getPropertyValue("--dot-alpha"));
+      alfa = Number.isFinite(crudo) ? crudo : 1;
     }
 
     function armar() {
@@ -160,7 +162,7 @@ export default function DotField({
       for (let i = 0; i < cubos.length; i++) {
         const cubo = cubos[i];
         if (!cubo.length) continue;
-        ctx.fillStyle = `rgba(${color}, ${NIVELES[i] * intensidad})`;
+        ctx.fillStyle = `rgba(${color}, ${NIVELES[i] * alfa})`;
         for (let j = 0; j < cubo.length; j += 2) {
           ctx.fillRect(cubo[j], cubo[j + 1], PUNTO, PUNTO);
         }
@@ -207,7 +209,7 @@ export default function DotField({
       observador.disconnect();
     };
     // El tema cambia el color: se rearma con la variable nueva.
-  }, [theme, estatico, intensidad]);
+  }, [theme, estatico]);
 
   return <canvas ref={canvasRef} className="dot-field" aria-hidden="true" />;
 }

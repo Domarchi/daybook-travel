@@ -11,7 +11,7 @@ import ThemeToggle from "./theme-toggle";
 export function LoadingView({ theme = "dark" }: { theme?: string }) {
   return (
     <main className="login-state" aria-live="polite">
-      <DotField theme={theme} estatico intensidad={0.55} />
+      <DotField theme={theme} estatico />
       <span className="loading-mark" aria-hidden="true" />
       <p>Cargando FCC TRAVEL…</p>
     </main>

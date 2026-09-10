@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import AccessState from "./access-state";
 import CostsView from "./costs-view";
+import DotField from "./dot-field";
 import AgendaPanel from "./agenda-panel";
 import { LoadingView, LoginView } from "./login-view";
 import ModalLayer from "./modal-layer";
@@ -53,6 +54,10 @@ export default function Workspace() {
 
   return (
     <div className="shell">
+      {/* La misma textura de la entrada, quieta y apagada. La fuerza la decide
+          el CSS, distinta en cada tema, porque aquí hay texto encima y el
+          fondo no puede comerle contraste. */}
+      <DotField theme={theme} estatico />
       <div
         className="app-content"
         inert={modal ? true : undefined}
