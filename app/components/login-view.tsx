@@ -6,9 +6,12 @@ import DotField from "./dot-field";
 import ThemeToggle from "./theme-toggle";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
-export function LoadingView() {
+// Lleva el mismo campo de puntos que la entrada, quieto: dura un instante y
+// arrancar una animación para eso sería un parpadeo, no un detalle.
+export function LoadingView({ theme = "dark" }: { theme?: string }) {
   return (
     <main className="login-state" aria-live="polite">
+      <DotField theme={theme} estatico intensidad={0.55} />
       <span className="loading-mark" aria-hidden="true" />
       <p>Cargando FCC TRAVEL…</p>
     </main>

@@ -46,7 +46,19 @@ const ASENTADO_SEGUNDOS = 6;
 
 type Celda = { x: number; y: number; nivel: number; retraso: number; fase: number };
 
-export default function DotField({ theme }: { theme: string }) {
+export default function DotField({
+  theme,
+  estatico = false,
+  intensidad = 1,
+}: {
+  theme: string;
+  /** Dibuja una sola vez y no anima nunca. Es lo que usa la aplicación: una
+   *  herramienta que queda abierta ocho horas no debe estar animando de fondo. */
+  estatico?: boolean;
+  /** Multiplica la opacidad de los puntos. 1 en la entrada; más bajo detrás
+   *  del trabajo, donde el fondo no debe competir con los datos. */
+  intensidad?: number;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -55,9 +67,11 @@ export default function DotField({ theme }: { theme: string }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const quieto = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)",
-    )?.matches;
+    // Dos motivos para no animar: que lo pida esta pantalla, o que la persona
+    // haya pedido menos animación en su sistema.
+    const sinMovimiento =
+      estatico ||
+      !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 
     let celdas: Celda[] = [];
     let ancho = 0;
@@ -115,7 +129,7 @@ export default function DotField({ theme }: { theme: string }) {
 
       for (const celda of celdas) {
         // Aparición: de 0 a 1 desde que le toca a esta celda.
-        const avance = quieto
+        const avance = sinMovimiento
           ? 1
           : Math.min(
               1,
@@ -124,7 +138,7 @@ export default function DotField({ theme }: { theme: string }) {
         if (avance <= 0) continue;
 
         let factor = avance;
-        if (!quieto) {
+        if (!sinMovimiento) {
           // Respiro: solo después de haber aparecido del todo.
           const vaiven =
             (Math.sin(
@@ -146,7 +160,7 @@ export default function DotField({ theme }: { theme: string }) {
       for (let i = 0; i < cubos.length; i++) {
         const cubo = cubos[i];
         if (!cubo.length) continue;
-        ctx.fillStyle = `rgba(${color}, ${NIVELES[i]})`;
+        ctx.fillStyle = `rgba(${color}, ${NIVELES[i] * intensidad})`;
         for (let j = 0; j < cubo.length; j += 2) {
           ctx.fillRect(cubo[j], cubo[j + 1], PUNTO, PUNTO);
         }
@@ -175,7 +189,7 @@ export default function DotField({ theme }: { theme: string }) {
     // nadie estaría mirando.
     const saltarEntrada = document.hidden;
 
-    if (quieto) {
+    if (sinMovimiento) {
       pintar(ASENTADO_SEGUNDOS);
     } else {
       if (saltarEntrada) pintar(ASENTADO_SEGUNDOS);
@@ -184,7 +198,7 @@ export default function DotField({ theme }: { theme: string }) {
 
     const observador = new ResizeObserver(() => {
       armar();
-      if (quieto || document.hidden) pintar(ASENTADO_SEGUNDOS);
+      if (sinMovimiento || document.hidden) pintar(ASENTADO_SEGUNDOS);
     });
     observador.observe(canvas);
 
@@ -193,7 +207,7 @@ export default function DotField({ theme }: { theme: string }) {
       observador.disconnect();
     };
     // El tema cambia el color: se rearma con la variable nueva.
-  }, [theme]);
+  }, [theme, estatico, intensidad]);
 
   return <canvas ref={canvasRef} className="dot-field" aria-hidden="true" />;
 }

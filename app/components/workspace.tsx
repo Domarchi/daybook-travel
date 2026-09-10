@@ -35,7 +35,7 @@ export default function Workspace() {
   } = useApp();
 
   if (!ready) {
-    return <LoadingView />;
+    return <LoadingView theme={theme} />;
   }
 
   if (!email && !demo) {

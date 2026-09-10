@@ -284,6 +284,7 @@ small {
   min-height: 100vh;
 }
 
+
 .topbar {
   position: sticky;
   z-index: 30;
@@ -1373,6 +1374,8 @@ td > strong {
 }
 
 .login-state {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -1410,6 +1413,28 @@ td > strong {
   grid-template-rows: auto 1fr auto;
   padding: 0 clamp(22px, 5vw, 74px) 22px;
   background: var(--bg);
+}
+
+.login-state > span,
+.login-state > p {
+  position: relative;
+  z-index: 1;
+}
+
+/* Mismo velo que la entrada: apaga los puntos en el centro, que es donde va
+   el texto, y los deja vivir en los bordes. */
+.login-state::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    var(--bg) 0%,
+    color-mix(in srgb, var(--bg) 82%, transparent) 34%,
+    var(--bg) 100%
+  );
 }
 
 /* El fondo de puntos. Va detrás de todo y no recibe clics. */
