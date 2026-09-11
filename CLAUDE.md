@@ -188,6 +188,16 @@ rota. Nada de reescritura de una sentada.
    falsos positivos: las clases que se arman concatenando (`"compra-" + estado`,
    `"status-" + ...`) y las que quedaron muertas a propósito.
 
+   Y ojo con el punto ciego de esa busqueda: una clase puede estar huérfana **en un
+   componente** y seguir viva en otro, y entonces no aparece en la lista. Pasó con
+   `.results-line button`, que Personas perdió mientras Viajes todavía la usaba. Por eso,
+   además del barrido general, al migrar un componente hay que mirar **todas** las reglas
+   que mencionan las clases que ese componente usaba, no solo las suyas propias:
+
+   ```bash
+   grep -n "\.la-clase" app/globals.css
+   ```
+
 ### Orden
 
 1. **Primitivas. HECHO** — `components/ui/button.tsx`, `field.tsx` (input, select, textarea,
@@ -198,15 +208,21 @@ rota. Nada de reescritura de una sentada.
    viejos de `app/components/` se borraron.
 3. **Diálogos. HECHO** — los cinco, más el armazón de `modal-layer`. Las piezas de armado
    que comparten están en `components/ui/dialog-parts.tsx`.
-4. **Vistas** — costos y personas HECHAS; faltan agenda y **viajes al final**, que es la
-   tabla más densa y la que más se usa. Las pastillas de jornada y el grupo de filtros ya
-   están traducidos como primitivas, porque los comparten las tres.
+4. **Vistas. HECHO** — costos, personas, agenda y viajes. La tabla de Viajes trajo sus
+   propias primitivas: `components/ui/data-table.tsx` (tabla, cabecera, fila, celda y el
+   modo tarjeta de pantalla angosta) y `components/ui/trip-pills.tsx` (movimiento y ventana
+   de compra). Quedan fuera de este punto las dos piezas grandes de `app/`: `year-view.tsx`
+   (el calendario) y `excel-sync-panel.tsx`.
 5. **Armazón** — top-bar, workspace, login-view, access-state.
 6. **Limpieza** — borrar de `@layer fcc` lo que ya no usa nadie. Al final ese archivo debería
    quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre (el campo de puntos).
 
 ### Lo que ya está montado
 
+- `@custom-variant raton` traduce la condición `(hover: hover) and (pointer: fine)` que el
+  CSS usa para los estados de hover. Escribirla a mano dentro de una clase (`[@media(...)]:`)
+  no sirve: hay que poner guiones bajos donde van los espacios y, si se escapa uno, Tailwind
+  genera CSS inválido y la aplicación entera se cae con "Parsing CSS source code failed".
 - `@layer fcc` envuelve todo el CSS propio y lo deja **por debajo** de las utilidades de
   Tailwind. Sin eso, `button { ... }` le ganaba a `bg-primary` y los componentes de shadcn
   llegaban con el estilo viejo pegado.
@@ -348,6 +364,14 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 - Usa TypeScript 7 y `@types/node` 26 — versiones muy nuevas. Si aparecen errores raros de tipos,
   mirar ahí antes de dar vueltas.
 - `AGENTS.md` lo regenera `next dev`; no lo edites a mano.
+- **La celda de la casilla en modo tarjeta mide 46 px de ancho** aunque ocupa la fila
+  entera, así que la franja gris llega solo hasta ahí. Se ve como un descuido y lo es, pero
+  es de antes: en el CSS viejo `.selection-cell { width: 46px }` le ganaba por especificidad
+  al `td { width: 100% }` de la media query. La migración lo copió tal cual a propósito.
+  Arreglarlo es un cambio de diseño, no de migración: va aparte.
+- **`claseDeCompra()` en `lib/purchase.ts` ya no la usa nadie.** Devolvía la clase CSS
+  `compra-<estado>`; ahora la pastilla sale de `components/ui/trip-pills.tsx`. Borrarla en la
+  limpieza.
 - **El `hover` de los botones todavía lo pone el CSS**, no la primitiva. La regla
   `@media (hover: hover) and (pointer: fine) { button:hover:not(:disabled) { ... } }` sigue
   vistiendo a todos los botones migrados, porque `components/ui/button.tsx` no traduce el

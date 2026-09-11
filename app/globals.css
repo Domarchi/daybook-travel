@@ -18,6 +18,13 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
+/* "raton" es la condicion que ya usaba el CSS para los estados de hover: solo
+   donde hay un puntero fino de verdad. En un telefono el hover se queda pegado
+   despues de tocar, asi que ahi no se aplica. Escrito como variante propia
+   porque de otro modo hay que repetir la media query entera dentro de cada
+   clase, y Tailwind la genera mal si se le escapa un espacio. */
+@custom-variant raton (@media (hover: hover) and (pointer: fine));
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -52,6 +59,20 @@
   --color-ten-soft: var(--ten-soft);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  /* La ventana de compra. Ojo: urgente mezcla 38/10 y vencido 42/10; no son los
+     mismos porcentajes que las pastillas de estado de mas arriba. */
+  --color-urgente-line: color-mix(in srgb, var(--warning) 38%, var(--border));
+  --color-urgente-soft: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  --color-vencido-line: color-mix(in srgb, var(--danger) 42%, var(--border));
+  --color-vencido-soft: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  /* Subida y bajada, para la pastilla de movimiento de la tabla de viajes. */
+  --color-subida: var(--up);
+  --color-subida-soft: var(--up-soft);
+  --color-bajada: var(--down);
+  --color-bajada-soft: var(--down-soft);
+  /* La tabla: la cabecera y el resaltado de la fila bajo el mouse. */
+  --color-table-head: color-mix(in srgb, var(--surface-soft) 55%, var(--surface));
+  --color-row-hover: color-mix(in srgb, var(--surface-soft) 52%, transparent);
   --radius-sm: var(--rad-sm);
   --radius-md: var(--rad);
   --radius-lg: var(--rad-lg);

@@ -77,6 +77,7 @@ export default function PeopleView() {
           visiblePeople.length > 0 && (
             <Button
               type="button"
+              className="border-transparent bg-transparent px-[10px]"
               onClick={() => {
                 setQuery("");
                 setPeopleFilter("Activas");

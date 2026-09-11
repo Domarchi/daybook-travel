@@ -4,10 +4,34 @@ import { useRef } from "react";
 
 import EmptyState from "@/components/ui/empty-state";
 import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
-import { formatDate, localDate, statusClass } from "../lib/format";
+import { formatDate, localDate } from "../lib/format";
 import { TRIP_STATUSES as statuses } from "../lib/types";
-import { claseDeCompra, diasParaVolar } from "../lib/purchase";
+import { diasParaVolar } from "../lib/purchase";
+import { Button } from "@/components/ui/button";
+import { Input, Label, Select } from "@/components/ui/field";
+import { StatusPill } from "@/components/ui/status-pill";
+import { TableWrap } from "@/components/ui/table-wrap";
+import {
+  CASILLA_TOQUE,
+  CELDA_ACCIONES,
+  CELDA_PRINCIPAL,
+  CELDA_SELECCION,
+  TBody,
+  THead,
+  Table,
+  Td,
+  Th,
+  Tr,
+} from "@/components/ui/data-table";
+import { DirectionPill, PurchasePill } from "@/components/ui/trip-pills";
 import { useApp } from "../app/store";
+
+// Un boton de la barra de filtros: ancho completo cuando la barra se apila.
+const BOTON_BARRA = "max-[760px]:w-full";
+
+// Un filtro encendido se distingue por el borde y el fondo, no por el color del
+// texto: el estado tiene que leerse igual en el tema claro y en el oscuro.
+const FILTRO_ENCENDIDO = "border-line-strong bg-surface-soft text-foreground";
 
 export default function TripsView() {
   const {
@@ -61,11 +85,11 @@ export default function TripsView() {
   return (
     <section aria-labelledby="trip-results">
       {personFilter && peopleById.get(personFilter) && (
-        <div className="context-banner">
+        <div className="mb-[10px] flex min-h-12 items-center justify-between gap-4 rounded-md border border-line bg-surface py-[7px] pr-[9px] pl-[14px] text-[13px] text-foreground-soft max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:p-3">
           <span>
             Viajes de <strong>{personName(personFilter)}</strong>
           </span>
-          <button
+          <Button
             type="button"
             onClick={() => {
               const person = peopleById.get(personFilter);
@@ -77,55 +101,60 @@ export default function TripsView() {
             }}
           >
             Volver a la persona
-          </button>
+          </Button>
         </div>
       )}
-      <div className="toolbar trips-toolbar">
-        <label className="search-field">
+      <div className="mb-[10px] flex flex-wrap items-center gap-2 max-[760px]:flex-col max-[760px]:items-stretch">
+        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
           <Search size={18} aria-hidden="true" />
           <input
+            className="min-h-[42px] w-full min-w-0 border-0 bg-transparent p-0 text-foreground shadow-none outline-0 placeholder:text-muted placeholder:opacity-80"
             aria-label="Buscar viajes"
             placeholder="Buscar persona, ruta, vuelo o reserva…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <label className="select-field">
+        <Label className="block max-[760px]:w-full">
           <span className="sr-only">Filtrar por estado</span>
-          <select
+          <Select
+            className="w-[155px] max-[760px]:w-full"
             aria-label="Filtrar por estado"
             value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(event.target.value)
-            }
+            onChange={(event) => setStatusFilter(event.target.value)}
           >
             <option>Todos</option>
             {statuses.map((status) => (
               <option key={status}>{status}</option>
             ))}
-          </select>
-        </label>
-        <label className="date-field">
+          </Select>
+        </Label>
+        <Label className="block max-[760px]:w-full">
           <span className="sr-only">Filtrar por fecha</span>
-          <input
+          <Input
+            className="w-[150px] max-[760px]:w-full"
             aria-label="Filtrar por fecha"
             type="date"
             value={dateFilter}
             onChange={(event) => setDateFilter(event.target.value)}
           />
-        </label>
-        <button
+        </Label>
+        <Button
           type="button"
-          className={onlyUpcoming ? "active-filter" : ""}
+          className={onlyUpcoming ? BOTON_BARRA + " " + FILTRO_ENCENDIDO : BOTON_BARRA}
           aria-pressed={onlyUpcoming}
           onClick={() => setOnlyUpcoming((current) => !current)}
         >
           <SlidersHorizontal size={17} />
           {onlyUpcoming ? "Próximos" : "Todos los periodos"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={purchaseFilter === "abiertos" ? "active-filter" : ""}
+          className={
+            purchaseFilter === "abiertos"
+              ? BOTON_BARRA + " " + FILTRO_ENCENDIDO
+              : BOTON_BARRA
+          }
           aria-pressed={purchaseFilter === "abiertos"}
           onClick={() =>
             setPurchaseFilter(
@@ -135,22 +164,27 @@ export default function TripsView() {
         >
           <Clock size={17} />
           {purchaseFilter === "abiertos" ? "Solo por comprar" : "Por comprar"}
-        </button>
-        <button type="button" onClick={openManifest}>
+        </Button>
+        <Button type="button" className={BOTON_BARRA} onClick={openManifest}>
           <ClipboardList size={17} /> Lista para solicitar
-        </button>
+        </Button>
         {!demo && (
-          <button type="button" onClick={reload} disabled={loading}>
+          <Button
+            type="button"
+            className={BOTON_BARRA}
+            onClick={reload}
+            disabled={loading}
+          >
             <RefreshCw
-              className={loading ? "spin" : ""}
+              className={loading ? "animate-[spin_700ms_linear_infinite]" : ""}
               size={17}
             />
             {loading ? "Actualizando…" : "Actualizar"}
-          </button>
+          </Button>
         )}
       </div>
       <div
-        className="results-line"
+        className="mb-[6px] flex min-h-7 items-center justify-between gap-[14px] text-[12px] text-muted"
         id="trip-results"
         aria-live="polite"
       >
@@ -163,9 +197,13 @@ export default function TripsView() {
           {purchaseFilter === "abiertos" ? " · por comprar" : ""}
         </span>
         {hasTripFilters && visibleTrips.length > 0 && (
-          <button type="button" onClick={clearTripFilters}>
+          <Button
+            type="button"
+            className="border-transparent bg-transparent px-[10px]"
+            onClick={clearTripFilters}
+          >
             Limpiar filtros
-          </button>
+          </Button>
         )}
       </div>
 
@@ -173,57 +211,58 @@ export default function TripsView() {
           salto al marcar el primer viaje. La cuenta se congela en el último
           valor mientras se cierra: si no, se leería "0 viajes" al encogerse. */}
       <div
-        className="bulk-bar-slot"
+        className="group grid grid-rows-[0fr] transition-[grid-template-rows,margin] duration-200 ease-[var(--ease-out)] data-[abierto]:my-[10px] data-[abierto]:grid-rows-[1fr]"
         data-abierto={selectedTrips.length > 0 ? "" : undefined}
       >
-        <div>
+        <div className="min-h-0 overflow-hidden">
           <div
-            className="bulk-action-bar"
+            className="flex min-h-[58px] items-center justify-between gap-4 rounded-md border border-line-strong bg-surface py-[7px] pr-2 pl-[15px] opacity-0 shadow-[0_10px_35px_rgba(0,0,0,0.1)] transition-opacity duration-[160ms] ease-[var(--ease-out)] group-data-[abierto]:opacity-100 max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:p-3"
             role="status"
             aria-hidden={selectedTrips.length === 0 ? true : undefined}
           >
-          <span>
-            <strong>{cuentaSeleccion}</strong>{" "}
-            {cuentaSeleccion === 1
-              ? "viaje seleccionado"
-              : "viajes seleccionados"}
-          </span>
-          <div>
-            <button
-              type="button"
-              onClick={() => setSelectedTrips([])}
-              disabled={busy}
-            >
-              Quitar selección
-            </button>
-            <button
-              type="button"
-              className="primary"
-              onClick={() => void markSelectedRequested()}
-              disabled={busy}
-            >
-              {busy
-                ? "Actualizando…"
-                : `Marcar ${cuentaSeleccion} como ${cuentaSeleccion === 1 ? "solicitado" : "solicitados"}`}
-            </button>
-          </div>
+            <span>
+              <strong>{cuentaSeleccion}</strong>{" "}
+              {cuentaSeleccion === 1
+                ? "viaje seleccionado"
+                : "viajes seleccionados"}
+            </span>
+            <div className="flex gap-[7px] max-[760px]:grid max-[760px]:grid-cols-1">
+              <Button
+                type="button"
+                onClick={() => setSelectedTrips([])}
+                disabled={busy}
+              >
+                Quitar selección
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => void markSelectedRequested()}
+                disabled={busy}
+              >
+                {busy
+                  ? "Actualizando…"
+                  : `Marcar ${cuentaSeleccion} como ${cuentaSeleccion === 1 ? "solicitado" : "solicitados"}`}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       {visibleTrips.length ? (
-        <div
-          className="table-wrap"
+        <TableWrap
+          className="max-[760px]:overflow-visible max-[760px]:border-0 max-[760px]:bg-transparent"
           role="region"
           aria-label="Listado de viajes"
           tabIndex={0}
         >
-          <table>
-            <thead>
+          <Table>
+            <THead>
               <tr>
-                <th className="selection-cell">
-                  <label className="selection-toggle">
+                <Th className={CELDA_SELECCION}>
+                  <label className={CASILLA_TOQUE}>
                     <input
+                      className="mx-auto my-0"
                       type="checkbox"
                       aria-label="Seleccionar todos los viajes planificados visibles"
                       checked={
@@ -233,45 +272,41 @@ export default function TripsView() {
                         )
                       }
                       onChange={(event) => {
-                        const ids = requestableTrips.map(
-                          (trip) => trip.id,
-                        );
+                        const ids = requestableTrips.map((trip) => trip.id);
                         setSelectedTrips((current) =>
                           event.target.checked
-                            ? Array.from(
-                                new Set([...current, ...ids]),
-                              )
-                            : current.filter(
-                                (id) => !ids.includes(id),
-                              ),
+                            ? Array.from(new Set([...current, ...ids]))
+                            : current.filter((id) => !ids.includes(id)),
                         );
                       }}
                       disabled={!requestableTrips.length}
                     />
                   </label>
-                </th>
-                <th>Persona y ruta</th>
-                <th>Fecha</th>
-                <th>Movimiento</th>
-                <th>Hora</th>
-                <th>Estado</th>
-                <th>Reserva</th>
-                <th>
+                </Th>
+                <Th>Persona y ruta</Th>
+                <Th>Fecha</Th>
+                <Th>Movimiento</Th>
+                <Th>Hora</Th>
+                <Th>Estado</Th>
+                <Th>Reserva</Th>
+                <Th>
                   <span className="sr-only">Acciones</span>
-                </th>
+                </Th>
               </tr>
-            </thead>
-            <tbody>
+            </THead>
+            <TBody>
               {visibleTrips.map((trip) => (
-                <tr key={trip.id}>
-                  <td
-                    data-label="Seleccionar"
-                    className="selection-cell"
-                  >
+                <Tr key={trip.id}>
+                  <Td data-label="Seleccionar" className={CELDA_SELECCION}>
                     {trip.status === "Planificado" &&
                     trip.date >= localDate() ? (
-                      <label className="selection-toggle">
+                      <label
+                        className={
+                          CASILLA_TOQUE + " max-[760px]:ml-auto max-[760px]:mr-[-10px]"
+                        }
+                      >
                         <input
+                          className="mx-auto my-0 max-[760px]:mx-0"
                           type="checkbox"
                           aria-label={`Seleccionar viaje de ${personName(trip.person_id)} del ${formatDate(trip.date)}`}
                           checked={selectedTrips.includes(trip.id)}
@@ -279,9 +314,7 @@ export default function TripsView() {
                             setSelectedTrips((current) =>
                               event.target.checked
                                 ? [...current, trip.id]
-                                : current.filter(
-                                    (id) => id !== trip.id,
-                                  ),
+                                : current.filter((id) => id !== trip.id),
                             )
                           }
                         />
@@ -289,16 +322,18 @@ export default function TripsView() {
                     ) : (
                       <span aria-hidden="true">—</span>
                     )}
-                  </td>
-                  <td data-label="Persona y ruta">
-                    <strong>{personName(trip.person_id)}</strong>
-                    <small>
+                  </Td>
+                  <Td data-label="Persona y ruta" className={CELDA_PRINCIPAL}>
+                    <strong className="block mb-[2px] text-foreground">
+                      {personName(trip.person_id)}
+                    </strong>
+                    <small className="block text-muted">
                       {trip.origin} → {trip.destination}
                     </small>
-                  </td>
-                  <td data-label="Fecha">
+                  </Td>
+                  <Td data-label="Fecha">
                     {formatDate(trip.date)}
-                    <small className={`compra-pill ${claseDeCompra(compraDe(trip))}`}>
+                    <PurchasePill estado={compraDe(trip)}>
                       {(() => {
                         const estado = compraDe(trip);
                         if (estado === "resuelto") return "Con reserva";
@@ -308,55 +343,47 @@ export default function TripsView() {
                         if (faltan === 0) return "Vuela hoy";
                         return `Faltan ${faltan} ${faltan === 1 ? "día" : "días"}`;
                       })()}
-                    </small>
-                  </td>
-                  <td data-label="Movimiento">
-                    <span
-                      className={`direction ${trip.direction.toLowerCase()}`}
-                    >
+                    </PurchasePill>
+                  </Td>
+                  <Td data-label="Movimiento">
+                    <DirectionPill direction={trip.direction}>
                       {trip.direction === "SUBIDA" ? (
                         <ArrowUpRight size={16} />
                       ) : (
                         <ArrowDownLeft size={16} />
                       )}
-                      {trip.direction === "SUBIDA"
-                        ? "Subida"
-                        : "Bajada"}
-                    </span>
-                  </td>
-                  <td data-label="Hora">
-                    {trip.requested_time?.slice(0, 5) ||
-                      "Por confirmar"}
-                  </td>
-                  <td data-label="Estado">
-                    <span
-                      className={`status-pill ${statusClass(trip.status)}`}
-                    >
-                      {trip.status}
-                    </span>
-                  </td>
-                  <td data-label="Reserva">{trip.pnr || "—"}</td>
-                  <td data-label="Acciones" className="row-actions">
-                    <button
+                      {trip.direction === "SUBIDA" ? "Subida" : "Bajada"}
+                    </DirectionPill>
+                  </Td>
+                  <Td data-label="Hora">
+                    {trip.requested_time?.slice(0, 5) || "Por confirmar"}
+                  </Td>
+                  <Td data-label="Estado">
+                    <StatusPill status={trip.status} />
+                  </Td>
+                  <Td data-label="Reserva">{trip.pnr || "—"}</Td>
+                  <Td data-label="Acciones" className={CELDA_ACCIONES}>
+                    <Button
                       type="button"
+                      className="px-[10px]"
                       onClick={() => openTrip(trip)}
                     >
                       Abrir <ArrowUpRight size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      className="icon-button"
+                      variant="icon"
                       aria-label={`Ver historial de ${personName(trip.person_id)}`}
                       onClick={() => void showHistory(trip)}
                     >
                       <Clock size={16} />
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TBody>
+          </Table>
+        </TableWrap>
       ) : (
         <EmptyState
           icon={<Plane />}
@@ -388,14 +415,15 @@ export default function TripsView() {
           }
         />
       )}
-      <div className="integration-note">
+      <div className="mt-3 flex items-start gap-[10px] rounded-md border border-line bg-surface px-[15px] py-[13px] text-[12px] text-muted max-[760px]:mt-[10px]">
         <Plane size={17} />
         <span>
-          <strong>Tarifas en vivo aún no conectadas.</strong> El
-          monto se registra al confirmar el pasaje.
+          <strong className="text-foreground-soft">
+            Tarifas en vivo aún no conectadas.
+          </strong>{" "}
+          El monto se registra al confirmar el pasaje.
         </span>
       </div>
     </section>
   );
 }
-
