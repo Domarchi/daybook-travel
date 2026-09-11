@@ -18,6 +18,30 @@ import {
 } from "lucide-react";
 import { addDays } from "../lib/calendar";
 import type { Person, Trip } from "../lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
+import { FilterPills } from "@/components/ui/filter-pills";
+import { SectionKicker } from "@/components/ui/section-kicker";
+import { ShiftBadge, tonoDeJornada } from "@/components/ui/shift-badge";
+import { StatusPill } from "@/components/ui/status-pill";
+import { cn } from "@/lib/utils";
+
+// El día del calendario, sin los estados. Se arma fuera del componente porque
+// se repite treinta veces por mes y no cambia nunca.
+const DIA = [
+  "relative flex min-h-[98px] min-w-11 flex-col items-stretch justify-between",
+  "gap-[7px] overflow-hidden rounded-[10px] border-line p-[9px] text-left",
+  "bg-[color-mix(in_srgb,var(--surface-raised)_70%,var(--bg))] text-foreground-soft",
+  "raton:hover:not-disabled:border-foreground-soft raton:hover:not-disabled:bg-surface-hover",
+  "max-[760px]:min-h-[88px] max-[760px]:rounded-sm max-[760px]:px-[5px] max-[760px]:py-[7px]",
+  "max-[430px]:min-h-[82px]",
+].join(" ");
+
+// La raya de arriba que marca el día de hoy.
+const HOY = [
+  "after:absolute after:inset-x-0 after:top-0 after:h-0.5",
+  "after:bg-[var(--focus)] after:content-['']",
+].join(" ");
 
 type CalendarProps = {
   selected: string | null;
@@ -284,7 +308,7 @@ export default function YearView({
       .join(", ");
 
     return (
-      <button
+      <Button
         type="button"
         role="gridcell"
         key={date}
@@ -297,100 +321,111 @@ export default function YearView({
         }
         aria-current={isToday ? "date" : undefined}
         aria-selected={isSelected}
-        className={[
-          "calendar-day",
-          counts.total ? "has-trips" : "",
-          counts.fourByThree ? "has-four" : "",
-          counts.tenByTen ? "has-ten" : "",
-          counts.pending ? "has-pending" : "",
-          weekday === 0 || weekday === 6 ? "weekend" : "",
-          isToday ? "current-day" : "",
-          isSelected ? "selected-day" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        // El orden importa: la última clase de fondo o de borde gana, igual
+        // que ganaba la última regla del CSS. Fin de semana primero, después
+        // "tiene viajes", y al final el borde del día elegido.
+        className={cn(
+          DIA,
+          (weekday === 0 || weekday === 6) &&
+            "bg-[color-mix(in_srgb,var(--surface-soft)_58%,var(--surface))]",
+          counts.total && "border-line-strong bg-surface-raised",
+          isToday && HOY,
+          isSelected &&
+            "border-foreground shadow-[inset_0_0_0_1px_var(--text)]",
+        )}
         onFocus={() => setFocusedDate(date)}
         onKeyDown={(event) => handleDayKeyDown(event, date)}
         onClick={() => onSelect(isSelected ? null : date)}
       >
-        <span className="calendar-day-top">
-          <strong>{index + 1}</strong>
-          {isToday ? <em>Hoy</em> : null}
+        <span className="flex items-center justify-between gap-[5px]">
+          <strong className="text-[14px] leading-none text-foreground max-[430px]:text-[12px]">
+            {index + 1}
+          </strong>
+          {isToday ? (
+            <em className="rounded-[999px] bg-[color-mix(in_srgb,var(--focus)_15%,transparent)] px-[5px] py-[2px] text-[8px] font-extrabold text-[var(--focus)] uppercase not-italic max-[760px]:hidden">
+              Hoy
+            </em>
+          ) : null}
         </span>
-        <span className="calendar-day-count">
+        <span className="flex items-center justify-start gap-[5px]">
           {counts.total ? (
             <>
-              <b>{counts.total}</b>
-              <small>{counts.total === 1 ? "viaje" : "viajes"}</small>
+              <b className="text-[15px] text-foreground max-[760px]:text-[13px]">
+                {counts.total}
+              </b>
+              <small className="text-[9px] max-[760px]:hidden">
+                {counts.total === 1 ? "viaje" : "viajes"}
+              </small>
             </>
           ) : (
-            <small>Sin viajes</small>
+            <small className="text-[9px] max-[760px]:hidden">Sin viajes</small>
           )}
         </span>
         {counts.total ? (
-          <span className="calendar-shifts" aria-hidden="true">
+          <span className="flex flex-wrap gap-[3px]" aria-hidden="true">
             {counts.fourByThree ? (
-              <span className="shift-tag four">
+              <ShiftBadge tono="four" tamano="chica">
                 4×3 <b>{counts.fourByThree}</b>
-              </span>
+              </ShiftBadge>
             ) : null}
             {counts.tenByTen ? (
-              <span className="shift-tag ten">
+              <ShiftBadge tono="ten" tamano="chica">
                 10×10 <b>{counts.tenByTen}</b>
-              </span>
+              </ShiftBadge>
             ) : null}
             {counts.pending ? (
-              <span className="shift-tag pending">
+              <ShiftBadge tono="pending" tamano="chica">
                 Pendiente <b>{counts.pending}</b>
-              </span>
+              </ShiftBadge>
             ) : null}
           </span>
         ) : null}
-      </button>
+      </Button>
     );
   }
 
   return (
-    <section className="calendar-section" aria-labelledby="calendar-title">
-      <header className="calendar-header">
-        <div className="calendar-title">
-          <span className="section-kicker">Planificación mensual</span>
-          <h2 id="calendar-title">{monthLabel(month)}</h2>
-          <p>
+    <section
+      className="overflow-hidden rounded-lg border border-line bg-surface shadow-[0_1px_0_rgba(255,255,255,0.02)]"
+      aria-labelledby="calendar-title"
+    >
+      <header className="flex items-end justify-between gap-7 border-b border-line px-[22px] pt-[22px] pb-[18px] max-[820px]:flex-col max-[820px]:items-start max-[760px]:px-[14px] max-[760px]:pt-[18px] max-[760px]:pb-[14px]">
+        <div>
+          <SectionKicker>Planificación mensual</SectionKicker>
+          <h2
+            id="calendar-title"
+            className="text-[clamp(22px,2.5vw,31px)] leading-[1.1] tracking-[-0.035em] text-foreground first-letter:uppercase"
+          >
+            {monthLabel(month)}
+          </h2>
+          <p className="mt-[7px] text-[13px] text-muted">
             {monthTrips.length
               ? `${monthTrips.length} ${monthTrips.length === 1 ? "viaje" : "viajes"} de ${distinctPeople} ${distinctPeople === 1 ? "persona" : "personas"}.`
               : "Todavía no hay viajes programados para este mes."}
           </p>
         </div>
 
-        <div className="calendar-actions">
-          <div
-            className="shift-filter"
-            aria-label="Filtrar calendario por turno"
-          >
-            {shifts.map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={shift === option}
-                className={shift === option ? "active" : ""}
-                onClick={() => setShift(option)}
-              >
-                {option === "Todos" ? "Todos" : option}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-[9px] max-[820px]:w-full max-[820px]:justify-between">
+          <FilterPills
+            label="Filtrar calendario por turno"
+            variante="jornadas"
+            opciones={shifts}
+            valor={shift}
+            onCambio={setShift}
+          />
 
-          <div className="month-navigation">
-            <button
+          <div className="flex items-center gap-[3px] rounded-[10px] border border-line bg-bg p-[3px] max-[760px]:w-full">
+            <Button
               type="button"
-              className="icon-button"
+              variant="icon"
+              className="border-0 bg-transparent"
               aria-label="Mes anterior"
               onClick={() => moveMonth(-1)}
             >
               <ChevronLeft size={18} />
-            </button>
-            <input
+            </Button>
+            <Input
+              className="w-[148px] border-0 bg-transparent px-[9px] py-[6px] text-[12px] font-bold max-[760px]:w-[100px] max-[760px]:flex-1"
               aria-label="Ir a mes y año"
               type="month"
               min="0001-01"
@@ -398,32 +433,43 @@ export default function YearView({
               value={month}
               onChange={(event) => navigateMonth(event.target.value)}
             />
-            <button
+            <Button
               type="button"
-              className="icon-button"
+              variant="icon"
+              className="border-0 bg-transparent"
               aria-label="Mes siguiente"
               onClick={() => moveMonth(1)}
             >
               <ChevronRight size={18} />
-            </button>
-            <button type="button" className="today-button" onClick={goToday}>
+            </Button>
+            <Button
+              type="button"
+              className="ml-[2px] border-line-strong bg-surface-soft"
+              onClick={goToday}
+            >
               Hoy
-            </button>
+            </Button>
           </div>
         </div>
       </header>
 
-      <div className="calendar-key" aria-label="Leyenda del calendario">
-        <span>
-          <i className="shift-dot four" /> 4×3
+      <div
+        className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 border-b border-line px-[22px] py-[10px] text-[11px] text-muted max-[760px]:px-[14px]"
+        aria-label="Leyenda del calendario"
+      >
+        <span className="inline-flex items-center gap-[7px]">
+          <i className="inline-block size-[9px] flex-none rounded-[3px] bg-four" />{" "}
+          4×3
         </span>
-        <span>
-          <i className="shift-dot ten" /> 10×10
+        <span className="inline-flex items-center gap-[7px]">
+          <i className="inline-block size-[9px] flex-none rounded-[3px] bg-ten" />{" "}
+          10×10
         </span>
-        <span>
-          <i className="shift-dot pending" /> Por confirmar
+        <span className="inline-flex items-center gap-[7px]">
+          <i className="inline-block size-[9px] flex-none rounded-[3px] border border-line-strong bg-muted" />{" "}
+          Por confirmar
         </span>
-        <span>
+        <span className="inline-flex items-center gap-[7px] max-[760px]:w-full">
           <CalendarDays size={14} /> El número indica la cantidad de viajes
         </span>
       </div>
@@ -434,31 +480,33 @@ export default function YearView({
       </p>
 
       <div
-        className="calendar-scroll"
+        className="overflow-x-auto overscroll-x-contain px-[18px] pt-4 pb-[18px] [scrollbar-width:thin] max-[760px]:px-[7px] max-[760px]:pt-3 max-[760px]:pb-[14px]"
         role="region"
         aria-label={`Calendario de ${monthLabel(month)}`}
       >
         <div
           ref={calendarRef}
-          className="calendar-grid"
+          className="grid min-w-[346px] grid-cols-[repeat(7,minmax(44px,1fr))] gap-[6px] max-[760px]:gap-1"
           role="grid"
           aria-labelledby="calendar-title"
           aria-describedby="calendar-keyboard-help"
         >
           <div
-            className="calendar-week"
             role="row"
             style={{ display: "contents" }}
           >
             {weekdays.map((day) => (
-              <span className="calendar-weekday" role="columnheader" key={day}>
+              <span
+                className="px-[5px] pt-[2px] pb-[7px] text-right text-[10px] font-[750] text-muted uppercase"
+                role="columnheader"
+                key={day}
+              >
                 {day}
               </span>
             ))}
           </div>
           {Array.from({ length: numberOfWeeks }, (_, weekIndex) => (
             <div
-              className="calendar-week"
               role="row"
               style={{ display: "contents" }}
               key={weekIndex}
@@ -469,7 +517,7 @@ export default function YearView({
                   renderCalendarDay(dayIndex)
                 ) : (
                   <span
-                    className="calendar-gap"
+                    className="min-h-[98px] border border-transparent max-[760px]:min-h-[88px]"
                     role="gridcell"
                     aria-disabled="true"
                     aria-label="Fuera del mes"
@@ -482,68 +530,85 @@ export default function YearView({
         </div>
       </div>
 
-      <footer className="calendar-summary">
+      <footer className="flex min-h-[50px] items-center gap-6 border-t border-line px-[22px] py-[11px] text-[11px] text-muted max-[760px]:flex-wrap max-[760px]:items-start max-[760px]:gap-x-[18px] max-[760px]:gap-y-[7px] max-[760px]:px-[14px]">
         <span>
-          <strong>{monthRows.length}</strong>{" "}
+          <strong className="mr-1 text-[14px] text-foreground">
+            {monthRows.length}
+          </strong>{" "}
           {monthRows.length === 1
             ? "día con movimiento"
             : "días con movimiento"}
         </span>
         <span>
-          <strong>{monthTrips.length}</strong>{" "}
+          <strong className="mr-1 text-[14px] text-foreground">
+            {monthTrips.length}
+          </strong>{" "}
           {monthTrips.length === 1 ? "viaje programado" : "viajes programados"}
         </span>
-        <small>
+        <small className="ml-auto text-right max-[760px]:ml-0 max-[760px]:w-full max-[760px]:text-left">
           Los viajes anulados no se muestran. El 10×10 usa las fechas
           registradas manualmente.
         </small>
       </footer>
 
       {selected ? (
-        <section ref={detailRef} className="day-detail" aria-live="polite">
-          <header className="day-detail-head">
+        <section
+          ref={detailRef}
+          className="border-t border-line bg-[color-mix(in_srgb,var(--surface-soft)_32%,var(--surface))] scroll-mt-[88px]"
+          aria-live="polite"
+        >
+          <header className="flex items-center justify-between gap-5 border-b border-line px-[22px] py-5 max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:px-[14px]">
             <div>
-              <span className="section-kicker">Día seleccionado</span>
-              <h3>{longDate(selected)}</h3>
-              <p>
+              <SectionKicker>Día seleccionado</SectionKicker>
+              <h3 className="text-[20px] leading-[1.2] tracking-[-0.025em] text-foreground first-letter:uppercase">
+                {longDate(selected)}
+              </h3>
+              <p className="mt-[7px] text-[13px] text-muted">
                 {rows.length
                   ? `${rows.length} ${rows.length === 1 ? "viaje programado" : "viajes programados"}`
                   : "Sin movimientos registrados"}
               </p>
             </div>
-            <div className="day-detail-actions">
-              <button
+            <div className="flex items-center gap-[7px]">
+              <Button
                 type="button"
-                className="primary"
+                variant="primary"
+                className="max-[760px]:flex-1"
                 onClick={() => onAdd(selected)}
               >
                 <Plus size={17} /> Agregar viaje
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="icon-button"
+                variant="icon"
                 aria-label="Cerrar detalle del día"
                 onClick={() => onSelect(null)}
               >
                 <X size={18} />
-              </button>
+              </Button>
             </div>
           </header>
 
           {rows.length ? (
-            <div className="day-travellers">
+            <div className="grid">
               {rows.map((trip) => {
                 const member = members.get(trip.person_id);
                 const isUp = trip.direction === "SUBIDA";
                 const directionLabel = isUp ? "Subida" : "Bajada";
                 return (
-                  <button
+                  <Button
                     type="button"
                     key={trip.id}
+                    className="grid min-h-[68px] grid-cols-[38px_minmax(180px,1fr)_minmax(120px,0.45fr)_auto_20px] items-center gap-[13px] rounded-none border-0 border-b border-line bg-transparent px-[22px] py-[11px] text-left last:border-b-0 max-[760px]:grid-cols-[36px_minmax(0,1fr)_auto] max-[760px]:gap-[10px] max-[760px]:px-[14px]"
                     onClick={() => onTrip(trip.id)}
                   >
                     <span
-                      className={"travel-arrow " + (isUp ? "up" : "down")}
+                      className={cn(
+                        "inline-flex size-9 items-center justify-center rounded-[9px]",
+                        isUp
+                          ? "bg-subida-soft text-subida"
+                          : "bg-bajada-soft text-bajada",
+                      )}
                       aria-hidden="true"
                     >
                       {isUp ? (
@@ -552,42 +617,46 @@ export default function YearView({
                         <ArrowDownLeft size={19} />
                       )}
                     </span>
-                    <span className="day-person">
-                      <strong>{member?.name ?? "Persona"}</strong>
-                      <small>
+                    <span className="grid min-w-0 gap-[2px]">
+                      <strong className="overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground">
+                        {member?.name ?? "Persona"}
+                      </strong>
+                      <small className="text-muted">
                         <span
-                          className={
-                            "direction-label " + (isUp ? "up" : "down")
-                          }
+                          className={isUp ? "text-subida" : "text-bajada"}
                         >
                           {directionLabel}
                         </span>{" "}
                         · {trip.origin} → {trip.destination}
                       </small>
                     </span>
-                    <span className="day-trip-time">
-                      <strong>
+                    <span className="grid min-w-0 gap-[2px] max-[760px]:col-start-2">
+                      <strong className="overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground">
                         {trip.requested_time?.slice(0, 5) || "Hora pendiente"}
                       </strong>
-                      <small>Turno {member?.shift ?? "sin definir"}</small>
+                      <small className="text-muted">
+                        Turno {member?.shift ?? "sin definir"}
+                      </small>
                     </span>
-                    <span
-                      className={
-                        "status-pill " + trip.status.replaceAll(" ", "")
-                      }
-                    >
-                      {trip.status}
-                    </span>
-                    <ChevronRight className="row-chevron" size={17} />
-                  </button>
+                    <StatusPill
+                      status={trip.status}
+                      className="max-[760px]:col-start-3 max-[760px]:row-start-1"
+                    />
+                    <ChevronRight
+                      className="text-muted max-[760px]:col-start-3 max-[760px]:row-start-2 max-[760px]:justify-self-end"
+                      size={17}
+                    />
+                  </Button>
                 );
               })}
             </div>
           ) : (
-            <div className="day-empty">
+            <div className="flex min-h-24 items-center justify-center gap-3 p-[22px] text-muted">
               <CalendarDays size={20} />
-              <span>
-                <strong>Este día está libre</strong>
+              <span className="grid gap-[2px]">
+                <strong className="text-foreground">
+                  Este día está libre
+                </strong>
                 <small>
                   Agrega un viaje si necesitas registrar un movimiento.
                 </small>
@@ -596,7 +665,7 @@ export default function YearView({
           )}
         </section>
       ) : (
-        <p className="calendar-instruction">
+        <p className="border-t border-line px-[22px] py-[13px] text-center text-[12px] text-muted">
           Selecciona un día para ver personas, horarios y reservas.
         </p>
       )}

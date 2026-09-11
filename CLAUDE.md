@@ -211,8 +211,8 @@ rota. Nada de reescritura de una sentada.
 4. **Vistas. HECHO** — costos, personas, agenda y viajes. La tabla de Viajes trajo sus
    propias primitivas: `components/ui/data-table.tsx` (tabla, cabecera, fila, celda y el
    modo tarjeta de pantalla angosta) y `components/ui/trip-pills.tsx` (movimiento y ventana
-   de compra). Quedan fuera de este punto las dos piezas grandes de `app/`: `year-view.tsx`
-   (el calendario) y `excel-sync-panel.tsx`.
+   de compra). El calendario (`app/year-view.tsx`) también está HECHO. Queda solo
+   `app/excel-sync-panel.tsx`.
 5. **Armazón** — top-bar, workspace, login-view, access-state.
 6. **Limpieza** — borrar de `@layer fcc` lo que ya no usa nadie. Al final ese archivo debería
    quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre (el campo de puntos).
@@ -347,6 +347,15 @@ probar la interfaz sin credenciales — pero ojo, ese camino usa `lib/calendar.t
 Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son caminos distintos.
 
 ## Trampas conocidas
+
+- **`cn()` borra un `leading-*` que vaya ANTES de un `text-<tamaño>`.** La librería que
+  junta las clases (tailwind-merge) viene de Tailwind 3, donde `text-lg` también fijaba el
+  interlineado, así que cree que las dos clases pelean y se queda con la última. En Tailwind 4
+  ya no es así, pero la librería lo sigue creyendo. Pasó en `shift-badge.tsx`: el
+  `leading-none` estaba en la base y cada variante traía su `text-<tamaño>`, así que el
+  interlineado se perdía en silencio y la pastilla crecía un píxel. **Regla: el `leading-*`
+  va siempre después del tamaño de letra, en la misma variante.** No da error ni aviso; solo
+  se nota midiendo.
 
 - **El velo de los diálogos (`.overlay`) es `position: fixed` y no se le toca la posición.**
   Al meter el campo de puntos en el armazón se le puso `position: relative` para levantarlo
