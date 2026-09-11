@@ -48,7 +48,7 @@ export default function CostsView() {
           >
             Este total cubre {cobertura.conMonto} de {cobertura.viajes} viajes.
             {" "}
-            <strong>
+            <strong className="text-[var(--warning)]">
               A {faltan} {faltan === 1 ? "viaje" : "viajes"} les falta el monto
             </strong>
             , así que el gasto real es mayor. Se completa abriendo cada viaje y

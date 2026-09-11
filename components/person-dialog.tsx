@@ -136,10 +136,11 @@ export default function PersonDialog() {
           </FormGrid>
           <Label className="grid-cols-[20px_1fr] items-start gap-[10px] rounded-sm border border-line bg-surface-soft p-3">
             <Checkbox
+              className="mt-[2px]"
               name="active"
               defaultChecked={editPerson?.active ?? true}
             />
-            <span>
+            <span className="grid gap-[2px]">
               <strong className="text-foreground">Persona activa</strong>{" "}
               <small className="text-muted">
                 Puede recibir nuevos viajes y planificación.

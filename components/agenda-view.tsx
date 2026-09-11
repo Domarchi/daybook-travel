@@ -122,7 +122,7 @@ export default function AgendaView({
         <label className="m-0 inline-flex items-center gap-2 text-[12px] text-foreground-soft">
           Comprar con
           <Select
-            className="w-auto min-h-11 py-0"
+            className="min-h-8 w-auto px-2 py-1 font-bold"
             value={purchaseWindow}
             onChange={(event) => onWindowChange(Number(event.target.value))}
           >

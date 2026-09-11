@@ -164,6 +164,29 @@ rota. Nada de reescritura de una sentada.
 3. **Los colores salen de los tokens**, nunca de la paleta de Tailwind. `bg-surface`, sí;
    `bg-zinc-900`, no. Si un color no tiene token, se agrega al bloque `@theme` primero.
 4. Una rama por paso, con `npm run build` y `npm test` en verde antes de guardar.
+5. **Buscar las reglas huérfanas antes de dar por migrado un componente.** Esta es la que
+   faltaba y la que más daño hizo. Cuando un contenedor pierde su clase al pasar a Tailwind,
+   toda regla del CSS viejo que pintaba a sus hijos *a través de él* (`.person-name h2`,
+   `.person-actions button`, `.dialog-head p`) deja de aplicar en silencio: no hay error, no
+   hay aviso, el componente simplemente pierde parte de su estilo. Mirar la pantalla no
+   basta, porque lo que se pierde suele ser un tamaño o un recorte de texto, no un color
+   chillón.
+
+   La comprobación, con el proyecto delante:
+
+   ```bash
+   # 1. clases que el CSS todavía menciona
+   grep -oE '\.[a-z][a-z0-9-]*' app/globals.css | sed 's/^\.//' | sort -u > /tmp/cssclases.txt
+   # 2. las que ya no aparecen en ningún .ts/.tsx: ahí están las huérfanas
+   while read -r c; do
+     grep -rqF "$c" --include=*.tsx --include=*.ts app components lib || echo "$c"
+   done < /tmp/cssclases.txt
+   ```
+
+   De esa lista interesan las reglas con **descendiente** (`.huerfana algo { ... }`): cada
+   una es un estilo que hay que reescribir como clase de Tailwind en el hijo. Ojo con dos
+   falsos positivos: las clases que se arman concatenando (`"compra-" + estado`,
+   `"status-" + ...`) y las que quedaron muertas a propósito.
 
 ### Orden
 
@@ -325,3 +348,8 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 - Usa TypeScript 7 y `@types/node` 26 — versiones muy nuevas. Si aparecen errores raros de tipos,
   mirar ahí antes de dar vueltas.
 - `AGENTS.md` lo regenera `next dev`; no lo edites a mano.
+- **El `hover` de los botones todavía lo pone el CSS**, no la primitiva. La regla
+  `@media (hover: hover) and (pointer: fine) { button:hover:not(:disabled) { ... } }` sigue
+  vistiendo a todos los botones migrados, porque `components/ui/button.tsx` no traduce el
+  hover. Hoy no se nota; el día que se borre esa regla en la limpieza, los botones se quedan
+  sin reacción al pasar el mouse. Hay que traducirla a la primitiva **antes** de borrarla.

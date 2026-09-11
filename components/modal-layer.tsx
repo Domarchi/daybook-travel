@@ -65,7 +65,10 @@ export default function ModalLayer() {
                         ? "SOLICITUD A LA AGENCIA"
                         : "REGISTRO DE VIAJE"}
             </SectionKicker>
-            <h2 id="dialog-title">
+            <h2
+              id="dialog-title"
+              className="text-[25px] leading-[1.1] tracking-[-0.035em] text-foreground"
+            >
               {modal === "excel"
                 ? "Gestionar con Excel"
                 : modal === "person"
@@ -84,7 +87,10 @@ export default function ModalLayer() {
                         ? "Manifiesto para solicitar"
                         : "Historial del viaje"}
             </h2>
-            <p id="dialog-description">
+            <p
+              id="dialog-description"
+              className="mt-[7px] max-w-[520px] text-[12px] text-muted"
+            >
               {modal === "excel"
                 ? "Descarga, revisa y aplica cambios sin reemplazar información a ciegas."
                 : modal === "person"

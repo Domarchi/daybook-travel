@@ -19,7 +19,7 @@ const PIE =
 export function LoadingView({ theme = "dark" }: { theme?: string }) {
   return (
     <main
-      className="velo-carga relative isolate flex min-h-screen items-center justify-center gap-3 text-muted"
+      className="velo-carga relative isolate flex min-h-screen items-center justify-center gap-3 text-muted [--dot-alpha:0.55]"
       aria-live="polite"
     >
       <DotField theme={theme} estatico />

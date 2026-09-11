@@ -97,9 +97,11 @@ export default function PeopleView() {
               <span className="text-[11px] text-muted tabular-nums" aria-hidden="true">
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <div className="grid min-w-0 gap-[5px]">
+              <div className="grid min-w-0 gap-[5px] max-[760px]:col-start-2">
                 <div className="flex items-center gap-[9px]">
-                  <h2>{person.name}</h2>
+                  <h2 className="overflow-hidden text-[16px] leading-[1.25] tracking-[-0.02em] text-ellipsis whitespace-nowrap text-foreground">
+                    {person.name}
+                  </h2>
                   <span
                     className={
                       "shrink-0 text-[9px] font-extrabold tracking-[0.04em] uppercase " +
@@ -111,33 +113,39 @@ export default function PeopleView() {
                 </div>
                 <small>{person.baggage}</small>
               </div>
-              <div className="grid min-w-0 gap-[5px]">
+              <div className="grid min-w-0 gap-[5px] max-[760px]:col-start-2">
                 <small>Ruta habitual</small>
-                <span>
+                <span className="flex items-center gap-1 overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground-soft">
                   {person.origin} <ChevronRight size={15} />{" "}
                   {person.destination}
                 </span>
               </div>
-              <div className="grid min-w-0 gap-[5px]">
+              <div className="grid min-w-0 gap-[5px] max-[760px]:col-start-2">
                 <ShiftBadge tono={tonoDeJornada(person.shift)}>
                   Turno {person.shift}
                 </ShiftBadge>
                 <small>Desde {formatDate(person.start_date)}</small>
               </div>
-              <div className="flex items-center justify-end gap-[6px]">
+              <div className="flex items-center justify-end gap-[6px] max-[760px]:col-start-2 max-[760px]:grid max-[760px]:w-full max-[760px]:grid-cols-2 max-[430px]:grid-cols-1">
                 {person.active && (
                   <Button
                     type="button"
+                    className="px-[10px] max-[760px]:col-span-2 max-[430px]:col-auto"
                     onClick={() => openTrip(null, undefined, person.id)}
                   >
                     <UserPlus size={16} /> Nuevo viaje
                   </Button>
                 )}
-                <Button type="button" onClick={() => showPersonTrips(person)}>
+                <Button
+                  type="button"
+                  className="px-[10px]"
+                  onClick={() => showPersonTrips(person)}
+                >
                   Ver viajes
                 </Button>
                 <Button
                   type="button"
+                  className="px-[10px]"
                   aria-label={`Editar a ${person.name}`}
                   onClick={() => openPerson(person)}
                 >
