@@ -211,10 +211,15 @@ rota. Nada de reescritura de una sentada.
 4. **Vistas. HECHO** — costos, personas, agenda y viajes. La tabla de Viajes trajo sus
    propias primitivas: `components/ui/data-table.tsx` (tabla, cabecera, fila, celda y el
    modo tarjeta de pantalla angosta) y `components/ui/trip-pills.tsx` (movimiento y ventana
-   de compra). El calendario (`app/year-view.tsx`) también está HECHO. Queda solo
-   `app/excel-sync-panel.tsx`.
+   de compra). El calendario (`app/year-view.tsx`) y el panel de Excel
+   (`app/excel-sync-panel.tsx`) también están HECHOS. No queda ningún componente
+   por migrar: lo que sigue es la limpieza.
 5. **Armazón** — top-bar, workspace, login-view, access-state.
-6. **Limpieza** — borrar de `@layer fcc` lo que ya no usa nadie. Al final ese archivo debería
+6. **Limpieza (lo único que queda)** — borrar de `@layer fcc` lo que ya no usa nadie.
+   Antes de borrar hay que traducir a las primitivas lo que todavía vive solo en el CSS: el
+   `hover` de los botones y el `:active`/`:disabled` de `button`, que hoy siguen saliendo de
+   la capa fcc. Y correr la búsqueda de reglas huérfanas una vez más, con todo migrado: esa
+   lista final es justamente lo que se puede borrar. Al final ese archivo debería
    quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre (el campo de puntos).
 
 ### Lo que ya está montado
@@ -348,6 +353,12 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 
 ## Trampas conocidas
 
+- **Tailwind escribe los movimientos en `translate` y en `scale`, no en `transform`.** Las
+  reglas viejas que apagaban el movimiento (la de `prefers-reduced-motion`) decían
+  `transform: none`, y desde la migración ya no alcanzaban a nada: los botones seguían
+  hundiéndose al apretarlos para alguien que pidió menos movimiento. Hoy la regla apaga las
+  tres propiedades. Si aparece una animación nueva, comprobar en qué propiedad la escribe
+  Tailwind antes de dar por hecho que la regla la cubre.
 - **`cn()` borra un `leading-*` que vaya ANTES de un `text-<tamaño>`.** La librería que
   junta las clases (tailwind-merge) viene de Tailwind 3, donde `text-lg` también fijaba el
   interlineado, así que cree que las dos clases pelean y se queda con la última. En Tailwind 4

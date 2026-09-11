@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -23,6 +23,54 @@ import {
   type ExcelSyncValidationError,
 } from "../lib/excel-sync";
 import type { Person, Trip } from "../lib/types";
+import { Button } from "@/components/ui/button";
+import { SectionKicker } from "@/components/ui/section-kicker";
+import { TableWrap } from "@/components/ui/table-wrap";
+import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/data-table";
+import { cn } from "@/lib/utils";
+
+// Las dos zonas de contenido del panel comparten caja.
+const ZONA = "grid gap-[18px] p-6 max-[760px]:gap-[14px] max-[760px]:px-4 max-[760px]:py-[18px]";
+
+// El armazon del panel: ocupa el alto del dialogo y se desplaza por dentro.
+const PANEL = "flex min-h-0 flex-1 flex-col overflow-y-auto bg-surface";
+
+// Los titulos de las tres pantallas del panel.
+const TITULO = "text-[18px] tracking-[-0.025em] text-foreground";
+
+// Las tres cajitas de aviso: seguridad, mensaje suelto y nota de demostracion.
+const AVISO = "rounded-sm border border-line bg-surface-soft text-[12px] text-foreground-soft";
+
+// Las tarjetas de conteo, en el resumen y en la pantalla final.
+const TARJETA = "grid min-h-[76px] content-center gap-px rounded-sm border border-line bg-surface px-3 py-[10px]";
+const TARJETA_NUMERO = "text-[22px] leading-[1.1] tracking-[-0.03em]";
+
+// Los tonos de las tarjetas y de las pastillas de accion. El gris es el estado
+// en reposo: una cuenta en cero no se enciende.
+const TONOS = {
+  new: "border-[color-mix(in_srgb,var(--success)_38%,var(--border))] bg-[color-mix(in_srgb,var(--success)_9%,var(--surface))] text-success [&>strong]:text-inherit",
+  change: "border-[color-mix(in_srgb,var(--warning)_38%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_9%,var(--surface))] text-warning [&>strong]:text-inherit",
+  conflict: "border-[color-mix(in_srgb,var(--danger)_40%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_9%,var(--surface))] text-danger [&>strong]:text-inherit",
+};
+
+// Las celdas de la tabla de revision. En tarjeta esta tabla NO se parte en dos
+// columnas como la de Viajes: cada dato va en su propia linea, con el titulo
+// arriba, porque lo que se lee aqui es texto largo (nombres de hoja, mensajes)
+// y en media columna no cabe.
+const CELDA_LIBRO = [
+  "max-[760px]:col-start-1 max-[760px]:min-h-[50px] max-[760px]:w-full",
+  "max-[760px]:flex-col max-[760px]:items-start max-[760px]:justify-center",
+  "max-[760px]:gap-[3px]",
+].join(" ");
+
+// La barra de botones de abajo: se queda pegada al borde inferior del dialogo.
+const BARRA_ABAJO = [
+  "sticky bottom-[-24px] z-[4] mx-[-24px] mt-[2px] mb-[-24px]",
+  "flex min-h-[72px] items-center justify-end gap-2 border-t border-line",
+  "bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-6 py-3 backdrop-blur-[14px]",
+  "max-[760px]:bottom-[-18px] max-[760px]:mx-[-16px] max-[760px]:mb-[-18px]",
+  "max-[760px]:px-4 max-[760px]:py-[10px] max-[760px]:[&>button]:flex-1",
+].join(" ");
 
 type Props = {
   people: Person[];
@@ -571,181 +619,231 @@ export default function ExcelSyncPanel({
       resultCount(result?.people?.updated) +
       resultCount(result?.trips?.updated);
     return (
-      <div className="excel-sync excel-complete" aria-live="polite">
-        <span className="excel-complete-icon" aria-hidden="true">
+      <div
+        className={cn(
+          PANEL,
+          "min-h-[440px] items-center justify-center gap-[9px] px-6 py-10 text-center max-[760px]:px-[18px]",
+        )}
+        aria-live="polite"
+      >
+        <span
+          className="mb-[6px] inline-flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--success)_38%,var(--border))] bg-[color-mix(in_srgb,var(--success)_10%,var(--surface))] text-success"
+          aria-hidden="true"
+        >
           <CheckCircle2 size={28} />
         </span>
-        <span className="section-kicker">SINCRONIZACIÓN COMPLETA</span>
-        <h3>El libro ya está reflejado en FCC TRAVEL</h3>
+        <SectionKicker>SINCRONIZACIÓN COMPLETA</SectionKicker>
+        <h3 className={TITULO}>El libro ya está reflejado en FCC TRAVEL</h3>
         <p>{message}</p>
-        <div className="excel-result-grid">
-          <span>
-            <strong>{inserted}</strong>
+        <div className="mt-3 grid w-[min(360px,100%)] grid-cols-2 gap-2">
+          <span className={TARJETA}>
+            <strong className={TARJETA_NUMERO}>{inserted}</strong>
             <small>Nuevos</small>
           </span>
-          <span>
-            <strong>{updated}</strong>
+          <span className={TARJETA}>
+            <strong className={TARJETA_NUMERO}>{updated}</strong>
             <small>Actualizados</small>
           </span>
         </div>
-        <div className="excel-complete-actions">
-          <button type="button" onClick={reset}>
+        <div className="mt-[14px] flex gap-2 max-[430px]:grid max-[430px]:w-full max-[430px]:grid-cols-1">
+          <Button type="button" onClick={reset}>
             <RotateCcw size={17} /> Revisar otro libro
-          </button>
-          <button type="button" className="primary" onClick={onClose}>
+          </Button>
+          <Button type="button" variant="primary" onClick={onClose}>
             Volver a Personas <ArrowRight size={17} />
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="excel-sync">
-      <ol className="excel-steps" aria-label="Pasos para sincronizar">
-        <li className={phase === "idle" ? "current" : "complete"}>
-          <span>1</span> Preparar
-        </li>
-        <li
-          className={
+    <div className={PANEL}>
+      <ol
+        className="sticky top-0 z-[5] m-0 grid list-none grid-cols-3 gap-2 border-b border-line bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] px-6 py-[14px] backdrop-blur-[14px] max-[760px]:px-4 max-[430px]:gap-[3px] max-[430px]:px-3"
+        aria-label="Pasos para sincronizar"
+      >
+        <Paso estado={phase === "idle" ? "actual" : "hecho"} numero={1}>
+          Preparar
+        </Paso>
+        <Paso
+          estado={
             phase === "reading" || phase === "preview"
-              ? "current"
+              ? "actual"
               : phase === "applying"
-                ? "complete"
-                : ""
+                ? "hecho"
+                : "pendiente"
           }
+          numero={2}
         >
-          <span>2</span> Revisar
-        </li>
-        <li className={phase === "applying" ? "current" : ""}>
-          <span>3</span> Aplicar
-        </li>
+          Revisar
+        </Paso>
+        <Paso estado={phase === "applying" ? "actual" : "pendiente"} numero={3}>
+          Aplicar
+        </Paso>
       </ol>
 
       {phase === "idle" ? (
-        <div className="excel-start">
+        <div className={ZONA}>
           <section
-            className="excel-downloads"
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 rounded-md border border-line bg-surface-soft p-[18px] max-[760px]:grid-cols-1 max-[760px]:gap-[15px] max-[760px]:p-[15px]"
             aria-labelledby="excel-download-title"
           >
             <div>
-              <span className="section-kicker">PUNTO DE PARTIDA</span>
-              <h3 id="excel-download-title">Descarga un libro preparado</h3>
-              <p>
+              <SectionKicker>PUNTO DE PARTIDA</SectionKicker>
+              <h3 id="excel-download-title" className={TITULO}>
+                Descarga un libro preparado
+              </h3>
+              <p className="mt-[5px] max-w-[530px] text-[12px] text-muted">
                 Usa la plantilla para una carga nueva o el libro actual para
                 editar registros sin perder sus identificadores.
               </p>
             </div>
-            <div className="excel-download-actions">
-              <button
+            <div className="flex gap-2 max-[760px]:grid max-[760px]:grid-cols-2 max-[430px]:w-full max-[430px]:grid-cols-1">
+              <Button
                 type="button"
                 disabled={downloadBusy !== null}
                 onClick={() => void downloadWorkbook("template")}
               >
                 {downloadBusy === "template" ? (
-                  <LoaderCircle className="spin" size={17} />
+                  <LoaderCircle
+                    className="animate-[spin_700ms_linear_infinite]"
+                    size={17}
+                  />
                 ) : (
                   <Download size={17} />
                 )}
                 Plantilla vacía
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 disabled={downloadBusy !== null}
                 onClick={() => void downloadWorkbook("current")}
               >
                 {downloadBusy === "current" ? (
-                  <LoaderCircle className="spin" size={17} />
+                  <LoaderCircle
+                    className="animate-[spin_700ms_linear_infinite]"
+                    size={17}
+                  />
                 ) : (
                   <FileSpreadsheet size={17} />
                 )}
                 Libro actual
-              </button>
+              </Button>
             </div>
           </section>
 
-          <label className="excel-dropzone">
+          <label className="relative flex min-h-[184px] cursor-pointer flex-col items-center justify-center gap-[6px] overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-7 text-center text-foreground transition-[border-color,background-color,scale] duration-[140ms] ease-[var(--ease-out)] active:scale-[0.99] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-[3px] has-[input:focus-visible]:outline-[var(--focus)] max-[760px]:min-h-[156px] max-[760px]:px-4 max-[760px]:py-[22px]">
             <input
+              className="absolute inset-0 size-full cursor-pointer opacity-0"
               ref={inputRef}
               type="file"
               accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={(event) => void analyzeFile(event.target.files?.[0])}
             />
-            <span className="excel-upload-icon" aria-hidden="true">
+            <span
+              className="mb-1 inline-flex size-12 items-center justify-center rounded-[13px] border border-line bg-surface-soft text-foreground-soft"
+              aria-hidden="true"
+            >
               <Upload size={22} />
             </span>
             <strong>Selecciona el archivo completado</strong>
             <small>.xlsx · máximo 10 MB</small>
           </label>
 
-          <div className="excel-safety-note">
-            <FileCheck2 size={18} aria-hidden="true" />
-            <span>
+          <div className={cn(AVISO, "flex items-start gap-[10px] px-[13px] py-3")}>
+            <FileCheck2
+              size={18}
+              aria-hidden="true"
+              className="mt-px flex-none text-success"
+            />
+            <span className="grid gap-[2px]">
               <strong>Nada cambia al seleccionar el archivo.</strong>
               Primero verás nuevos registros, cambios y errores para decidir con
               seguridad.
             </span>
           </div>
-          {message ? <p className="excel-inline-message">{message}</p> : null}
+          {message ? (
+            <p className={cn(AVISO, "px-[13px] py-[11px]")}>{message}</p>
+          ) : null}
         </div>
       ) : phase === "reading" ? (
-        <div className="excel-reading" aria-live="polite">
-          <LoaderCircle className="spin" size={28} />
-          <h3>Revisando {fileName}</h3>
+        <div
+          className="flex min-h-[340px] flex-col items-center justify-center gap-2 px-6 py-9 text-center"
+          aria-live="polite"
+        >
+          <LoaderCircle
+            className="mb-[5px] animate-[spin_700ms_linear_infinite] text-muted"
+            size={28}
+          />
+          <h3 className={TITULO}>Revisando {fileName}</h3>
           <p>Estamos comprobando hojas, columnas, fechas y referencias.</p>
         </div>
       ) : (
-        <div className="excel-preview">
-          <header className="excel-file-head">
-            <span className="excel-file-icon" aria-hidden="true">
+        <div className={ZONA}>
+          <header className="grid min-h-16 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-[11px] rounded-md border border-line bg-surface-soft px-3 py-[11px] max-[430px]:grid-cols-[40px_minmax(0,1fr)]">
+            <span
+              className="inline-flex size-10 items-center justify-center rounded-[10px] border border-line bg-surface-soft text-foreground-soft"
+              aria-hidden="true"
+            >
               <FileSpreadsheet size={20} />
             </span>
-            <span>
-              <strong>{fileName}</strong>
+            <span className="grid min-w-0 gap-px">
+              <strong className="overflow-hidden text-ellipsis whitespace-nowrap">
+                {fileName}
+              </strong>
               <small>Revisión local completada</small>
             </span>
-            <button
+            <Button
               type="button"
+              className="max-[430px]:col-span-full"
               onClick={reset}
               disabled={phase === "applying"}
             >
               Cambiar archivo
-            </button>
+            </Button>
           </header>
 
-          <div className="excel-counts" aria-live="polite">
-            <span className={counts.new ? "new has-items" : "new"}>
-              <strong>{counts.new}</strong>
-              <small>Nuevos</small>
-            </span>
-            <span className={counts.change ? "change has-items" : "change"}>
-              <strong>{counts.change}</strong>
-              <small>Cambios</small>
-            </span>
-            <span className="unchanged">
-              <strong>{counts.unchanged}</strong>
-              <small>Sin cambios</small>
-            </span>
-            <span
-              className={counts.conflict ? "conflict has-items" : "conflict"}
+          <div
+            className="grid grid-cols-5 gap-2 max-[760px]:grid-cols-3 max-[430px]:grid-cols-2"
+            aria-live="polite"
+          >
+            <Tarjeta numero={counts.new} tono={counts.new ? "new" : undefined}>
+              Nuevos
+            </Tarjeta>
+            <Tarjeta
+              numero={counts.change}
+              tono={counts.change ? "change" : undefined}
             >
-              <strong>{counts.conflict}</strong>
-              <small>Conflictos</small>
-            </span>
-            <span className={counts.error ? "error has-items" : "error"}>
-              <strong>{counts.error}</strong>
-              <small>Errores</small>
-            </span>
+              Cambios
+            </Tarjeta>
+            <Tarjeta numero={counts.unchanged}>Sin cambios</Tarjeta>
+            <Tarjeta
+              numero={counts.conflict}
+              tono={counts.conflict ? "conflict" : undefined}
+            >
+              Conflictos
+            </Tarjeta>
+            <Tarjeta
+              numero={counts.error}
+              tono={counts.error ? "conflict" : undefined}
+            >
+              Errores
+            </Tarjeta>
           </div>
 
           {issues.length ? (
             <section
-              className="excel-issues"
+              className="overflow-hidden rounded-md border border-[color-mix(in_srgb,var(--danger)_38%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_6%,var(--surface))]"
               aria-labelledby="excel-issues-title"
             >
-              <div className="excel-issues-head">
-                <AlertTriangle size={18} aria-hidden="true" />
-                <span>
+              <div className="flex items-start gap-[10px] border-b border-[color-mix(in_srgb,var(--danger)_24%,var(--border))] px-[14px] py-[13px]">
+                <AlertTriangle
+                  size={18}
+                  aria-hidden="true"
+                  className="mt-px flex-none text-danger"
+                />
+                <span className="grid gap-[2px]">
                   <strong id="excel-issues-title">
                     Corrige el libro antes de aplicar
                   </strong>
@@ -754,9 +852,12 @@ export default function ExcelSyncPanel({
                   </small>
                 </span>
               </div>
-              <ul>
+              <ul className="m-0 grid list-none gap-0 p-0">
                 {issues.slice(0, 12).map((issue, index) => (
-                  <li key={`${issue.entity}-${issue.row ?? 0}-${index}`}>
+                  <li
+                    key={`${issue.entity}-${issue.row ?? 0}-${index}`}
+                    className="grid grid-cols-[130px_minmax(0,1fr)] gap-[14px] border-b border-line px-[14px] py-[10px] text-[12px] text-foreground-soft last:border-b-0 max-[760px]:grid-cols-1 max-[760px]:gap-[3px]"
+                  >
                     <strong>
                       {issue.entity}
                       {issue.row ? ` · fila ${issue.row}` : ""}
@@ -766,7 +867,7 @@ export default function ExcelSyncPanel({
                 ))}
               </ul>
               {issues.length > 12 ? (
-                <small>
+                <small className="block border-t border-line px-[14px] py-[10px]">
                   Hay {issues.length - 12} observaciones adicionales.
                 </small>
               ) : null}
@@ -774,78 +875,97 @@ export default function ExcelSyncPanel({
           ) : null}
 
           {preview.length ? (
-            <div
-              className="excel-preview-table"
+            <TableWrap
+              className="rounded-md max-[760px]:overflow-visible max-[760px]:border-0 max-[760px]:bg-transparent"
               role="region"
               aria-label="Cambios detectados"
               tabIndex={0}
             >
-              <table>
-                <thead>
+              <Table className="min-w-[620px] max-[760px]:min-w-0">
+                <THead>
                   <tr>
-                    <th>Hoja / fila</th>
-                    <th>Registro</th>
-                    <th>Resultado</th>
+                    <Th>Hoja / fila</Th>
+                    <Th>Registro</Th>
+                    <Th className="w-[140px]">Resultado</Th>
                   </tr>
-                </thead>
-                <tbody>
+                </THead>
+                <TBody>
                   {preview.slice(0, 50).map((line) => (
-                    <tr key={`${line.entity}-${line.row}`}>
-                      <td data-label="Hoja / fila">
-                        <strong>{line.entity}</strong>
-                        <small>Fila {line.row}</small>
-                      </td>
-                      <td data-label="Registro">
-                        <strong>{line.title}</strong>
-                        <small>{line.detail}</small>
-                      </td>
-                      <td data-label="Resultado">
-                        <span className={`excel-action ${line.action}`}>
+                    <Tr
+                      key={`${line.entity}-${line.row}`}
+                      className="max-[760px]:grid-cols-1"
+                    >
+                      <Td data-label="Hoja / fila" className={CELDA_LIBRO}>
+                        <strong className="block">{line.entity}</strong>
+                        <small className="block">Fila {line.row}</small>
+                      </Td>
+                      <Td data-label="Registro" className={CELDA_LIBRO}>
+                        <strong className="block">{line.title}</strong>
+                        <small className="block">{line.detail}</small>
+                      </Td>
+                      <Td
+                        data-label="Resultado"
+                        className={cn(
+                          CELDA_LIBRO,
+                          "w-[140px] max-[760px]:w-full max-[760px]:border-b-0",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-flex min-h-[27px] w-fit items-center rounded-[999px] border border-line bg-surface-soft px-2 py-1 text-[10px] font-extrabold text-muted",
+                            line.action !== "unchanged" &&
+                              TONOS[line.action] + " text-inherit",
+                          )}
+                        >
                           {actionLabel(line.action)}
                         </span>
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
               {preview.length > 50 ? (
-                <p className="excel-more-rows">
+                <p className="border-t border-line px-[13px] py-[11px] text-center max-[760px]:mt-2 max-[760px]:rounded-sm max-[760px]:border max-[760px]:border-line max-[760px]:bg-surface">
                   Mostramos 50 de {preview.length} filas revisadas. El resumen
                   incluye todas.
                 </p>
               ) : null}
-            </div>
+            </TableWrap>
           ) : null}
 
           {message ? (
-            <p className="excel-inline-message" role="status">
+            <p className={cn(AVISO, "px-[13px] py-[11px]")} role="status">
               {message}
             </p>
           ) : null}
           {demo ? (
-            <p className="excel-demo-note">
+            <p className={cn(AVISO, "px-[13px] py-[11px]")}>
               Puedes revisar archivos en la demostración. Para aplicar cambios,
               entra con una cuenta habilitada.
             </p>
           ) : null}
 
-          <div className="excel-panel-actions">
-            <button
+          <div className={BARRA_ABAJO}>
+            <Button
               type="button"
               onClick={onClose}
               disabled={phase === "applying"}
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="primary"
+              variant="primary"
               disabled={phase === "applying" || blocked || !actionCount || demo}
               onClick={() => void applyChanges()}
             >
               {phase === "applying" ? (
                 <>
-                  <LoaderCircle className="spin" size={17} /> Aplicando cambios…
+                  <LoaderCircle
+                    className="animate-[spin_700ms_linear_infinite]"
+                    size={17}
+                  />{" "}
+                  Aplicando cambios…
                 </>
               ) : blocked ? (
                 "Corrige el archivo para continuar"
@@ -854,7 +974,7 @@ export default function ExcelSyncPanel({
               ) : (
                 "No hay cambios para aplicar"
               )}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -1020,4 +1140,61 @@ function buildPreviewLines(
   }
 
   return lines;
+}
+
+// Un paso de la barra de arriba. El número va en un círculo que cambia de color
+// según dónde esté la persona: gris lo que falta, blanco lo que está haciendo,
+// verde lo que ya pasó.
+function Paso({
+  estado,
+  numero,
+  children,
+}: {
+  estado: "pendiente" | "actual" | "hecho";
+  numero: number;
+  children: ReactNode;
+}) {
+  return (
+    <li
+      className={cn(
+        "flex min-h-9 items-center gap-2 text-[11px] font-[750]",
+        "max-[430px]:gap-[5px] max-[430px]:text-[10px]",
+        estado === "actual" ? "text-foreground" : "text-muted",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-flex size-6 flex-none items-center justify-center rounded-[999px] border text-[10px]",
+          "max-[430px]:size-[22px]",
+          estado === "actual"
+            ? "border-foreground-soft bg-foreground text-surface"
+            : estado === "hecho"
+              ? "border-[color-mix(in_srgb,var(--success)_48%,var(--border))] bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] text-success"
+              : "border-line-strong bg-surface-soft text-muted",
+        )}
+      >
+        {numero}
+      </span>{" "}
+      {children}
+    </li>
+  );
+}
+
+// Una de las cinco cajas del resumen. Solo se enciende con color cuando tiene
+// algo dentro: un cero en "Conflictos" no debe gritar.
+function Tarjeta({
+  numero,
+  tono,
+  children,
+}: {
+  numero: number;
+  tono?: keyof typeof TONOS;
+  children: ReactNode;
+}) {
+  return (
+    <span className={cn(TARJETA, tono && TONOS[tono])}>
+      <strong className={TARJETA_NUMERO}>{numero}</strong>
+      <small>{children}</small>
+    </span>
+  );
 }

@@ -3025,6 +3025,12 @@ td > strong {
        desplegable NO se apaga: ahí el giro dice si está abierto o cerrado, o
        sea que informa, y quitarlo sería quitar información. */
     translate: none !important;
+    /* Y las escalas van en `scale`, tampoco en `transform`. Aquí `scale` solo
+       se usa para el hundido de un botón al apretarlo: es respuesta al tacto,
+       no información, así que apagarla entera también es lo correcto. Sin esta
+       línea, la regla de más abajo (`transform: none`) no alcanzaba a los
+       botones migrados y seguían hundiéndose. */
+    scale: none !important;
   }
 
   .dialog,
