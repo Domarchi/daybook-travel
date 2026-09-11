@@ -63,7 +63,7 @@ export function FilterPills({
             aria-pressed={valor === opcion}
             onClick={() => onCambio(opcion)}
             className={cn(
-              "min-h-11 px-[11px] text-[12px]",
+              "min-h-11 px-[11px] text-[12px] leading-[1.2]",
               jornadas ? "max-[760px]:flex-1" : "max-[760px]:flex-[0_0_auto]",
               valor === opcion
                 ? encendida

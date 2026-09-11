@@ -8,7 +8,7 @@ import { formatDate, localDate } from "../lib/format";
 import { TRIP_STATUSES as statuses } from "../lib/types";
 import { diasParaVolar } from "../lib/purchase";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/field";
+import { Checkbox, Input, Label, Select } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TableWrap } from "@/components/ui/table-wrap";
 import {
@@ -105,7 +105,7 @@ export default function TripsView() {
         </div>
       )}
       <div className="mb-[10px] flex flex-wrap items-center gap-2 max-[760px]:flex-col max-[760px]:items-stretch">
-        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
+        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-[13px] font-[650] text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
           <Search size={18} aria-hidden="true" />
           <input
             className="min-h-[42px] w-full min-w-0 border-0 bg-transparent p-0 text-foreground shadow-none outline-0 placeholder:text-muted placeholder:opacity-80"
@@ -211,7 +211,7 @@ export default function TripsView() {
           salto al marcar el primer viaje. La cuenta se congela en el último
           valor mientras se cierra: si no, se leería "0 viajes" al encogerse. */}
       <div
-        className="group grid grid-rows-[0fr] transition-[grid-template-rows,margin] duration-200 ease-[var(--ease-out)] data-[abierto]:my-[10px] data-[abierto]:grid-rows-[1fr]"
+        className="group grid grid-rows-[0fr] transition-[grid-template-rows,margin] duration-200 ease-[var(--ease-out)] motion-reduce:transition-none data-[abierto]:my-[10px] data-[abierto]:grid-rows-[1fr]"
         data-abierto={selectedTrips.length > 0 ? "" : undefined}
       >
         <div className="min-h-0 overflow-hidden">
@@ -261,9 +261,8 @@ export default function TripsView() {
               <tr>
                 <Th className={CELDA_SELECCION}>
                   <label className={CASILLA_TOQUE}>
-                    <input
+                    <Checkbox
                       className="mx-auto my-0"
-                      type="checkbox"
                       aria-label="Seleccionar todos los viajes planificados visibles"
                       checked={
                         requestableTrips.length > 0 &&
@@ -305,9 +304,8 @@ export default function TripsView() {
                           CASILLA_TOQUE + " max-[760px]:ml-auto max-[760px]:mr-[-10px]"
                         }
                       >
-                        <input
+                        <Checkbox
                           className="mx-auto my-0 max-[760px]:mx-0"
-                          type="checkbox"
                           aria-label={`Seleccionar viaje de ${personName(trip.person_id)} del ${formatDate(trip.date)}`}
                           checked={selectedTrips.includes(trip.id)}
                           onChange={(event) =>

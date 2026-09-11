@@ -733,7 +733,7 @@ export default function ExcelSyncPanel({
             </div>
           </section>
 
-          <label className="relative flex min-h-[184px] cursor-pointer flex-col items-center justify-center gap-[6px] overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-7 text-center text-foreground transition-[border-color,background-color,scale] duration-[140ms] ease-[var(--ease-out)] active:scale-[0.99] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-[3px] has-[input:focus-visible]:outline-[var(--focus)] max-[760px]:min-h-[156px] max-[760px]:px-4 max-[760px]:py-[22px]">
+          <label className="relative flex min-h-[184px] cursor-pointer flex-col items-center justify-center gap-[6px] overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-7 text-center text-[13px] font-[650] text-foreground transition-[border-color,background-color,scale] duration-[140ms] ease-[var(--ease-out)] active:scale-[0.99] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-[3px] has-[input:focus-visible]:outline-[var(--focus)] max-[760px]:min-h-[156px] max-[760px]:px-4 max-[760px]:py-[22px]">
             <input
               className="absolute inset-0 size-full cursor-pointer opacity-0"
               ref={inputRef}

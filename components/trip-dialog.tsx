@@ -4,6 +4,7 @@ import DialogActions from "@/components/ui/dialog-actions";
 import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
 import { Checkbox, Input, Label, Select, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
 import { ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
@@ -64,7 +65,9 @@ export default function TripDialog() {
   }
 
   return (
-    <form onSubmit={saveTrip} aria-busy={busy}>
+    <form onSubmit={saveTrip} aria-busy={busy}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <DialogBody>
         {editTrip && (
           <Button
@@ -242,7 +245,7 @@ export default function TripDialog() {
             }}
           >
             <summary
-              className="flex min-h-[60px] cursor-pointer list-none items-center justify-between gap-4 px-[13px] py-[10px] text-foreground-soft [&::-webkit-details-marker]:hidden [&_svg]:transition-transform [&_svg]:duration-[180ms] [&_svg]:ease-[var(--ease-out)]"
+              className="flex min-h-[60px] cursor-pointer list-none items-center justify-between gap-4 px-[13px] py-[10px] text-foreground-soft [&::-webkit-details-marker]:hidden [&_svg]:transition-transform [&_svg]:duration-[180ms] [&_svg]:ease-[var(--ease-out)] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
               aria-disabled={reservationRequired || undefined}
               onClick={(event) => {
                 if (reservationRequired) event.preventDefault();
@@ -286,9 +289,11 @@ export default function TripDialog() {
                 />
                 {precio && precio.referencia !== null && (
                   <small
-                    className={
-                      precio.nivel ? `precio-aviso ${precio.nivel}` : "precio-aviso"
-                    }
+                    className={cn(
+                      "mt-[6px] text-[11px] leading-[1.4] text-foreground-soft",
+                      precio.nivel === "caro" && "font-bold text-warning",
+                      precio.nivel === "barato" && "font-bold",
+                    )}
                     aria-live="polite"
                   >
                     {precio.nivel === "caro"

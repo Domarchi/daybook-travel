@@ -114,12 +114,12 @@ export default function AgendaView({
       <div className="mb-3 flex min-h-[52px] items-center justify-between gap-[18px] max-[760px]:my-[11px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-2">
         <Button
           type="button"
-          className="border-four-line bg-four-soft text-four hover:border-four max-[760px]:w-full"
+          className="border-four-line bg-four-soft text-four max-[760px]:w-full raton:hover:not-disabled:border-four raton:hover:not-disabled:bg-four-soft raton:hover:not-disabled:text-four"
           onClick={onGenerate}
         >
           <CalendarDays size={17} /> Planificar turnos
         </Button>
-        <label className="m-0 inline-flex items-center gap-2 text-[12px] text-foreground-soft">
+        <label className="m-0 inline-flex items-center gap-2 text-[12px] font-[650] text-foreground-soft">
           Comprar con
           <Select
             className="min-h-8 w-auto px-2 py-1 font-bold"

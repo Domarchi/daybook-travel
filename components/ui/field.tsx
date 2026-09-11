@@ -54,7 +54,7 @@ export function Checkbox({
     <input
       type="checkbox"
       className={cn(
-        "size-[18px] min-h-[18px] min-w-[18px] p-0 accent-[var(--action)]",
+        "size-[18px] min-h-[18px] min-w-[18px] bg-surface p-0 text-foreground accent-[var(--action)]",
         "focus-visible:outline-2 focus-visible:outline-offset-[3px]",
         "focus-visible:outline-[var(--focus)]",
         className,

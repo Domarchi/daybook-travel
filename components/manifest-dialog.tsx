@@ -112,7 +112,7 @@ export default function ManifestDialog() {
         )}
         <textarea
           ref={textoRef}
-          className="min-h-40 flex-auto resize-none overflow-auto rounded-sm border border-line-strong bg-surface px-4 py-[14px] font-mono text-[13px] leading-[1.55] tab-2 whitespace-pre text-foreground focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
+          className="min-h-40 w-full min-w-0 flex-auto resize-none overflow-auto rounded-sm border border-line-strong bg-surface transition-[border-color,box-shadow,background-color] duration-[140ms] ease-[var(--ease-out)] px-4 py-[14px] font-mono text-[13px] leading-[1.55] tab-2 whitespace-pre text-foreground focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
           aria-label="Manifiesto para la agencia"
           readOnly
           value={texto}

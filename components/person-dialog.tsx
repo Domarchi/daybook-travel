@@ -22,7 +22,9 @@ export default function PersonDialog() {
   const [shift, setShift] = useState(editPerson?.shift ?? "Por confirmar");
 
   return (
-    <form onSubmit={savePerson} aria-busy={busy}>
+    <form onSubmit={savePerson} aria-busy={busy}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <DialogBody>
         <FormSection aria-labelledby="person-main">
           <h3 id="person-main" className="text-foreground">Datos de la persona</h3>

@@ -27,7 +27,7 @@ export default function PeopleView() {
   return (
     <section aria-labelledby="people-results">
       <div className="mb-[10px] flex flex-wrap items-center gap-2 max-[760px]:flex-col max-[760px]:items-stretch">
-        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
+        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-[13px] font-[650] text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
           <Search size={18} aria-hidden="true" />
           <input
             className="min-h-[42px] w-full min-w-0 border-0 bg-transparent p-0 text-foreground shadow-none outline-0 placeholder:text-muted placeholder:opacity-80"

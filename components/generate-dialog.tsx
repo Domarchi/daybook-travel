@@ -38,7 +38,9 @@ export default function GenerateDialog() {
         )}: sube, baja a los diez días y vuelve a subir a los veinte.`;
 
   return (
-    <form onSubmit={generateTrips} aria-busy={busy}>
+    <form onSubmit={generateTrips} aria-busy={busy}
+      className="flex min-h-0 flex-1 flex-col"
+    >
       <DialogBody>
         <FormSection>
           <p className="text-muted" aria-live="polite">

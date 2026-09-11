@@ -215,11 +215,12 @@ rota. Nada de reescritura de una sentada.
    (`app/excel-sync-panel.tsx`) también están HECHOS. No queda ningún componente
    por migrar: lo que sigue es la limpieza.
 5. **Armazón** — top-bar, workspace, login-view, access-state.
-6. **Limpieza (lo único que queda)** — borrar de `@layer fcc` lo que ya no usa nadie.
-   Antes de borrar hay que traducir a las primitivas lo que todavía vive solo en el CSS: el
-   `hover` de los botones y el `:active`/`:disabled` de `button`, que hoy siguen saliendo de
-   la capa fcc. Y correr la búsqueda de reglas huérfanas una vez más, con todo migrado: esa
-   lista final es justamente lo que se puede borrar. Al final ese archivo debería
+6. **Limpieza. HECHO** — `app/globals.css` pasó de 3.286 líneas a 434. Lo que queda es lo
+   que Tailwind no cubre: los tokens de los dos temas, la tipografía base de los elementos
+   (`h1`–`h3`, `p`, `small`, `strong`), el armazón (`.shell`, `.app-content`), el velo y la
+   caja de los diálogos (`.overlay`, `.dialog`, `.excel-dialog`), los dos degradados de la
+   entrada (`.velo-entrada`, `.velo-carga`), el campo de puntos, un `@keyframes` y el bloque
+   de movimiento reducido. **Cero clases huérfanas.** Al final ese archivo debería
    quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre (el campo de puntos).
 
 ### Lo que ya está montado
@@ -352,6 +353,25 @@ probar la interfaz sin credenciales — pero ojo, ese camino usa `lib/calendar.t
 Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son caminos distintos.
 
 ## Trampas conocidas
+
+- **Con la pestaña en segundo plano, Chrome devuelve estilos viejos.** `getComputedStyle`
+  informa el valor anterior al último cambio de clases, así que una medición hecha justo
+  después de navegar puede mentir. Se nota poco porque al cambiar de vista el DOM se rehace
+  y los elementos nuevos sí traen su estilo; muerde en lo que **persiste y cambia de
+  clase**, como la pestaña marcada de la barra superior. Antes de medir hay que forzar el
+  recálculo:
+
+  ```js
+  const r = document.documentElement;
+  r.classList.add("__refresco"); void r.offsetHeight;
+  r.classList.remove("__refresco"); void r.offsetHeight;
+  ```
+
+- **Sin `preflight`, borrar una regla de elemento deja al navegador poner lo suyo.** Al
+  quitar `button { padding: 0 14px }` los botones se fueron a los 1px que pone Chrome por su
+  cuenta; al quitar `label { font-size: 13px; font-weight: 650 }`, las etiquetas de búsqueda
+  saltaron a 15px normal. Si se borra una regla de elemento, hay que mirar qué ponía y
+  llevarlo a la primitiva, incluso lo que parecía obvio.
 
 - **Tailwind escribe los movimientos en `translate` y en `scale`, no en `transform`.** Las
   reglas viejas que apagaban el movimiento (la de `prefers-reduced-motion`) decían
