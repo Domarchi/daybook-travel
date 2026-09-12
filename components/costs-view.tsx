@@ -71,7 +71,7 @@ export default function CostsView() {
       </div>
 
       <TableWrap role="region" aria-label="Costos por mes" tabIndex={0}>
-        <h3 id="costs-results" className="text-foreground">Por mes</h3>
+        <h3 id="costs-results" className="text-[1.17em] text-foreground">Por mes</h3>
         <Table>
           <THead>
             <Tr>
@@ -105,7 +105,7 @@ export default function CostsView() {
       </TableWrap>
 
       <TableWrap role="region" aria-label="Costos por ruta" tabIndex={0}>
-        <h3 className="text-foreground">Por ruta</h3>
+        <h3 className="text-[1.17em] text-foreground">Por ruta</h3>
         <p className="max-w-[660px] text-[13px] text-muted">
           La referencia es la mediana de lo pagado en esa ruta: no se mueve
           porque una vez haya tocado comprar caro.
@@ -151,7 +151,7 @@ export default function CostsView() {
       </TableWrap>
 
       <TableWrap role="region" aria-label="Costos por persona" tabIndex={0}>
-        <h3 className="text-foreground">Por persona</h3>
+        <h3 className="text-[1.17em] text-foreground">Por persona</h3>
         <Table>
           <THead>
             <Tr>

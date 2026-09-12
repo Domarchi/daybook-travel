@@ -225,6 +225,17 @@ rota. Nada de reescritura de una sentada.
 
 ### Lo que ya está montado
 
+- **El `preflight` de Tailwind está encendido** (`@import "tailwindcss/preflight.css"`). Es su
+  propio reset, y estuvo fuera durante toda la migración porque desarmaba el CSS a mano.
+  Se encendió al final, midiendo la aplicación entera antes y después: lo único que cambió
+  fue el relleno de los `<option>`, que dibuja el sistema operativo. Con el reset puesto, un
+  componente de shadcn o de 21st.dev entra sin retoques, que es de lo que se trataba.
+
+  Lo que el reset se lleva y hubo que devolver: **los títulos pierden tamaño y negrita**. El
+  tamaño lo pone cada componente; la negrita vuelve con una regla `h1, h2, h3` en la capa
+  base, porque la usaban todos. Si aparece un título nuevo sin tamaño propio, va a salir del
+  tamaño del texto que lo rodea: hay que ponérselo.
+
 - `@custom-variant raton` traduce la condición `(hover: hover) and (pointer: fine)` que el
   CSS usa para los estados de hover. Escribirla a mano dentro de una clase (`[@media(...)]:`)
   no sirve: hay que poner guiones bajos donde van los espacios y, si se escapa uno, Tailwind

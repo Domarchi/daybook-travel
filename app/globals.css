@@ -1,21 +1,29 @@
 /* ---------------------------------------------------------------------------
    Tailwind, para poder traer componentes de shadcn y de 21st.dev.
 
-   Ojo con la primera linea: se importan el tema y las utilidades, pero NO el
-   "preflight" de Tailwind, que es su propio reset. Ese reset borra margenes,
-   bordes y estilos de boton, y este proyecto tiene 3.378 lineas de CSS escritas
-   a mano que dependen de los valores del navegador. Con preflight, la
-   aplicacion entera se desarma.
+   Se importan tres cosas: el tema, el "preflight" (el reset propio de Tailwind)
+   y las utilidades. El reset estuvo fuera durante toda la migracion, y por una
+   razon: borra margenes, bordes y estilos de boton, y mientras habia 3.378
+   lineas de CSS a mano que dependian de los valores del navegador, encenderlo
+   desarmaba la aplicacion entera. Con el CSS ya reducido a esto, se pudo
+   encender y se midio la aplicacion completa antes y despues: lo unico que
+   cambio fue el relleno de los <option>, que dibuja el sistema operativo.
 
-   El costo de dejarlo fuera: los componentes de shadcn dan por hecho que
-   preflight esta puesto, asi que algunos van a necesitar retoques.
+   Por que importa tenerlo: los componentes de shadcn y de 21st.dev estan
+   escritos dando por hecho que el reset esta puesto. Sin el, hay que retocarlos
+   uno por uno.
+
+   Lo que hay que saber al encenderlo: el reset deja los titulos sin tamano ni
+   negrita. El tamano lo pone cada componente; la negrita se devuelve aqui abajo
+   con una regla `h1, h2, h3`, porque la usaban todos.
 
    El bloque @theme no define colores nuevos: apunta a los tokens que ya
    existen mas abajo. Asi un componente de 21st que pida "bg-surface" toma el
    mismo gris que el resto de la aplicacion, y cambia solo con el tema.
    --------------------------------------------------------------------------- */
-@layer theme, fcc, components, utilities;
+@layer theme, base, fcc, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css" layer(utilities);
 
 /* "raton" es la condicion que ya usaba el CSS para los estados de hover: solo
@@ -237,6 +245,16 @@ h2,
 h3,
 strong {
   color: var(--text);
+}
+
+/* El reset de Tailwind deja los titulos en peso normal y con el tamaño del
+   texto que los rodea. El tamaño lo pone cada componente, pero la negrita la
+   daba el navegador y la usaban todos, asi que se devuelve aqui una sola vez
+   en vez de repetirla en doce archivos. */
+h1,
+h2,
+h3 {
+  font-weight: 700;
 }
 
 p {
