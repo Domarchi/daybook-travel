@@ -76,20 +76,21 @@ export default function GenerateDialog() {
             />
           </Label>
           <div
-            className="grid gap-[2px] rounded-md border border-[var(--four-border)] bg-[var(--four-soft)] p-[17px]"
+            className="grid gap-[2px] rounded-md border border-line bg-surface-soft p-[17px]"
             aria-live="polite"
           >
-            <span className="text-[color-mix(in_srgb,var(--four)_72%,var(--text))]">
+            <span className="text-foreground-soft">
               Se agregarán
             </span>
-            <strong className="text-[27px] tracking-[-0.035em] text-[var(--four)]">
+            <strong className="text-[27px] tracking-[-0.035em] text-foreground tabular-nums">
               {generationPreview} viajes
             </strong>
-            <small className="text-[color-mix(in_srgb,var(--four)_72%,var(--text))]">
+            <small className="text-muted">
               para {generationPeople.length}{" "}
               {generationPeople.length === 1 ? "persona" : "personas"}. Los
               viajes existentes no se duplican.
             </small>
+            <small>Se generan desde el inicio de cada persona hasta la fecha indicada, dentro de su vigencia. Los movimientos y reservas existentes no se reemplazan.</small>
           </div>
         </FormSection>
       </DialogBody>

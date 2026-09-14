@@ -21,7 +21,7 @@ const buttonVariants = cva(
     "rounded-sm border py-0 text-[13px] leading-[1.2]",
     "transition-[transform,background-color,border-color,color,opacity]",
     "duration-[140ms] ease-[var(--ease-out)]",
-    "active:not-disabled:scale-[0.97]",
+    "active:not-focus-visible:not-disabled:scale-[0.97]",
     // El realce al pasar el mouse. Vivia en la regla `button:hover` del CSS y
     // se traduce aqui para poder borrarla. Va con la variante `raton`, que es
     // la condicion que usaba: solo donde hay puntero fino. Un boton que quiera

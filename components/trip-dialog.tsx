@@ -14,7 +14,6 @@ import { useApp } from "../app/store";
 export default function TripDialog() {
   const {
     referenciaDe,
-    activePeople,
     busy,
     closeModal,
     editTrip,
@@ -168,8 +167,7 @@ export default function TripDialog() {
                 name="origin"
                 defaultValue={
                   editTrip?.origin ??
-                  peopleById.get(newPerson)?.origin ??
-                  activePeople[0]?.origin
+                  peopleById.get(newPerson)?.origin ?? ""
                 }
                 placeholder="Usar ruta habitual"
               />
@@ -180,8 +178,7 @@ export default function TripDialog() {
                 name="destination"
                 defaultValue={
                   editTrip?.destination ??
-                  peopleById.get(newPerson)?.destination ??
-                  activePeople[0]?.destination
+                  peopleById.get(newPerson)?.destination ?? ""
                 }
                 placeholder="Usar ruta habitual"
               />
@@ -201,7 +198,6 @@ export default function TripDialog() {
                 defaultValue={
                   editTrip?.baggage ??
                   peopleById.get(newPerson)?.baggage ??
-                  activePeople[0]?.baggage ??
                   "Por confirmar"
                 }
               >

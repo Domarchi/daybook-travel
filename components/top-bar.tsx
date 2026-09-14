@@ -34,7 +34,7 @@ export default function TopBar() {
         <span className="text-[17px] font-[850] tracking-[-0.02em] whitespace-nowrap text-foreground">
           FCC TRAVEL
         </span>
-        <span className="inline-flex min-h-7 items-center border-l border-line-strong pl-3 text-[12px] font-bold text-muted">
+        <span className="inline-flex min-h-7 items-center border-l border-line-strong pl-3 text-[12px] font-bold text-muted max-[430px]:hidden">
           Copiapó
         </span>
       </div>
@@ -47,7 +47,7 @@ export default function TopBar() {
             type="button"
             key={label}
             className={cn(
-              "min-h-11 px-[15px] max-[820px]:flex-1 max-[430px]:px-2 max-[430px]:text-[12px] max-[430px]:[&_svg]:hidden",
+              "min-h-11 px-[15px] active:scale-100 max-[820px]:flex-1 max-[430px]:px-2 max-[430px]:text-[12px] max-[430px]:[&_svg]:hidden",
               view === label
                 ? "border-line bg-surface-soft text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
                 : "border-transparent bg-transparent text-muted",
@@ -62,7 +62,7 @@ export default function TopBar() {
       </nav>
       <div className="flex min-w-0 items-center justify-end gap-2">
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        <span className="max-w-[180px] overflow-hidden text-[12px] text-ellipsis whitespace-nowrap text-muted">
+        <span className="max-w-[180px] overflow-hidden text-[12px] text-ellipsis whitespace-nowrap text-muted max-[760px]:hidden">
           {demo ? "Demostración" : email}
         </span>
         <Button

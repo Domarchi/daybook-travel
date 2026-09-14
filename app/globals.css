@@ -233,6 +233,14 @@ summary {
   -webkit-tap-highlight-color: transparent;
 }
 
+input[type="date"],
+input[type="time"],
+input[type="month"],
+table,
+strong {
+  font-variant-numeric: tabular-nums;
+}
+
 h1,
 h2,
 h3,
@@ -282,28 +290,6 @@ small {
 .shell {
   position: relative;
   isolation: isolate;
-}
-
-/* Detrás del trabajo el campo va fijo: se queda quieto mientras la tabla se
-   desplaza, y se pinta una sola vez.
-
-   La fuerza es otra que en la entrada, y no por gusto. Allá el texto va sobre
-   una tarjeta; aquí el título y la línea de resultados van directo sobre el
-   fondo, así que un punto encendido debajo de una letra le come el contraste.
-   Con la entrada a plena luz, "15 viajes desde hoy" caía de 6,5 a 2,0 sobre un
-   punto, y el mínimo legible es 4,5. De ahí estos números: son el punto más
-   visible que no estorba la lectura. Si los subes, mídelo. */
-.shell > .dot-field {
-  position: fixed;
-  --dot-alpha: 0.12;
-}
-
-/* En el tema claro los puntos oscuros ensucian el papel y hunden el texto gris.
-   Aquí se invierten: puntos blancos, más claros que el fondo. La textura se ve
-   igual y el contraste, en vez de bajar, sube. */
-:root[data-theme="light"] .shell > .dot-field {
-  --dot: 255, 255, 255;
-  --dot-alpha: 1;
 }
 
 /* Solo el contenido. El velo de los diálogos NO va aquí: es position: fixed y

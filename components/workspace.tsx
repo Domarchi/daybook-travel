@@ -4,7 +4,6 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
 import CostsView from "@/components/costs-view";
-import DotField from "@/components/dot-field";
 import AgendaPanel from "@/components/agenda-panel";
 import { LoadingView, LoginView } from "@/components/login-view";
 import ModalLayer from "@/components/modal-layer";
@@ -55,10 +54,6 @@ export default function Workspace() {
 
   return (
     <div className="shell">
-      {/* La misma textura de la entrada, quieta y apagada. La fuerza la decide
-          el CSS, distinta en cada tema, porque aquí hay texto encima y el
-          fondo no puede comerle contraste. */}
-      <DotField theme={theme} estatico />
       <div
         className="app-content"
         inert={modal ? true : undefined}
@@ -68,11 +63,7 @@ export default function Workspace() {
 
         <main className="mx-auto min-h-[calc(100vh-70px)] w-[min(100%,1480px)] px-[clamp(18px,3vw,44px)] pt-7 pb-6 max-[820px]:pt-[22px] max-[760px]:px-[14px]">
           {demo && (
-            <div className="mb-[22px] flex min-h-[42px] items-center gap-[10px] rounded-md border border-line bg-surface px-[13px] py-2 text-[12px] text-foreground-soft">
-              <span
-                className="size-[7px] shrink-0 rounded-[999px] bg-success shadow-[0_0_0_4px_color-mix(in_srgb,var(--success)_16%,transparent)]"
-                aria-hidden="true"
-              />
+            <div className="mb-4 border-l-2 border-line-strong pl-3 text-[13px] text-foreground-soft">
               <span>
                 Demostración con datos ficticios. Los cambios duran hasta que
                 cierres esta sesión.
@@ -125,4 +116,3 @@ export default function Workspace() {
     </div>
   );
 }
-

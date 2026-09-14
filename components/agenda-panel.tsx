@@ -1,6 +1,7 @@
 "use client";
 
 import AgendaView from "@/components/agenda-view";
+import OperationalHandoff from "@/components/operational-handoff";
 import YearView from "../app/year-view";
 import { useApp } from "../app/store";
 
@@ -22,6 +23,8 @@ export default function AgendaPanel() {
     setSelectedDay,
     calendarMonth,
     setCalendarMonth,
+    calendarShift,
+    setCalendarShift,
     trips,
     people,
   } = useApp();
@@ -48,11 +51,14 @@ export default function AgendaPanel() {
         onMonthChange={setCalendarMonth}
         trips={trips}
         people={people}
+        shift={calendarShift}
+        onShiftChange={setCalendarShift}
         onTrip={(id) =>
           openTrip(trips.find((trip) => trip.id === id) ?? null)
         }
         onAdd={(date) => openTrip(null, date)}
       />
+      <OperationalHandoff />
     </AgendaView>
   );
 }

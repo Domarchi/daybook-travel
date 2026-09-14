@@ -150,9 +150,11 @@ export default function PersonDialog() {
             </span>
           </Label>
           <Hint>
-            Para 4×3, el inicio debe ser lunes. Las fechas 10×10 se
-            registran manualmente. Si aún no conoces el turno, déjalo
-            por confirmar y podrás completar sus viajes uno a uno.
+            En 4×3 se generan viajes según los días de subida y bajada de la
+            ficha. En 10×10, la primera subida inicia el ciclo: baja diez días
+            después y vuelve a subir a los veinte. Usa Planificar turnos para
+            generarlos sin duplicar viajes existentes. Con turno por confirmar,
+            registra los movimientos uno a uno.
           </Hint>
         </FormSection>
       </DialogBody>

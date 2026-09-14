@@ -11,6 +11,7 @@ import {
   porRuta,
   referenciaDeRuta,
   rutaDe,
+  registroDeCosto,
 } from "./costs.ts";
 
 const viaje = (extra: {
@@ -212,4 +213,18 @@ test("rutaDe arma la clave con la flecha de siempre", () => {
     rutaDe({ origin: "Santiago", destination: "Copiapó" }),
     "Santiago → Copiapó",
   );
+});
+
+test("un plan sin monto no se trata como una reserva comprada sin costo", () => {
+  assert.equal(registroDeCosto(viaje({ status: "Planificado", date: "2026-12-01" })), "planificado-sin-monto");
+  assert.equal(registroDeCosto(viaje({ status: "Solicitado" })), "planificado-sin-monto");
+  assert.equal(registroDeCosto({ ...viaje({ status: "Solicitado" }), pnr: "ABC123" }), "reserva-sin-monto");
+  for (const status of ["Emitido", "Completado", "No presentado"]) {
+    assert.equal(registroDeCosto(viaje({ status })), "reserva-sin-monto");
+  }
+});
+
+test("los anulados se excluyen y un monto cero sigue siendo registrado", () => {
+  assert.equal(registroDeCosto(viaje({ status: "Anulado", amount: 120000 })), "excluido");
+  assert.equal(registroDeCosto(viaje({ amount: 0 })), "registrado");
 });

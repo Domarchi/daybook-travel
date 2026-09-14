@@ -16,10 +16,10 @@ export default function PeopleView() {
     openTrip,
     people,
     peopleFilter,
-    query,
+    peopleQuery: query,
     abrirModal,
     setPeopleFilter,
-    setQuery,
+    setPeopleQuery: setQuery,
     showPersonTrips,
     visiblePeople,
   } = useApp();

@@ -22,7 +22,7 @@ const TITULOS: Record<string, { titulo: string; bajada: string }> = {
   Costos: {
     titulo: "Costos de la obra",
     bajada:
-      "Cuánto se ha gastado, en qué rutas, y qué tan completo está el registro.",
+      "Consulta montos registrados y distingue reservas pendientes de planes sin precio.",
   },
   Viajes: {
     titulo: "Viajes y solicitudes",
@@ -35,8 +35,8 @@ export default function PageHead() {
   const { titulo, bajada } = TITULOS[view] ?? TITULOS.Viajes;
 
   return (
-    <header className="mb-4 flex items-center justify-between gap-7">
-      <div>
+    <header className="mb-4 flex items-center justify-between gap-7 max-[760px]:gap-3">
+      <div className="min-w-0">
         <h1 className="text-[clamp(22px,1.9vw,27px)] leading-[1.04] font-bold tracking-[-0.03em] text-foreground">
           {titulo}
         </h1>
@@ -48,7 +48,7 @@ export default function PageHead() {
         <Button
           type="button"
           variant="primary"
-          className="shrink-0"
+          className="shrink-0 max-[430px]:px-3 max-[430px]:text-[12px] max-[430px]:[&_svg]:hidden"
           onClick={() => (view === "Personas" ? openPerson() : openTrip(null))}
         >
           <Plus size={18} />

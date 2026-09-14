@@ -111,18 +111,18 @@ export default function AgendaView({
           <ChevronRight size={18} />
         </OverviewCard>
       </section>
-      <div className="mb-3 flex min-h-[52px] items-center justify-between gap-[18px] max-[760px]:my-[11px] max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:gap-2">
+      <p className="mb-2 text-[12px]">Resumen del proyecto completo. El filtro de turno aplica al calendario.</p>
+      <div className="mb-3 flex min-h-[52px] flex-wrap items-center justify-between gap-2">
         <Button
           type="button"
-          className="border-four-line bg-four-soft text-four max-[760px]:w-full raton:hover:not-disabled:border-four raton:hover:not-disabled:bg-four-soft raton:hover:not-disabled:text-four"
           onClick={onGenerate}
         >
           <CalendarDays size={17} /> Planificar turnos
         </Button>
         <label className="m-0 inline-flex items-center gap-2 text-[12px] font-[650] text-foreground-soft">
-          Comprar con
+          Anticipación
           <Select
-            className="min-h-8 w-auto px-2 py-1 font-bold"
+            className="min-h-11 w-auto px-2 py-1 font-bold"
             value={purchaseWindow}
             onChange={(event) => onWindowChange(Number(event.target.value))}
           >
@@ -132,7 +132,6 @@ export default function AgendaView({
               </option>
             ))}
           </Select>
-          de anticipación
         </label>
       </div>
       {children}

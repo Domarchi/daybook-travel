@@ -20,13 +20,13 @@ const forma = [
   "[&>span]:text-[11px] [&>span]:font-[750] [&>span]:text-muted",
   "[&>strong]:self-end [&>strong]:text-[28px] [&>strong]:leading-[1.1] [&>strong]:tracking-[-0.035em]",
   "[&>svg]:col-start-2 [&>svg]:row-span-full [&>svg]:self-center [&>svg]:text-muted",
-  "max-[760px]:min-h-[118px] max-[760px]:p-[14px] max-[760px]:[&>strong]:text-[24px]",
+  "max-[760px]:min-h-[90px] max-[760px]:grid-cols-1 max-[760px]:p-3 max-[760px]:[&>span]:text-[12px] max-[760px]:[&>strong]:text-[24px] max-[760px]:[&>svg]:hidden",
 ].join(" ");
 
 const variantes = {
   normal: "",
   // La primera tarjeta lleva una fecha, no un numero, asi que va mas chica.
-  next: "[&>strong]:text-[18px] max-[760px]:col-span-full max-[760px]:min-h-[102px]",
+  next: "[&>strong]:text-[18px] max-[760px]:[&>strong]:text-[16px]",
   urgente:
     "border-[color-mix(in_srgb,var(--warning)_40%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_7%,var(--surface))] [&>strong]:text-[var(--warning)]",
 } as const;

@@ -12,14 +12,26 @@
 //   una muestra, y decirlo es la diferencia entre un dato y un engaño.
 //
 // El precio de referencia de una ruta es la MEDIANA de lo pagado, no el
-// promedio: una tarifa de última hora carísima no debe mover la referencia
-// contra la que se comparan todas las demás.
+// promedio: reduce el efecto de tarifas extremas. Puede cambiar entre compras,
+// especialmente si la ruta tiene pocos registros.
 import type { Trip } from "./types.ts";
 
 export type ViajeConCosto = Pick<
   Trip,
   "date" | "origin" | "destination" | "amount" | "status" | "person_id"
->;
+> & { pnr?: string | null };
+
+export type RegistroCosto = "registrado" | "reserva-sin-monto" | "planificado-sin-monto" | "excluido";
+
+/** La falta de precio en un plan no demuestra que haya un gasto realizado. */
+export function registroDeCosto(trip: ViajeConCosto): RegistroCosto {
+  if (!cuentaParaCostos(trip)) return "excluido";
+  if (montoDe(trip) !== null) return "registrado";
+  if (trip.pnr?.trim() || ["Emitido", "Completado", "No presentado"].includes(trip.status)) {
+    return "reserva-sin-monto";
+  }
+  return "planificado-sin-monto";
+}
 
 export const rutaDe = (trip: Pick<Trip, "origin" | "destination">) =>
   `${trip.origin} → ${trip.destination}`;
@@ -27,7 +39,7 @@ export const rutaDe = (trip: Pick<Trip, "origin" | "destination">) =>
 /** El mes al que pertenece una fecha, como AAAA-MM. */
 export const mesDe = (fecha: string) => fecha.slice(0, 7);
 
-/** Un viaje anulado no se compró: no suma ni cuenta para la cobertura. */
+/** Los anulados se excluyen del informe y de su cobertura; no modela devoluciones. */
 export const cuentaParaCostos = (trip: Pick<Trip, "status">) =>
   trip.status !== "Anulado";
 

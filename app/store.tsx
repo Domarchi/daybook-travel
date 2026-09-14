@@ -57,6 +57,7 @@ function useStoreValue() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [view, setView] = useState("Agenda");
   const [query, setQuery] = useState("");
+  const [peopleQuery, setPeopleQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [dateFilter, setDateFilter] = useState("");
   const [personFilter, setPersonFilter] = useState("");
@@ -67,6 +68,10 @@ function useStoreValue() {
     localDate().slice(0, 7),
   );
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [calendarShift, setCalendarShift] = useState("Todos");
+  const [costMonth, setCostMonth] = useState("");
+  const [costStatus, setCostStatus] = useState("Todos");
+  const [costCategory, setCostCategory] = useState("");
   const [modal, setModal] = useState<ModalName>(null);
   const [closingModal, setClosingModal] = useState(false);
   const [editPerson, setEditPerson] = useState<Person | null>(null);
@@ -225,7 +230,7 @@ function useStoreValue() {
   );
 
   const visiblePeople = useMemo(() => {
-    const needle = normalize(query);
+    const needle = normalize(peopleQuery);
     return people.filter((person) => {
       const matchesText =
         !needle ||
@@ -245,7 +250,7 @@ function useStoreValue() {
           person.shift === "Por confirmar");
       return matchesText && matchesFilter;
     });
-  }, [people, peopleFilter, query]);
+  }, [people, peopleFilter, peopleQuery]);
 
   const visibleTrips = useMemo(() => {
     const needle = normalize(query);
@@ -297,15 +302,23 @@ function useStoreValue() {
     [trips, purchaseWindow],
   );
 
-  // Las cuentas de costos. Se rehacen solo cuando cambian los viajes.
+  const costTrips = useMemo(
+    () => trips.filter((trip) =>
+      (!costMonth || trip.date.startsWith(costMonth)) &&
+      (costStatus === "Todos" || trip.status === costStatus)
+    ),
+    [trips, costMonth, costStatus],
+  );
+
+  // La cobertura y los totales siempre usan el mismo período y estado.
   const costos = useMemo(
     () => ({
-      cobertura: cobertura(trips),
-      porMes: porMes(trips),
-      porRuta: porRuta(trips),
-      porPersona: porPersona(trips),
+      cobertura: cobertura(costTrips),
+      porMes: porMes(costTrips),
+      porRuta: porRuta(costTrips),
+      porPersona: porPersona(costTrips),
     }),
-    [trips],
+    [costTrips],
   );
 
   // El precio de referencia de la ruta de un viaje, para comparar al registrar
@@ -460,19 +473,19 @@ function useStoreValue() {
     setTrips(makeDemoTrips(demoPeople));
     setCalendarMonth(localDate().slice(0, 7));
     setSelectedDay(null);
+    setCalendarShift("Todos");
+    setPeopleQuery("");
+    setPeopleFilter("Activas");
+    clearTripFilters();
+    setCostMonth("");
+    setCostStatus("Todos");
+    setCostCategory("");
     clearMessages();
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }
 
   function navigate(label: string) {
     setView(label);
-    setQuery("");
-    setStatusFilter("Todos");
-    setDateFilter("");
-    setPersonFilter("");
-    setSelectedTrips([]);
-    setOnlyUpcoming(label === "Viajes");
-    if (label === "Personas") setPeopleFilter("Activas");
     clearMessages();
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }
@@ -546,7 +559,7 @@ function useStoreValue() {
       ),
     );
     setNewDate(date || selectedDay || dateFilter || localDate());
-    setNewPerson(personId || personFilter || activePeople[0]?.id || "");
+    setNewPerson(personId || (view === "Viajes" ? personFilter : "") || "");
     abrirModal("trip");
   }
 
@@ -569,11 +582,13 @@ function useStoreValue() {
   }
 
   function showPersonTrips(person: Person) {
+    clearTripFilters();
     navigate("Viajes");
     setPersonFilter(person.id);
   }
 
   function showTripGroup(status: string) {
+    clearTripFilters();
     navigate("Viajes");
     setStatusFilter(status);
     setOnlyUpcoming(true);
@@ -1089,6 +1104,8 @@ function useStoreValue() {
     setView,
     query,
     setQuery,
+    peopleQuery,
+    setPeopleQuery,
     statusFilter,
     setStatusFilter,
     dateFilter,
@@ -1103,6 +1120,15 @@ function useStoreValue() {
     setSelectedTrips,
     calendarMonth,
     setCalendarMonth,
+    calendarShift,
+    setCalendarShift,
+    costMonth,
+    setCostMonth,
+    costStatus,
+    setCostStatus,
+    costCategory,
+    setCostCategory,
+    costTrips,
     selectedDay,
     setSelectedDay,
     modal,

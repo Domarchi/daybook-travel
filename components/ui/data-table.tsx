@@ -112,17 +112,10 @@ export function Td({ className, ...props }: React.ComponentProps<"td">) {
   );
 }
 
-/** La celda de la casilla: angosta y centrada, tambien en tarjeta.
- *
- *  Ojo con el ancho: en tarjeta la celda ocupa la fila entera (`col-span-full`)
- *  pero sigue midiendo 46 px de ancho, asi que la franja gris llega solo hasta
- *  ahi. Se ve raro y parece un descuido, pero es exactamente lo que hacia el
- *  CSS viejo, donde `.selection-cell { width: 46px }` le ganaba por especificidad
- *  al `td { width: 100% }` de la media query. Se deja igual porque aqui se
- *  traduce, no se rediseña; queda anotado para revisarlo aparte. */
+/** Casilla angosta en tabla; en tarjeta ocupa toda la franja de selección. */
 export const CELDA_SELECCION = [
   "w-[46px] text-center",
-  "max-[760px]:col-span-full max-[760px]:w-[46px] max-[760px]:min-h-[42px]",
+  "max-[760px]:col-span-full max-[760px]:w-full max-[760px]:min-h-[44px]",
   "max-[760px]:justify-start max-[760px]:bg-surface-soft",
 ].join(" ");
 
