@@ -37,10 +37,10 @@ export default function PageHead() {
   return (
     <header className="mb-4 flex items-center justify-between gap-7 max-[760px]:gap-3">
       <div className="min-w-0">
-        <h1 className="text-[clamp(22px,1.9vw,27px)] leading-[1.04] font-bold tracking-[-0.03em] text-foreground">
+        <h1 className="text-[clamp(22px,1.9vw,27px)] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
           {titulo}
         </h1>
-        <p className="mt-[3px] max-w-[660px] text-[13px] leading-[1.5] text-muted">
+        <p className="mt-1.5 max-w-[660px] text-[13px] leading-[1.5] text-muted">
           {bajada}
         </p>
       </div>

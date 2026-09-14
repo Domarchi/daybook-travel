@@ -8,20 +8,23 @@ import { Button } from "@/components/ui/button";
 export default function ThemeToggle({
   theme,
   onToggle,
+  compact = false,
 }: {
   theme: string;
   onToggle: () => void;
+  compact?: boolean;
 }) {
   const oscuro = theme === "dark";
   return (
     <Button
       type="button"
-      className="bg-transparent px-3"
+      variant={compact ? "icon" : "default"}
+      className={compact ? "border-transparent bg-transparent" : "bg-transparent px-3"}
       onClick={onToggle}
       aria-label={oscuro ? "Activar modo claro" : "Activar modo oscuro"}
     >
       {oscuro ? <Sun size={17} /> : <Moon size={17} />}
-      <span>{oscuro ? "Claro" : "Oscuro"}</span>
+      {!compact && <span>{oscuro ? "Claro" : "Oscuro"}</span>}
     </Button>
   );
 }

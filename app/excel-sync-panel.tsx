@@ -28,6 +28,8 @@ import { SectionKicker } from "@/components/ui/section-kicker";
 import { TableWrap } from "@/components/ui/table-wrap";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
+import { FCC_BLUE, cabeceraExcel, cargarLogo, logoParaExcel } from "@/lib/brand";
+import { localDate } from "@/lib/format";
 
 // Las dos zonas de contenido del panel comparten caja.
 const ZONA = "grid gap-[18px] p-6 max-[760px]:gap-[14px] max-[760px]:px-4 max-[760px]:py-[18px]";
@@ -319,7 +321,11 @@ export default function ExcelSyncPanel({
     setDownloadBusy(kind);
     setMessage("");
     try {
-      const { default: writeXlsxFile } = await import("write-excel-file");
+      const [{ default: writeXlsxFile }, logo] = await Promise.all([
+        import("write-excel-file"),
+        cargarLogo(),
+      ]);
+      const date = localDate();
       const personById = new Map(people.map((person) => [person.id, person]));
       const currentPeople = kind === "current" ? people : [];
       const currentTrips = kind === "current" ? trips : [];
@@ -327,7 +333,7 @@ export default function ExcelSyncPanel({
         value,
         fontWeight: "bold" as const,
         color: "#ffffff",
-        backgroundColor: "#263345",
+        backgroundColor: FCC_BLUE,
         alignVertical: "center" as const,
         height: 34,
       });
@@ -433,8 +439,13 @@ export default function ExcelSyncPanel({
         ],
       ];
 
-      await writeXlsxFile([personRows, tripRows, instructionRows], {
+      await writeXlsxFile([
+        [...cabeceraExcel("Personas", date, demo), ...personRows],
+        [...cabeceraExcel("Viajes", date, demo), ...tripRows],
+        [...cabeceraExcel("Instrucciones", date, demo), ...instructionRows],
+      ], {
         sheets: ["Personas", "Viajes", "Instrucciones"],
+        images: [[logoParaExcel(logo)], [logoParaExcel(logo)], [logoParaExcel(logo)]],
         columns: [
           peopleHeaders.map((_, index) => ({
             width: [38, 19, 30, 18, 18, 11, 15, 15, 22, 11, 10, 24, 14, 30][
@@ -449,11 +460,11 @@ export default function ExcelSyncPanel({
           })),
           [{ width: 16 }, { width: 76 }],
         ],
-        stickyRowsCount: 1,
+        stickyRowsCount: 4,
         showGridLines: false,
         fileName:
           kind === "current"
-            ? `FCC-TRAVEL-${new Date().toISOString().slice(0, 10)}.xlsx`
+            ? `FCC-TRAVEL-${date}.xlsx`
             : "FCC-TRAVEL-plantilla.xlsx",
       });
       setMessage(

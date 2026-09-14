@@ -2,7 +2,8 @@
 
 import { FormEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
-import DotField from "@/components/dot-field";
+import BrandBackground from "@/components/brand-background";
+import BrandIdentity from "@/components/ui/brand-identity";
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
@@ -14,15 +15,14 @@ const PIE =
   "mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
-// Lleva el mismo campo de puntos que la entrada, quieto: dura un instante y
-// arrancar una animación para eso sería un parpadeo, no un detalle.
-export function LoadingView({ theme = "dark" }: { theme?: string }) {
+// Comparte el fondo estático de la entrada para evitar un cambio visual de fondo.
+export function LoadingView() {
   return (
     <main
-      className="velo-carga relative isolate flex min-h-screen items-center justify-center gap-3 text-muted [--dot-alpha:0.55]"
+      className="relative isolate flex min-h-screen items-center justify-center gap-3 text-muted"
       aria-live="polite"
     >
-      <DotField theme={theme} estatico />
+      <BrandBackground />
       <LoadingMark className="relative z-[1]" />
       <p className="relative z-[1]">Cargando FCC TRAVEL…</p>
     </main>
@@ -35,7 +35,7 @@ export function LoadingView({ theme = "dark" }: { theme?: string }) {
 // La obra continúa.") con las rutas, y a la derecha el formulario. Se quitó por
 // decisión de Joaquín: quien entra aquí ya sabe qué es esto y viene a entrar,
 // no a que le expliquen el producto. Queda el formulario solo, centrado, sobre
-// el fondo de puntos.
+// el fondo institucional.
 export function LoginView({
   theme,
   toggleTheme,
@@ -52,21 +52,18 @@ export function LoginView({
   enterDemo: () => void;
 }) {
   return (
-    <main className="velo-entrada relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">
-      <DotField theme={theme} />
-      <header className="relative z-[1] flex min-h-[78px] items-center justify-between gap-5 border-b border-line">
-        <span className="text-[17px] font-[850] tracking-[-0.02em] whitespace-nowrap text-foreground">
-          FCC TRAVEL
-        </span>
+    <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">
+      <BrandBackground />
+      <header className="relative z-[1] flex min-h-[92px] items-center justify-between gap-5 border-b border-line py-3">
+        <BrandIdentity />
         <div className="flex items-center gap-[14px] text-[10px] font-[750] tracking-[0.09em] text-muted">
-          <span className="max-[760px]:hidden">FCC / COPIAPÓ</span>
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <ThemeToggle theme={theme} onToggle={toggleTheme} compact />
         </div>
       </header>
       <section className="relative z-[1] mx-auto my-10 grid w-[min(100%,430px)] content-center max-[760px]:my-[34px]">
-        <div className="rounded-lg border border-line bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] p-[clamp(24px,4vw,38px)] shadow-[var(--shadow)] backdrop-blur-[12px] max-[760px]:px-[18px] max-[760px]:py-[22px]">
+        <div className="rounded-lg border border-line bg-surface p-[clamp(28px,4vw,40px)] shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-7">
           <SectionKicker>Acceso al equipo</SectionKicker>
-          <h2 className="text-[28px] leading-[1.1] tracking-[-0.04em] text-foreground">
+          <h2 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
             Entra a tu agenda
           </h2>
           <p className="mt-2 mb-[22px] text-[13px] text-muted">

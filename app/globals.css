@@ -104,27 +104,31 @@
 
 :root {
   color-scheme: dark;
-  /* Grises neutros, sin tinte azul. Antes toda esta escala tiraba a azul
-     marino (--bg era #0a0f16); se pasó a gris puro manteniendo casi la misma
-     luminosidad de cada peldaño, así que los contrastes no bajaron: los
-     fondos quedaron un punto más oscuros y el texto igual. Los colores con
-     significado —turnos, estados, foco— no se tocaron: ahí el color informa. */
-  --bg: #0a0a0a;
+  /* Superficies azul grisáceas de la identidad FCC. Los colores operativos
+     de turnos y estados conservan sus significados. */
+  --bg: #0c1118;
+  --brand-blue: #293582;
+  --brand-green: #0c7b3d;
+  --brand-blue-wash: #1c2a51;
+  --brand-green-wash: #102c29;
+  --brand-line-blue: #28395b;
+  --brand-line-green: #194236;
+  --logo-filter: url("#fcc-logo-dark");
   /* Color de los puntos del fondo de la pantalla de entrada, en componentes
      RGB sueltos: dot-field.tsx los lee y les pone su propia opacidad. */
   --dot: 230, 230, 230;
   /* Fuerza de los puntos. 1 es la entrada, a plena luz; las pantallas con
      texto encima la bajan por su cuenta más abajo. */
   --dot-alpha: 1;
-  --surface: #131313;
-  --surface-raised: #191919;
-  --surface-soft: #1f1f1f;
-  --surface-hover: #272727;
+  --surface: #131b25;
+  --surface-raised: #18212c;
+  --surface-soft: #1e2936;
+  --surface-hover: #263343;
   --text: #f5f5f5;
-  --fg-soft: #cacaca;
-  --muted: #949494;
-  --border: #2b2b2b;
-  --border-strong: #3d3d3d;
+  --fg-soft: #cbd5df;
+  --muted: #a0acb9;
+  --border: #2b3a49;
+  --border-strong: #405369;
   --action: #f2f2f2;
   --action-hover: #ffffff;
   --action-text: #121212;
@@ -143,7 +147,7 @@
   --warning: #e6c363;
   --danger: #ee7b83;
   --info: #8cb7df;
-  --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
   --rad-sm: 8px;
   --rad: 12px;
   --rad-lg: 18px;
@@ -157,7 +161,12 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f3f5f7;
+  --bg: #f5f6f8;
+  --brand-blue-wash: #cad3e8;
+  --brand-green-wash: #c8dfd2;
+  --brand-line-blue: #99abc9;
+  --brand-line-green: #94bfa6;
+  --logo-filter: url("#fcc-logo-alpha");
   --dot: 46, 66, 92;
   --dot-alpha: 1;
   --surface: #ffffff;
@@ -190,7 +199,7 @@
   --warning: #8a6608;
   --danger: #b83743;
   --info: #3e708f;
-  --shadow: 0 24px 70px rgba(31, 43, 55, 0.16);
+  --shadow: 0 16px 48px rgba(31, 43, 55, 0.08), 0 1px 3px rgba(31, 43, 55, 0.04);
 }
 
 * {
@@ -292,6 +301,83 @@ small {
   isolation: isolate;
 }
 
+.fcc-logo {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 150px;
+}
+
+.brand-identity {
+  display: grid;
+  width: 168px;
+  justify-items: center;
+  gap: 5px;
+}
+
+.brand-identity .fcc-logo { width: 100%; }
+
+.brand-identity-caption {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+
+.brand-identity-caption span { padding: 0 4px; }
+
+.fcc-logo-window {
+  position: relative;
+  display: block;
+  aspect-ratio: 2.9 / 1;
+  overflow: hidden;
+}
+
+.fcc-logo-window img {
+  position: absolute;
+  width: 128.2%;
+  max-width: none;
+  height: auto;
+  left: -16.5%;
+  top: -28.3%;
+  filter: var(--logo-filter);
+}
+
+.brand-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.brand-background svg {
+  position: absolute;
+  width: clamp(380px, 36vw, 560px);
+  height: auto;
+}
+
+.brand-background-top { top: -110px; right: -100px; opacity: 0.28; }
+.brand-background-bottom { bottom: -80px; left: -160px; opacity: 0.55; }
+
+:root[data-theme="light"] .brand-background-top { opacity: 0.65; }
+:root[data-theme="light"] .brand-background-bottom { opacity: 0.85; }
+:root[data-theme="light"] .brand-background-bottom path { stroke-width: 1.5; }
+
+.brand-shape-blue { fill: var(--brand-blue-wash); }
+.brand-shape-green { fill: var(--brand-green-wash); }
+.brand-line-blue { fill: none; stroke: var(--brand-line-blue); stroke-width: 1; }
+.brand-line-green { fill: none; stroke: var(--brand-line-green); stroke-width: 1; }
+
+@media (max-width: 430px) {
+  .fcc-logo { width: 128px; }
+  .brand-identity { width: 142px; gap: 4px; }
+  .brand-background-top { top: -80px; right: -180px; }
+  .brand-background-bottom { bottom: -40px; left: -180px; }
+  :root[data-theme="light"] .brand-background-top { top: -35px; right: -140px; }
+}
+
 /* Solo el contenido. El velo de los diálogos NO va aquí: es position: fixed y
    ponerle position: relative lo devolvía al flujo del documento, así que dejaba
    de cubrir la pantalla y aparecía a media página. Ya tiene z-index 100, que
@@ -305,37 +391,6 @@ small {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* Mismo velo que la entrada: apaga los puntos en el centro, que es donde va
-   el texto, y los deja vivir en los bordes. */
-.velo-carga::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse at center,
-    var(--bg) 0%,
-    color-mix(in srgb, var(--bg) 82%, transparent) 34%,
-    var(--bg) 100%
-  );
-}
-
-/* Oscurece los bordes para que los puntos no compitan con el formulario. */
-.velo-entrada::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 0%,
-    color-mix(in srgb, var(--bg) 78%, transparent) 62%,
-    var(--bg) 100%
-  );
 }
 
 

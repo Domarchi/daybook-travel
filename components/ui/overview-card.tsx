@@ -13,12 +13,12 @@ import { cn } from "@/lib/utils";
 
 const forma = [
   "relative grid min-h-[112px] min-w-0 grid-cols-[1fr_auto] grid-rows-[auto_1fr_auto]",
-  "items-start justify-items-start gap-x-3 gap-y-[3px] rounded-md p-[17px] text-left",
+  "items-start justify-items-start gap-x-3 gap-y-[3px] rounded-md bg-surface p-[18px] text-left",
   // El rotulo y la nota van en la primera columna; la flecha ocupa toda la
   // altura de la segunda.
   "[&>span]:col-start-1 [&>small]:col-start-1",
-  "[&>span]:text-[11px] [&>span]:font-[750] [&>span]:text-muted",
-  "[&>strong]:self-end [&>strong]:text-[28px] [&>strong]:leading-[1.1] [&>strong]:tracking-[-0.035em]",
+  "[&>span]:text-[12px] [&>span]:font-medium [&>span]:text-muted",
+  "[&>strong]:self-end [&>strong]:text-[28px] [&>strong]:font-semibold [&>strong]:leading-[1.1] [&>strong]:tracking-[-0.035em]",
   "[&>svg]:col-start-2 [&>svg]:row-span-full [&>svg]:self-center [&>svg]:text-muted",
   "max-[760px]:min-h-[90px] max-[760px]:grid-cols-1 max-[760px]:p-3 max-[760px]:[&>span]:text-[12px] max-[760px]:[&>strong]:text-[24px] max-[760px]:[&>svg]:hidden",
 ].join(" ");

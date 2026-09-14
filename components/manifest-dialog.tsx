@@ -5,16 +5,19 @@
 // y por eso es un paso aparte que Katy da cuando ya mandó el correo.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Download } from "lucide-react";
+import { Check, Copy, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogBody } from "@/components/ui/dialog-parts";
 import { localDate } from "../lib/format";
 import { agruparManifiesto, textoDeManifiesto } from "../lib/manifest";
 import { useApp } from "../app/store";
+import { cargarLogo } from "@/lib/brand";
+import BrandLogo from "@/components/ui/brand-logo";
 
 export default function ManifestDialog() {
   const {
     busy,
+    demo,
     closeModal,
     exportCsv,
     manifestTrips,
@@ -38,6 +41,8 @@ export default function ManifestDialog() {
 
   const [copiado, setCopiado] = useState(false);
   const [fallo, setFallo] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const textoRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -66,12 +71,34 @@ export default function ManifestDialog() {
     else setFallo(true);
   }
 
+  async function descargarPdf() {
+    setPdfBusy(true);
+    setPdfError("");
+    try {
+      const [{ crearManifiestoPdf }, logo] = await Promise.all([
+        import("@/lib/manifest-pdf"),
+        cargarLogo(),
+      ]);
+      const date = localDate();
+      const pdf = await crearManifiestoPdf(bloques, date, logo, demo);
+      pdf.save(`FCC-TRAVEL-solicitud-${date}.pdf`);
+    } catch {
+      setPdfError("No pudimos crear el PDF. Inténtalo nuevamente.");
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* El cuerpo se reparte: el texto crece o se encoge, y la frase de abajo
           queda siempre visible. Antes el textarea imponía su alto y cortaba esa
           frase por la mitad. */}
       <DialogBody className="flex flex-col">
+        <div className="mb-4 flex shrink-0 items-center gap-3">
+          <BrandLogo />
+          <span className="text-[12px] font-semibold text-muted">Solicitud de pasajes</span>
+        </div>
         <div className="mb-3 flex shrink-0 items-center justify-between gap-3 text-[13px] text-foreground-soft">
           <span>
             <strong className="text-foreground">{pasajes}</strong>{" "}
@@ -110,6 +137,7 @@ export default function ManifestDialog() {
             (o Ctrl+C).
           </p>
         )}
+        {pdfError && <p role="alert" className="mb-3 shrink-0 text-[13px] text-danger">{pdfError}</p>}
         <textarea
           ref={textoRef}
           className="min-h-40 w-full min-w-0 flex-auto resize-none overflow-auto rounded-sm border border-line-strong bg-surface transition-[border-color,box-shadow,background-color] duration-[140ms] ease-[var(--ease-out)] px-4 py-[14px] font-mono text-[13px] leading-[1.55] tab-2 whitespace-pre text-foreground focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
@@ -123,7 +151,10 @@ export default function ManifestDialog() {
           viajes como solicitados para que la agenda lo refleje.
         </p>
       </DialogBody>
-      <div className="flex min-h-[72px] shrink-0 items-center justify-end gap-2 border-t border-line bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-6 py-3 backdrop-blur-[14px]">
+      <div className="flex min-h-[72px] shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line bg-surface px-6 py-3 max-[760px]:px-4">
+        <Button type="button" onClick={() => void descargarPdf()} disabled={busy || pdfBusy || pasajes === 0}>
+          <FileText size={16} /> {pdfBusy ? "Creando PDF…" : "Descargar PDF"}
+        </Button>
         <Button type="button" onClick={exportCsv} disabled={busy}>
           <Download size={16} /> Descargar CSV
         </Button>

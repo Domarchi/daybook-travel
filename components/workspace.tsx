@@ -10,6 +10,7 @@ import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";
 import PeopleView from "@/components/people-view";
 import TopBar from "@/components/top-bar";
+import BrandBackground from "@/components/brand-background";
 import TripsView from "@/components/trips-view";
 import { useApp } from "../app/store";
 
@@ -36,7 +37,7 @@ export default function Workspace() {
   } = useApp();
 
   if (!ready) {
-    return <LoadingView theme={theme} />;
+    return <LoadingView />;
   }
 
   if (!email && !demo) {
@@ -54,6 +55,7 @@ export default function Workspace() {
 
   return (
     <div className="shell">
+      <BrandBackground />
       <div
         className="app-content"
         inert={modal ? true : undefined}
