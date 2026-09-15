@@ -1,6 +1,6 @@
 "use client";
 
-// La pastilla de jornada: 4×3, 10×10 o por confirmar. Aparece en Personas, en
+// La pastilla de jornada: 4×3, 10×10, sin turno o por confirmar. Aparece en Personas, en
 // la Agenda y en el calendario, en dos tamanos: la grande de las fichas y la
 // chica que va dentro de los dias del calendario.
 import * as React from "react";
@@ -19,7 +19,8 @@ const shiftVariants = cva(
       tono: {
         four: "border-four-line bg-four-soft text-four",
         ten: "border-ten-line bg-ten-soft text-ten",
-        pending: "border-line-strong bg-surface-soft text-foreground-soft",
+        manual: "border-line-strong bg-surface-raised text-foreground",
+        pending: "border-dashed border-line-strong bg-surface-soft text-muted",
       },
       tamano: {
         // .shift-badge
@@ -39,7 +40,13 @@ const shiftVariants = cva(
 
 /** Que tono le toca a cada jornada. Lo que no reconoce va en "por confirmar". */
 export const tonoDeJornada = (shift: string) =>
-  shift === "4×3" ? "four" : shift === "10×10" ? "ten" : "pending";
+  shift === "4×3"
+    ? "four"
+    : shift === "10×10"
+      ? "ten"
+      : shift === "Sin turno"
+        ? "manual"
+        : "pending";
 
 export function ShiftBadge({
   className,

@@ -398,6 +398,9 @@ function parseShift(value: ExcelCell): Shift | null {
   if (!candidate || candidate === "porconfirmar") return "Por confirmar";
   if (candidate === "4x3") return "4×3";
   if (candidate === "10x10") return "10×10";
+  if (["sinturno", "sinrotacion", "manual"].includes(candidate)) {
+    return "Sin turno";
+  }
   return null;
 }
 
@@ -480,7 +483,7 @@ export function normalizeExcelPerson(
   if (!id.value && version.value !== null) pushError(errors, "people", rowNumber, "version", "Deja la versión vacía en una fila nueva.");
   if (name.length < 2 || name.length > 180) pushError(errors, "people", rowNumber, "nombreCompleto", "Escribe un nombre de 2 a 180 caracteres.");
   if (!origin) pushError(errors, "people", rowNumber, "origen", "Completa el origen.");
-  if (!shift) pushError(errors, "people", rowNumber, "turno", "El turno debe ser Por confirmar, 4×3 o 10×10.");
+  if (!shift) pushError(errors, "people", rowNumber, "turno", "El turno debe ser Por confirmar, 4×3, 10×10 o Sin turno.");
   if (!startDate.valid || !startDate.value) pushError(errors, "people", rowNumber, "fechaInicio", "Usa una fecha válida.");
   if (!endDate.valid) pushError(errors, "people", rowNumber, "fechaTermino", "Usa una fecha válida.");
   if (startDate.value && endDate.value && endDate.value < startDate.value) pushError(errors, "people", rowNumber, "fechaTermino", "La fecha de término no puede ser anterior al inicio.");

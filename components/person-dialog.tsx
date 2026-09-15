@@ -72,6 +72,7 @@ export default function PersonDialog() {
                 <option>Por confirmar</option>
                 <option>4×3</option>
                 <option>10×10</option>
+                <option>Sin turno</option>
               </Select>
             </Label>
             {shift === "4×3" && (
@@ -145,16 +146,20 @@ export default function PersonDialog() {
             <span className="grid gap-[2px]">
               <strong className="text-foreground">Persona activa</strong>{" "}
               <small className="text-muted">
-                Puede recibir nuevos viajes y planificación.
+                {shift === "Sin turno"
+                  ? "Puede recibir viajes agregados manualmente."
+                  : "Puede recibir nuevos viajes y planificación."}
               </small>
             </span>
           </Label>
           <Hint>
-            En 4×3 se generan viajes según los días de subida y bajada de la
-            ficha. En 10×10, la primera subida inicia el ciclo: baja diez días
-            después y vuelve a subir a los veinte. Usa Planificar turnos para
-            generarlos sin duplicar viajes existentes. Con turno por confirmar,
-            registra los movimientos uno a uno.
+            {shift === "4×3"
+              ? "Planificar turnos generará las subidas y bajadas semanales según los días elegidos."
+              : shift === "10×10"
+                ? "La primera subida inicia el ciclo: baja diez días después y vuelve a subir a los veinte."
+                : shift === "Sin turno"
+                  ? "Para jefaturas o viajes ocasionales. Esta persona no entra en ciclos automáticos; agrega cada movimiento con Nuevo viaje."
+                  : "Úsalo mientras falta definir la jornada. Los movimientos se registran uno a uno hasta completar la ficha."}
           </Hint>
         </FormSection>
       </DialogBody>

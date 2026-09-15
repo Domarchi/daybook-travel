@@ -22,6 +22,7 @@ const ENCENDIDA = {
   neutro: "border-line bg-surface-soft text-foreground",
   four: "border-four-line bg-four-soft text-four",
   ten: "border-ten-line bg-ten-soft text-ten",
+  manual: "border-line-strong bg-surface-raised text-foreground",
 };
 
 export function FilterPills({
@@ -45,9 +46,7 @@ export function FilterPills({
       aria-label={label}
       className={cn(
         "flex items-center gap-[3px] rounded-[10px] border border-line bg-bg p-[3px]",
-        // Solo la lista se desliza: en el calendario los cuatro turnos caben
-        // siempre, y ahi el desplazamiento lateral solo recorta el foco.
-        jornadas || "overflow-x-auto",
+        "overflow-x-auto",
         "max-[760px]:w-full",
         className,
       )}
@@ -64,7 +63,7 @@ export function FilterPills({
             onClick={() => onCambio(opcion)}
             className={cn(
               "min-h-11 px-[11px] text-[12px] leading-[1.2]",
-              jornadas ? "max-[760px]:flex-1" : "max-[760px]:flex-[0_0_auto]",
+              "max-[760px]:flex-[0_0_auto]",
               valor === opcion
                 ? encendida
                 : "border-transparent bg-transparent text-muted",

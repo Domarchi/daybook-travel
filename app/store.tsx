@@ -43,6 +43,7 @@ import type {
   Person,
   Trip,
 } from "../lib/types";
+import { esTurnoRotativo } from "../lib/types";
 
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
@@ -224,7 +225,7 @@ function useStoreValue() {
     () =>
       people.filter(
         (person) =>
-          person.active && (person.shift === "4×3" || person.shift === "10×10"),
+          person.active && esTurnoRotativo(person.shift),
       ),
     [people],
   );
@@ -245,6 +246,9 @@ function useStoreValue() {
         (peopleFilter === "Inactivas" && !person.active) ||
         (peopleFilter === "4×3" && person.active && person.shift === "4×3") ||
         (peopleFilter === "10×10" && person.active && person.shift === "10×10") ||
+        (peopleFilter === "Sin turno" &&
+          person.active &&
+          person.shift === "Sin turno") ||
         (peopleFilter === "Por confirmar" &&
           person.active &&
           person.shift === "Por confirmar");
@@ -615,8 +619,8 @@ function useStoreValue() {
         shift: String(form.get("shift")),
         start_date: String(form.get("start_date")),
         end_date: String(form.get("end_date")) || null,
-        // El 10×10 no usa dias de la semana: quedan en lunes y jueves y el
-        // motor los ignora.
+        // Solo el 4×3 usa días de la semana. El resto conserva valores válidos
+        // para la base y el motor los ignora.
         up_weekday: Number(form.get("up_weekday") ?? 1) || 1,
         down_weekday: Number(form.get("down_weekday") ?? 4) || 4,
         baggage: String(form.get("baggage")),

@@ -33,6 +33,17 @@ export function makeDemoPeople(): Person[] {
       baggage: "Maleta en bodega",
       active: true,
     },
+    {
+      id: "p3",
+      name: "Jefatura de ejemplo",
+      origin: "Santiago",
+      destination: "Copiapó",
+      shift: "Sin turno",
+      start_date: localDate(),
+      end_date: null,
+      baggage: "Maleta de cabina",
+      active: true,
+    },
   ];
 }
 
@@ -72,7 +83,40 @@ export function makeDemoTrips(people: Person[]): Trip[] {
       notes: "",
     }),
   );
-  return [...fourByThree, ...tenByTen].sort((a, b) =>
+  // La jefatura no tiene ciclo: sus dos movimientos se cargan manualmente.
+  const manual: Trip[] = [
+    {
+      id: "t-manual-up",
+      person_id: "p3",
+      date: addDays(firstMonday, 2),
+      direction: "SUBIDA",
+      origin: "Santiago",
+      destination: "Copiapó",
+      requested_time: "10:15",
+      baggage: "Maleta de cabina",
+      status: "Planificado",
+      pnr: "",
+      flight: "",
+      amount: null,
+      notes: "Visita mensual de jefatura",
+    },
+    {
+      id: "t-manual-down",
+      person_id: "p3",
+      date: addDays(firstMonday, 4),
+      direction: "BAJADA",
+      origin: "Copiapó",
+      destination: "Santiago",
+      requested_time: "18:30",
+      baggage: "Maleta de cabina",
+      status: "Planificado",
+      pnr: "",
+      flight: "",
+      amount: null,
+      notes: "Regreso de visita mensual",
+    },
+  ];
+  return [...fourByThree, ...tenByTen, ...manual].sort((a, b) =>
     a.date.localeCompare(b.date),
   );
 }

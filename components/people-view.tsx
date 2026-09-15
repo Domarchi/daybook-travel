@@ -43,6 +43,7 @@ export default function PeopleView() {
             "Activas",
             "4×3",
             "10×10",
+            "Sin turno",
             "Por confirmar",
             "Inactivas",
             "Todas",
@@ -123,7 +124,9 @@ export default function PeopleView() {
               </div>
               <div className="grid min-w-0 gap-[5px] max-[760px]:col-start-2">
                 <ShiftBadge tono={tonoDeJornada(person.shift)}>
-                  Turno {person.shift}
+                  {person.shift === "Sin turno"
+                    ? "Sin turno"
+                    : `Turno ${person.shift}`}
                 </ShiftBadge>
                 <small>Desde {formatDate(person.start_date)}</small>
               </div>

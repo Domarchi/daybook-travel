@@ -57,7 +57,7 @@ type CalendarProps = {
 };
 
 const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-const shifts = ["Todos", "4×3", "10×10", "Por confirmar"];
+const shifts = ["Todos", "4×3", "10×10", "Sin turno", "Por confirmar"];
 
 const localToday = () =>
   new Intl.DateTimeFormat("en-CA", {
@@ -286,6 +286,9 @@ export default function YearView({
       tenByTen: dayTrips.filter(
         (trip) => members.get(trip.person_id)?.shift === "10×10",
       ).length,
+      withoutShift: dayTrips.filter(
+        (trip) => members.get(trip.person_id)?.shift === "Sin turno",
+      ).length,
       pending: dayTrips.filter(
         (trip) => members.get(trip.person_id)?.shift === "Por confirmar",
       ).length,
@@ -301,6 +304,7 @@ export default function YearView({
     const shiftDescription = [
       counts.fourByThree ? `${counts.fourByThree} de turno 4 por 3` : "",
       counts.tenByTen ? `${counts.tenByTen} de turno 10 por 10` : "",
+      counts.withoutShift ? `${counts.withoutShift} sin turno` : "",
       counts.pending ? `${counts.pending} con turno por confirmar` : "",
     ]
       .filter(Boolean)
@@ -371,6 +375,12 @@ export default function YearView({
             {counts.tenByTen ? (
               <ShiftBadge tono="ten" tamano="chica">
                 10×10
+              </ShiftBadge>
+            ) : null}
+            {counts.withoutShift ? (
+              <ShiftBadge tono="manual" tamano="chica">
+                <span className="max-[760px]:hidden">Sin turno</span>
+                <span className="hidden max-[760px]:inline">S/T</span>
               </ShiftBadge>
             ) : null}
             {counts.pending ? (
@@ -467,6 +477,10 @@ export default function YearView({
           10×10
         </span>
         <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
+          <i className="inline-block size-[9px] flex-none rounded-[3px] border border-line-strong bg-surface-raised" />{" "}
+          Sin turno
+        </span>
+        <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
           <i className="inline-block size-[9px] flex-none rounded-[3px] border border-line-strong bg-muted" />{" "}
           Por confirmar
         </span>
@@ -543,8 +557,8 @@ export default function YearView({
             : "días con movimiento"}
         </span>
         <small className="ml-auto text-right max-[760px]:ml-0 max-[760px]:w-full max-[760px]:text-left">
-          Los viajes anulados no se muestran. Ambos turnos se generan desde
-          Planificar turnos; los viajes existentes conservan sus fechas.
+          Los viajes anulados no se muestran. Los turnos 4×3 y 10×10 se generan
+          desde Planificar turnos; los viajes sin turno se agregan manualmente.
         </small>
       </footer>
       </div>

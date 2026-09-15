@@ -1,7 +1,7 @@
 // Vocabulario del dominio y forma de los registros que viajan entre Supabase y la pantalla.
 // Estas listas son la fuente única: `lib/excel-sync.ts` las reexporta para no duplicarlas.
 
-export const SHIFTS = ["Por confirmar", "4×3", "10×10"] as const;
+export const SHIFTS = ["Por confirmar", "4×3", "10×10", "Sin turno"] as const;
 export const TRIP_DIRECTIONS = ["SUBIDA", "BAJADA"] as const;
 export const TRIP_STATUSES = [
   "Planificado",
@@ -22,6 +22,10 @@ export type Shift = (typeof SHIFTS)[number];
 export type TripDirection = (typeof TRIP_DIRECTIONS)[number];
 export type TripStatus = (typeof TRIP_STATUSES)[number];
 export type Baggage = (typeof BAGGAGE_OPTIONS)[number];
+
+/** Solo estas jornadas crean movimientos automáticos en Planificar turnos. */
+export const esTurnoRotativo = (shift: string): shift is "4×3" | "10×10" =>
+  shift === "4×3" || shift === "10×10";
 
 export type Person = {
   id: string;

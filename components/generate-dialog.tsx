@@ -91,6 +91,7 @@ export default function GenerateDialog() {
               viajes existentes no se duplican.
             </small>
             <small>Se generan desde el inicio de cada persona hasta la fecha indicada, dentro de su vigencia. Los movimientos y reservas existentes no se reemplazan.</small>
+            <small>Las personas sin turno se gestionan con Nuevo viaje y no se incluyen en esta planificación.</small>
           </div>
         </FormSection>
       </DialogBody>

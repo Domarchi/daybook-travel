@@ -190,6 +190,17 @@ test("una fecha tope anterior al inicio no genera nada", () => {
   );
 });
 
+test("sin turno y por confirmar no generan movimientos automáticos", () => {
+  assert.deepEqual(
+    movimientos({ shift: "Sin turno", start_date: "2026-09-07" }, "2027-09-07"),
+    [],
+  );
+  assert.deepEqual(
+    movimientos({ shift: "Por confirmar", start_date: "2026-09-07" }, "2027-09-07"),
+    [],
+  );
+});
+
 test("ningún movimiento cae fuera del período pedido", () => {
   for (const persona of [cuatroPorTres(), diezPorDiez()]) {
     for (const paso of movimientos(persona, "2027-06-30")) {

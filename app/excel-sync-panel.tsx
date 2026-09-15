@@ -410,7 +410,7 @@ export default function ExcelSyncPanel({
         [
           cell("2"),
           cell(
-            "Usa fechas AAAA-MM-DD; el turno puede quedar Por confirmar, 4×3 o 10×10.",
+            "Usa fechas AAAA-MM-DD; el turno puede quedar Por confirmar, 4×3, 10×10 o Sin turno.",
           ),
         ],
         [

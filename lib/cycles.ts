@@ -29,8 +29,8 @@ export type Movimiento = { date: string; direction: Sentido };
 export type CicloPersona = {
   /**
    * Jornada de la persona. Se declara como texto y no como `Jornada` porque la
-   * base acepta además "Por confirmar": el motor rechaza al ejecutarse lo que
-   * no sabe generar, en vez de fingir que no puede pasar.
+   * base acepta además "Por confirmar" y "Sin turno". Ambos producen una
+   * lista vacía: no hay un ciclo operativo que el motor deba inventar.
    */
   shift: string;
   /**
@@ -111,6 +111,8 @@ export function movimientos(persona: CicloPersona, hasta: string): Movimiento[] 
   const fin =
     persona.end_date && persona.end_date < hasta ? persona.end_date : hasta;
   if (fin < inicio) return [];
+
+  if (shift === "Sin turno" || shift === "Por confirmar") return [];
 
   const salida: Movimiento[] = [];
   const anotar = (date: string, direction: Sentido) => {

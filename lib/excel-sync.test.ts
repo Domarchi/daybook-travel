@@ -174,6 +174,26 @@ test("conserva un turno desconocido como Por confirmar", () => {
   assert.equal(result.value?.baggage, "Por confirmar");
 });
 
+test("acepta Sin turno y sus alias para viajes manuales", () => {
+  for (const turno of ["Sin turno", "sin rotación", "manual"]) {
+    const result = normalizeExcelPersonRow(
+      {
+        nombreCompleto: "Jefatura de proyecto",
+        origen: "Santiago",
+        destino: "Copiapó",
+        turno,
+        fechaInicio: "2026-09-08",
+        equipaje: "Maleta de cabina",
+        activa: "Sí",
+      },
+      28,
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.value?.shift, "Sin turno");
+  }
+});
+
 test("rechaza fechas imposibles y un inicio 4x3 que no sea lunes", () => {
   const result = normalizeExcelPersonRow(
     {
