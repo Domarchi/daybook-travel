@@ -17,6 +17,7 @@ import {
   PERSON_EXCEL_FIELDS,
   TRIP_EXCEL_FIELDS,
   buildExcelSyncPayload,
+  mensajePublicoExcel,
   type ExcelRow,
   type ExcelSyncPayload,
   type ExcelSyncResult,
@@ -232,7 +233,7 @@ function issueToLocal(issue: ExcelSyncValidationError): LocalIssue {
           ? "Viaje"
           : "Archivo",
     row: issue.row_number,
-    message: issue.message,
+    message: mensajePublicoExcel(issue.message),
   };
 }
 

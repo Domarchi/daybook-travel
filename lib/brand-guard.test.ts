@@ -1,13 +1,19 @@
 // Guardia de la identidad Daybook Travel. Comprueba activos, texto visible y
 // metadata en runtime/public — nunca historia Git ni este propio archivo.
 //
-// Deliberadamente NO revisa lib/manifest.ts, lib/excel-sync.ts ni supabase/*.sql:
-// "FCC" ahí nombra al proyecto/cliente real (el proyecto FCC en Copiapó) o la
-// clave técnica interna `fccId` del sincronizador, no la marca del producto.
+// Los aliases técnicos heredados del sincronizador se conservan para importar
+// libros antiguos, pero sus encabezados, errores y mensajes públicos son Daybook.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import {
+  PERSON_EXCEL_FIELDS,
+  TRIP_EXCEL_FIELDS,
+  mensajePublicoExcel,
+  normalizeExcelPersonRow,
+  normalizeExcelTripRow,
+} from "./excel-sync.ts";
 
 const root = new URL("../", import.meta.url);
 const path = (relative: string) => new URL(relative, root);
@@ -48,6 +54,7 @@ const PUBLIC_SURFACE_FILES = [
   "lib/brand.ts",
   "lib/manifest-pdf.ts",
   "README.md",
+  "CLAUDE.md",
 ];
 
 const FORBIDDEN_PHRASES = [
@@ -55,6 +62,7 @@ const FORBIDDEN_PHRASES = [
   "FCC TRAVEL",
   "FCC Travel",
   "fcc-construccion",
+  "fcc-travel-solicitud.csv",
   "FCC-TRAVEL",
   "#293582", // FCC_BLUE
   "#0c7b3d", // FCC_GREEN
@@ -104,6 +112,30 @@ test("lib/brand.ts expone constantes Daybook, no FCC_*", async () => {
   const content = await readFile(path("lib/brand.ts"), "utf8");
   assert.ok(!/FCC_LOGO|FCC_BLUE|FCC_GREEN/.test(content));
   assert.match(content, /daybook-travel-logo\.png/);
+});
+
+test("CSV y Excel exponen identidad Daybook sin romper aliases antiguos", async () => {
+  const store = await readFile(path("app/store.tsx"), "utf8");
+  assert.match(store, /daybook-travel-solicitud\.csv/);
+  assert.equal(PERSON_EXCEL_FIELDS[0], "daybookId");
+  assert.equal(TRIP_EXCEL_FIELDS[0], "daybookId");
+
+  const person = normalizeExcelPersonRow({
+    daybookId: "no-es-uuid",
+    nombreCompleto: "Persona Prueba",
+    origen: "Santiago",
+    destino: "Copiapó",
+    turno: "4×3",
+    fechaInicio: "2026-09-14",
+    equipaje: "Mochila",
+  }, 2);
+  const trip = normalizeExcelTripRow({ daybookId: "no-es-uuid" }, 2);
+  assert.ok(person.errors.every((error) => !/FCC/i.test(error.message)));
+  assert.ok(trip.errors.every((error) => !/FCC/i.test(error.message)));
+  assert.equal(
+    mensajePublicoExcel("La persona ya no existe en FCC TRAVEL"),
+    "La persona ya no existe en Daybook Travel",
+  );
 });
 
 test("BrandLogo referencia los dos SVG de Daybook (tema oscuro y claro)", async () => {

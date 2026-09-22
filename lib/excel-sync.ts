@@ -9,7 +9,7 @@ export {
   BAGGAGE_OPTIONS,
 } from "./types.ts";
 export const PERSON_EXCEL_FIELDS = [
-  "fccId",
+  "daybookId",
   "codigoPersona",
   "nombreCompleto",
   "origen",
@@ -26,7 +26,7 @@ export const PERSON_EXCEL_FIELDS = [
 ] as const;
 
 export const TRIP_EXCEL_FIELDS = [
-  "fccId",
+  "daybookId",
   "personaId",
   "codigoPersona",
   "persona",
@@ -114,6 +114,14 @@ export type ExcelSyncIssue = {
   constraint?: string;
 };
 
+// La base conserva mensajes y aliases heredados por compatibilidad. Nada de eso
+// debe volver a aparecer como identidad pública en la interfaz.
+export function mensajePublicoExcel(message: string): string {
+  return message
+    .replace(/FCC TRAVEL/gi, "Daybook Travel")
+    .replace(/ID FCC/gi, "ID Daybook");
+}
+
 export type ExcelSyncResultEntry = {
   row_number: number;
   id?: string;
@@ -147,7 +155,7 @@ export type NormalizedRowResult<T> = {
 };
 
 const PERSON_ALIASES = {
-  id: ["fccId", "ID FCC", "fcc_id", "id"],
+  id: ["daybookId", "ID Daybook", "fccId", "ID FCC", "fcc_id", "id"],
   version: ["version", "Versión"],
   employeeCode: [
     "codigoPersona",
@@ -167,7 +175,7 @@ const PERSON_ALIASES = {
 } as const;
 
 const TRIP_ALIASES = {
-  id: ["fccId", "ID FCC", "fcc_id", "id"],
+  id: ["daybookId", "ID Daybook", "fccId", "ID FCC", "fcc_id", "id"],
   version: ["version", "Versión"],
   personId: ["personaId", "ID persona", "person_id"],
   personEmployeeCode: [
@@ -477,7 +485,7 @@ export function normalizeExcelPerson(
   const baggage = parseBaggage(getCell(row, PERSON_ALIASES.baggage));
   const active = parseBoolean(getCell(row, PERSON_ALIASES.active), true);
 
-  if (!id.valid) pushError(errors, "people", rowNumber, "fccId", "El ID FCC no es válido.");
+  if (!id.valid) pushError(errors, "people", rowNumber, "daybookId", "El ID Daybook no es válido.");
   if (!version.valid) pushError(errors, "people", rowNumber, "version", "La versión debe ser un entero positivo.");
   if (id.value && version.value === null) pushError(errors, "people", rowNumber, "version", "Una fila existente necesita su versión.");
   if (!id.value && version.value !== null) pushError(errors, "people", rowNumber, "version", "Deja la versión vacía en una fila nueva.");
@@ -537,7 +545,7 @@ export function normalizeExcelTrip(
   const pnr = textValue(getCell(row, TRIP_ALIASES.pnr));
   const amount = parseAmount(getCell(row, TRIP_ALIASES.amount));
 
-  if (!id.valid) pushError(errors, "trips", rowNumber, "fccId", "El ID FCC no es válido.");
+  if (!id.valid) pushError(errors, "trips", rowNumber, "daybookId", "El ID Daybook no es válido.");
   if (!version.valid) pushError(errors, "trips", rowNumber, "version", "La versión debe ser un entero positivo.");
   if (id.value && version.value === null) pushError(errors, "trips", rowNumber, "version", "Una fila existente necesita su versión.");
   if (!id.value && version.value !== null) pushError(errors, "trips", rowNumber, "version", "Deja la versión vacía en una fila nueva.");
