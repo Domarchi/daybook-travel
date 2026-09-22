@@ -103,7 +103,7 @@ const plural = (n: number, uno: string, varios: string) =>
 // una línea en blanco, y un pie con el total para cotejar contra la pantalla.
 export function textoDeManifiesto(bloques: Bloque[], hoy: string): string {
   const lineas: string[] = [
-    "SOLICITUD DE PASAJES — FCC Copiapó",
+    "SOLICITUD DE PASAJES — Daybook Travel",
     `Generada el ${fechaCorta(hoy)}`,
   ];
   let fechaAnterior = "";

@@ -89,7 +89,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Desde aquí hasta el final va el CSS propio de FCC TRAVEL, dentro de una capa.
+   Desde aquí hasta el final va el CSS propio de Daybook Travel, dentro de una capa.
 
    Estar en una capa lo pone POR DEBAJO de las utilidades de Tailwind en la
    prioridad de CSS. Sin esto, una clase como "bg-primary" de un componente de
@@ -104,34 +104,31 @@
 
 :root {
   color-scheme: dark;
-  /* Superficies azul grisáceas de la identidad FCC. Los colores operativos
-     de turnos y estados conservan sus significados. */
-  --bg: #0c1118;
-  --brand-blue: #293582;
-  --brand-green: #0c7b3d;
-  --brand-blue-wash: #1c2a51;
-  --brand-green-wash: #102c29;
-  --brand-line-blue: #28395b;
-  --brand-line-green: #194236;
-  --logo-filter: url("#fcc-logo-dark");
+  /* Superficies de grafito, marfil y dorado. Los colores operativos de turnos
+     y estados conservan sus significados. */
+  --bg: #11120f;
+  --brand-ink-wash: #24251f;
+  --brand-gold-wash: #5d4314;
+  --brand-line-ink: #48483f;
+  --brand-line-gold: #8d681e;
   /* Color de los puntos del fondo de la pantalla de entrada, en componentes
      RGB sueltos: dot-field.tsx los lee y les pone su propia opacidad. */
   --dot: 230, 230, 230;
   /* Fuerza de los puntos. 1 es la entrada, a plena luz; las pantallas con
      texto encima la bajan por su cuenta más abajo. */
   --dot-alpha: 1;
-  --surface: #131b25;
-  --surface-raised: #18212c;
-  --surface-soft: #1e2936;
-  --surface-hover: #263343;
-  --text: #f5f5f5;
-  --fg-soft: #cbd5df;
-  --muted: #a0acb9;
-  --border: #2b3a49;
-  --border-strong: #405369;
-  --action: #f2f2f2;
+  --surface: #1b1c18;
+  --surface-raised: #24251f;
+  --surface-soft: #2c2d27;
+  --surface-hover: #363731;
+  --text: #f3efe4;
+  --fg-soft: #d5d0c3;
+  --muted: #b3aea2;
+  --border: #46463d;
+  --border-strong: #656359;
+  --action: #f3efe4;
   --action-hover: #ffffff;
-  --action-text: #121212;
+  --action-text: #11120f;
   --focus: #f0c96a;
   --four: #f47a45;
   --four-soft: rgba(244, 122, 69, 0.14);
@@ -161,29 +158,28 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f6f8;
-  --brand-blue-wash: #cad3e8;
-  --brand-green-wash: #c8dfd2;
-  --brand-line-blue: #99abc9;
-  --brand-line-green: #94bfa6;
-  --logo-filter: url("#fcc-logo-alpha");
-  --dot: 46, 66, 92;
+  --bg: #f3efe4;
+  --brand-ink-wash: #dad6c9;
+  --brand-gold-wash: #efdcae;
+  --brand-line-ink: #aaa79a;
+  --brand-line-gold: #c69942;
+  --dot: 17, 18, 15;
   --dot-alpha: 1;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --surface-soft: #edf1f4;
-  --surface-hover: #e7ecef;
-  --text: #151b23;
-  --fg-soft: #485360;
+  --surface: #fffdf8;
+  --surface-raised: #fffdf8;
+  --surface-soft: #ebe6d9;
+  --surface-hover: #e3dece;
+  --text: #11120f;
+  --fg-soft: #4f5048;
   /* Oscurecido desde #687482, que daba 4.36 sobre el fondo de pagina y no
      alcanzaba el minimo AA de 4.5. Este da 5.0 sobre el fondo y 5.4 sobre las
      tarjetas blancas. El tema oscuro ya iba holgado y no se toca. */
-  --muted: #5f6b78;
-  --border: #dce2e7;
-  --border-strong: #c5ced7;
-  --action: #18212c;
-  --action-hover: #0a1017;
-  --action-text: #ffffff;
+  --muted: #5f6058;
+  --border: #d7d1c2;
+  --border-strong: #c1baaa;
+  --action: #11120f;
+  --action-hover: #292a25;
+  --action-text: #f3efe4;
   --focus: #9a6b00;
   --four: #c95728;
   --four-soft: rgba(201, 87, 40, 0.1);
@@ -301,11 +297,26 @@ small {
   isolation: isolate;
 }
 
-.fcc-logo {
+.daybook-logo,
+.daybook-mark {
   display: inline-block;
   flex-shrink: 0;
-  width: 150px;
 }
+
+.daybook-logo { width: 164px; }
+.daybook-mark { display: none; width: 42px; }
+
+.daybook-logo img,
+.daybook-mark img { display: block; width: 100%; height: auto; }
+
+.daybook-logo-on-light,
+.daybook-mark-on-light { display: none !important; }
+
+:root[data-theme="light"] .daybook-logo-on-dark,
+:root[data-theme="light"] .daybook-mark-on-dark { display: none !important; }
+
+:root[data-theme="light"] .daybook-logo-on-light,
+:root[data-theme="light"] .daybook-mark-on-light { display: block !important; }
 
 .brand-identity {
   display: grid;
@@ -314,7 +325,7 @@ small {
   gap: 5px;
 }
 
-.brand-identity .fcc-logo { width: 100%; }
+.brand-identity .daybook-logo { width: 100%; }
 
 .brand-identity-caption {
   color: var(--muted);
@@ -323,25 +334,6 @@ small {
   line-height: 1.3;
   letter-spacing: 0.025em;
   white-space: nowrap;
-}
-
-.brand-identity-caption span { padding: 0 4px; }
-
-.fcc-logo-window {
-  position: relative;
-  display: block;
-  aspect-ratio: 2.9 / 1;
-  overflow: hidden;
-}
-
-.fcc-logo-window img {
-  position: absolute;
-  width: 128.2%;
-  max-width: none;
-  height: auto;
-  left: -16.5%;
-  top: -28.3%;
-  filter: var(--logo-filter);
 }
 
 .brand-background {
@@ -363,16 +355,18 @@ small {
 
 :root[data-theme="light"] .brand-background-top { opacity: 0.65; }
 :root[data-theme="light"] .brand-background-bottom { opacity: 0.85; }
-:root[data-theme="light"] .brand-background-bottom path { stroke-width: 1.5; }
+:root[data-theme="light"] .brand-background-bottom circle { stroke-width: 1.5; }
 
-.brand-shape-blue { fill: var(--brand-blue-wash); }
-.brand-shape-green { fill: var(--brand-green-wash); }
-.brand-line-blue { fill: none; stroke: var(--brand-line-blue); stroke-width: 1; }
-.brand-line-green { fill: none; stroke: var(--brand-line-green); stroke-width: 1; }
+.brand-shape-ink { fill: var(--brand-ink-wash); }
+.brand-shape-gold { fill: var(--brand-gold-wash); }
+.brand-line-ink { fill: none; stroke: var(--brand-line-ink); stroke-width: 1; }
+.brand-line-gold { fill: none; stroke: var(--brand-line-gold); stroke-width: 1; }
 
 @media (max-width: 430px) {
-  .fcc-logo { width: 128px; }
-  .brand-identity { width: 142px; gap: 4px; }
+  .brand-identity { width: 42px; gap: 0; }
+  .brand-identity .daybook-logo,
+  .brand-identity-caption { display: none; }
+  .brand-identity .daybook-mark { display: block; }
   .brand-background-top { top: -80px; right: -180px; }
   .brand-background-bottom { bottom: -40px; left: -180px; }
   :root[data-theme="light"] .brand-background-top { top: -35px; right: -140px; }

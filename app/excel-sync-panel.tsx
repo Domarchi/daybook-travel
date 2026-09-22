@@ -28,7 +28,7 @@ import { SectionKicker } from "@/components/ui/section-kicker";
 import { TableWrap } from "@/components/ui/table-wrap";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
-import { FCC_BLUE, cabeceraExcel, cargarLogo, logoParaExcel } from "@/lib/brand";
+import { DAYBOOK_GOLD, cabeceraExcel, cargarLogo, logoParaExcel } from "@/lib/brand";
 import { localDate } from "@/lib/format";
 
 // Las dos zonas de contenido del panel comparten caja.
@@ -173,7 +173,7 @@ function rowsToRecords(
   );
   if (headerRow.score < 3) {
     throw new Error(
-      `No encontramos los encabezados de ${sheet} dentro de las primeras 10 filas. Usa el libro descargado desde FCC TRAVEL.`,
+      `No encontramos los encabezados de ${sheet} dentro de las primeras 10 filas. Usa el libro descargado desde Daybook Travel.`,
     );
   }
   const { headers } = headerRow;
@@ -333,7 +333,7 @@ export default function ExcelSyncPanel({
         value,
         fontWeight: "bold" as const,
         color: "#ffffff",
-        backgroundColor: FCC_BLUE,
+        backgroundColor: DAYBOOK_GOLD,
         alignVertical: "center" as const,
         height: 34,
       });
@@ -416,7 +416,7 @@ export default function ExcelSyncPanel({
         [
           cell("3"),
           cell(
-            "Conserva ID FCC y Versión al editar registros descargados desde FCC TRAVEL.",
+            "Conserva ID y Versión al editar registros descargados desde Daybook Travel.",
           ),
         ],
         [
@@ -428,7 +428,7 @@ export default function ExcelSyncPanel({
         [
           cell("5"),
           cell(
-            "Carga el archivo en FCC TRAVEL, revisa el resumen y recién entonces aplica los cambios.",
+            "Carga el archivo en Daybook Travel, revisa el resumen y recién entonces aplica los cambios.",
           ),
         ],
         [
@@ -464,8 +464,8 @@ export default function ExcelSyncPanel({
         showGridLines: false,
         fileName:
           kind === "current"
-            ? `FCC-TRAVEL-${date}.xlsx`
-            : "FCC-TRAVEL-plantilla.xlsx",
+            ? `daybook-travel-${date}.xlsx`
+            : "daybook-travel-plantilla.xlsx",
       });
       setMessage(
         kind === "current"
@@ -517,7 +517,7 @@ export default function ExcelSyncPanel({
       const tripsSheet = names.find((name) => normalizeName(name) === "viajes");
       if (!peopleSheet && !tripsSheet) {
         throw new Error(
-          "No encontramos las hojas Personas o Viajes. Usa la plantilla de FCC TRAVEL.",
+          "No encontramos las hojas Personas o Viajes. Usa la plantilla de Daybook Travel.",
         );
       }
       const [peopleMatrix, tripsMatrix] = await Promise.all([
@@ -644,7 +644,7 @@ export default function ExcelSyncPanel({
           <CheckCircle2 size={28} />
         </span>
         <SectionKicker>SINCRONIZACIÓN COMPLETA</SectionKicker>
-        <h3 className={TITULO}>El libro ya está reflejado en FCC TRAVEL</h3>
+        <h3 className={TITULO}>El libro ya está reflejado en Daybook Travel</h3>
         <p>{message}</p>
         <div className="mt-3 grid w-[min(360px,100%)] grid-cols-2 gap-2">
           <span className={TARJETA}>
@@ -1038,7 +1038,7 @@ function buildPreviewLines(
           Number(record.version) !== Number(current.version)
         ) {
           action = "conflict";
-          detail = "La versión del registro ya cambió en FCC TRAVEL.";
+          detail = "La versión del registro ya cambió en Daybook Travel.";
         } else {
           action = hasChanges(
             record as Record<string, unknown>,
@@ -1096,7 +1096,7 @@ function buildPreviewLines(
           Number(record.version) !== Number(current.version)
         ) {
           action = "conflict";
-          detail = "La versión del viaje ya cambió en FCC TRAVEL.";
+          detail = "La versión del viaje ya cambió en Daybook Travel.";
         } else {
           const importedPersonId =
             String(record.person_id ?? "").trim() ||

@@ -108,7 +108,7 @@ export default function Workspace() {
             </>
           )}
           <footer className="mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]">
-            <span>FCC TRAVEL / Copiapó</span>
+            <span>Daybook Travel / Copiapó</span>
             <span>Personas · Planificación · Pasajes</span>
           </footer>
         </main>

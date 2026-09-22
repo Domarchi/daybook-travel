@@ -1,10 +1,10 @@
-# FCC TRAVEL
+# Daybook Travel
 
-Aplicación interna para organizar personas, turnos y pasajes del proyecto FCC en Copiapó.
+Aplicación interna para organizar personas, turnos y pasajes en Copiapó.
 
 Producción: [relevo-chi.vercel.app](https://relevo-chi.vercel.app/)
 
-Manual para Katy y Tamara: [docs/Manual_FCC_TRAVEL.pdf](docs/Manual_FCC_TRAVEL.pdf)
+> El manual histórico se retiró del circuito distribuible porque mostraba la identidad anterior. Debe regenerarse desde una fuente reproducible antes de volver a publicarse.
 
 ## Funciones principales
 

@@ -7,7 +7,7 @@ import { cabeceraExcel, logoParaExcel } from "./brand.ts";
 import { PERSON_EXCEL_FIELDS } from "./excel-sync.ts";
 import { crearManifiestoPdf } from "./manifest-pdf.ts";
 
-const logo = () => readFile(new URL("../public/brand/fcc-construccion.png", import.meta.url));
+const logo = () => readFile(new URL("../public/brand/daybook-travel-logo.png", import.meta.url));
 
 test("el Excel con logo conserva encabezados importables, identificadores y acentos", async () => {
   const image = logoParaExcel(await logo());
@@ -39,7 +39,7 @@ test("el PDF de un bloque numeroso se pagina y repite su identidad y pie", async
   assert.ok(pdf.getNumberOfPages() >= 5);
   for (let page = 1; page <= pdf.getNumberOfPages(); page++) {
     const commands = JSON.stringify(pdf.internal.pages[page]);
-    assert.ok(commands.includes("FCC TRAVEL"));
+    assert.ok(commands.includes("DAYBOOK TRAVEL"));
     assert.ok(commands.includes(`${page} / ${pdf.getNumberOfPages()}`));
     assert.ok(commands.includes("/I0 Do"), "cada página debe incorporar el logo");
   }

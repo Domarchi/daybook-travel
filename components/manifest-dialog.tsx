@@ -81,7 +81,7 @@ export default function ManifestDialog() {
       ]);
       const date = localDate();
       const pdf = await crearManifiestoPdf(bloques, date, logo, demo);
-      pdf.save(`FCC-TRAVEL-solicitud-${date}.pdf`);
+      pdf.save(`daybook-travel-solicitud-${date}.pdf`);
     } catch {
       setPdfError("No pudimos crear el PDF. Inténtalo nuevamente.");
     } finally {

@@ -24,7 +24,7 @@ export function LoadingView() {
     >
       <BrandBackground />
       <LoadingMark className="relative z-[1]" />
-      <p className="relative z-[1]">Cargando FCC TRAVEL…</p>
+      <p className="relative z-[1]">Cargando Daybook Travel…</p>
     </main>
   );
 }
@@ -67,7 +67,7 @@ export function LoginView({
             Entra a tu agenda
           </h2>
           <p className="mt-2 mb-[22px] text-[13px] text-muted">
-            Usa el correo habilitado para FCC TRAVEL.
+            Usa el correo habilitado para Daybook Travel.
           </p>
           <form onSubmit={login} aria-busy={busy} className="grid gap-[15px]">
             <Label>
@@ -119,7 +119,7 @@ export function LoginView({
         </div>
       </section>
       <footer className={"relative z-[1] " + PIE}>
-        <span>FCC TRAVEL</span>
+        <span>Daybook Travel</span>
         <span>Coordinación de viajes de obra</span>
       </footer>
     </main>

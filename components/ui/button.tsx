@@ -1,6 +1,6 @@
 "use client";
 
-// El boton de FCC TRAVEL, escrito en Tailwind.
+// El botón de Daybook Travel, escrito en Tailwind.
 //
 // Esto NO es el boton de shadcn tal cual viene: es una traduccion fiel del que
 // ya existia en globals.css, clase por clase, para que la migracion no cambie
