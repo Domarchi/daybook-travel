@@ -64,6 +64,7 @@ const FORBIDDEN_PHRASES = [
   "fcc-construccion",
   "fcc-travel-solicitud.csv",
   "FCC-TRAVEL",
+  "ID FCC",
   "#293582", // FCC_BLUE
   "#0c7b3d", // FCC_GREEN
   "#135932", // verde heredado en el PDF

@@ -1027,12 +1027,12 @@ function buildPreviewLines(
     if (id) {
       if (seenPersonIds.has(id)) {
         action = "conflict";
-        detail = "El mismo ID FCC aparece más de una vez en el libro.";
+        detail = "El mismo ID Daybook aparece más de una vez en el libro.";
       } else {
         const current = currentPeople.get(id);
         if (!current) {
           action = "conflict";
-          detail = "El ID FCC no existe en los datos actuales.";
+          detail = "El ID Daybook no existe en los datos actuales.";
         } else if (
           record.version !== undefined &&
           current.version !== undefined &&
@@ -1085,12 +1085,12 @@ function buildPreviewLines(
     if (id) {
       if (seenTripIds.has(id)) {
         action = "conflict";
-        detail = "El mismo ID FCC aparece más de una vez en el libro.";
+        detail = "El mismo ID Daybook aparece más de una vez en el libro.";
       } else {
         const current = currentTrips.get(id);
         if (!current) {
           action = "conflict";
-          detail = "El ID FCC no existe en los datos actuales.";
+          detail = "El ID Daybook no existe en los datos actuales.";
         } else if (
           record.version !== undefined &&
           current.version !== undefined &&
