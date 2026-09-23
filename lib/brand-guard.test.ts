@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import {
   PERSON_EXCEL_FIELDS,
   TRIP_EXCEL_FIELDS,
+  issuePublicoAlLeerExcel,
   mensajePublicoExcel,
   normalizeExcelPersonRow,
   normalizeExcelTripRow,
@@ -104,6 +105,16 @@ for (const relative of PUBLIC_SURFACE_FILES) {
   });
 }
 
+test("lib/manifest-pdf.ts se conserva como texto sin bytes de control literales", async () => {
+  const content = await readFile(path("lib/manifest-pdf.ts"));
+  const controls = [...content].filter(
+    (byte) => byte === 0 || byte === 0x1f || byte === 0x7f,
+  );
+
+  assert.deepEqual(controls, []);
+  assert.ok(content.includes(Buffer.from("[\\u0000-\\u001f\\u007f]")));
+});
+
 test("app/layout.tsx anuncia Daybook Travel en la metadata", async () => {
   const content = await readFile(path("app/layout.tsx"), "utf8");
   assert.match(content, /title:\s*"Daybook Travel/);
@@ -136,6 +147,24 @@ test("CSV y Excel exponen identidad Daybook sin romper aliases antiguos", async 
   assert.equal(
     mensajePublicoExcel("La persona ya no existe en FCC TRAVEL"),
     "La persona ya no existe en Daybook Travel",
+  );
+});
+
+test("el catch de lectura de Excel no expone el alias histórico de un encabezado duplicado", async () => {
+  const issue = issuePublicoAlLeerExcel(
+    new Error('La hoja Personas repite el encabezado “ID FCC”.'),
+  );
+
+  assert.deepEqual(issue, {
+    entity: "Archivo",
+    message: "La hoja Personas repite el encabezado “ID Daybook”.",
+  });
+  assert.doesNotMatch(issue.message, /ID FCC/i);
+
+  const panel = await readFile(path("app/excel-sync-panel.tsx"), "utf8");
+  assert.match(
+    panel,
+    /catch \(error\) \{[\s\S]*setIssues\(\[issuePublicoAlLeerExcel\(error\)\]\);/,
   );
 });
 

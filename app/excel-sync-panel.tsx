@@ -17,6 +17,7 @@ import {
   PERSON_EXCEL_FIELDS,
   TRIP_EXCEL_FIELDS,
   buildExcelSyncPayload,
+  issuePublicoAlLeerExcel,
   mensajePublicoExcel,
   type ExcelRow,
   type ExcelSyncPayload,
@@ -558,15 +559,7 @@ export default function ExcelSyncPanel({
     } catch (error) {
       setPayload(null);
       setPreview([]);
-      setIssues([
-        {
-          entity: "Archivo",
-          message:
-            error instanceof Error
-              ? error.message
-              : "No pudimos leer el archivo. Descarga la plantilla e inténtalo nuevamente.",
-        },
-      ]);
+      setIssues([issuePublicoAlLeerExcel(error)]);
       setPhase("preview");
     }
   }

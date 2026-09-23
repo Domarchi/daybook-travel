@@ -122,6 +122,17 @@ export function mensajePublicoExcel(message: string): string {
     .replace(/ID FCC/gi, "ID Daybook");
 }
 
+export function issuePublicoAlLeerExcel(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : "No pudimos leer el archivo. Descarga la plantilla e inténtalo nuevamente.";
+  return {
+    entity: "Archivo" as const,
+    message: mensajePublicoExcel(message),
+  };
+}
+
 export type ExcelSyncResultEntry = {
   row_number: number;
   id?: string;
