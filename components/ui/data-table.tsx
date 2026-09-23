@@ -1,6 +1,6 @@
 "use client";
 
-// La tabla de FCC TRAVEL, traducida a Tailwind clase por clase desde las reglas
+// La tabla de Daybook Travel, traducida a Tailwind clase por clase desde las reglas
 // `table`, `th` y `td` de la capa fcc.
 //
 // Lo importante de esta tabla no es como se ve ancha, es que a 760 px deja de

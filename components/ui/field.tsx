@@ -1,6 +1,6 @@
 "use client";
 
-// Las primitivas de formulario de FCC TRAVEL, traducidas a Tailwind.
+// Las primitivas de formulario de Daybook Travel, traducidas a Tailwind.
 //
 // Igual que el boton: no son las de shadcn tal cual vienen, son las reglas que
 // ya existian en globals.css escritas clase por clase. Los cinco dialogos las

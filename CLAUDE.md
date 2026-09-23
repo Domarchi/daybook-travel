@@ -1,8 +1,8 @@
 @AGENTS.md
 
-# FCC TRAVEL — guía para Claude Code
+# DAYBOOK TRAVEL — guía para Claude Code
 
-App interna para organizar personas, turnos y pasajes aéreos del proyecto FCC en Copiapó.
+App interna Daybook Travel para organizar personas, turnos y pasajes aéreos de la operación en Copiapó.
 La usan Katy y Tamara. Producción: relevo-chi.vercel.app
 
 **La idea que ordena todo:** las fechas de viaje deberían derivarse del turno de cada persona

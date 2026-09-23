@@ -31,7 +31,7 @@ export default function AccessState() {
           <Users size={25} />
           <StateTitle as="h1">Tu cuenta todavía no está habilitada</StateTitle>
           <StateText>
-            Solicita al responsable de FCC TRAVEL que agregue tu correo al
+            Solicita al responsable de Daybook Travel que agregue tu correo al
             equipo.
           </StateText>
           <Button type="button" onClick={reload}>

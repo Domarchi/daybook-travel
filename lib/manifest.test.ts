@@ -137,7 +137,7 @@ test("el texto lleva encabezado, un bloque por día y ruta, y un pie con el tota
   assert.equal(
     texto,
     [
-      "SOLICITUD DE PASAJES — FCC Copiapó",
+      "SOLICITUD DE PASAJES — Daybook Travel",
       "Generada el 10 de septiembre de 2026",
       "",
       "LUNES 14 DE SEPTIEMBRE DE 2026",

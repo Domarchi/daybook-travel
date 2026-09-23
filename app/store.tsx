@@ -941,7 +941,7 @@ function useStoreValue() {
     );
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "fcc-travel-solicitud.csv";
+    anchor.download = "daybook-travel-solicitud.csv";
     anchor.click();
     URL.revokeObjectURL(url);
     setSelectedTrips(rows.map((trip) => trip.id));

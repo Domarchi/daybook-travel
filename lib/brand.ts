@@ -1,12 +1,12 @@
 import type { ImageType, SheetData } from "write-excel-file";
 
-export const FCC_LOGO = "/brand/fcc-construccion.png";
-export const FCC_BLUE = "#293582";
-export const FCC_GREEN = "#0c7b3d";
+export const DAYBOOK_LOGO = "/brand/daybook-travel-logo.png";
+export const DAYBOOK_INK = "#11120F";
+export const DAYBOOK_GOLD = "#D99B27";
 
 export async function cargarLogo(): Promise<Uint8Array> {
-  const response = await fetch(FCC_LOGO);
-  if (!response.ok) throw new Error("No se pudo cargar el logo de FCC.");
+  const response = await fetch(DAYBOOK_LOGO);
+  if (!response.ok) throw new Error("No se pudo cargar el logo de Daybook Travel.");
   return new Uint8Array(await response.arrayBuffer());
 }
 
@@ -15,11 +15,11 @@ export function logoParaExcel(content: Uint8Array): ImageType<ArrayBuffer> {
     content: content.slice().buffer,
     contentType: "image/png",
     width: 220,
-    height: 220 * 279 / 550,
+    height: (220 * 288) / 984,
     dpi: 96,
     anchor: { row: 1, column: 1 },
-    title: "FCC Construcción",
-    description: "Logo institucional de FCC Construcción",
+    title: "Daybook Travel",
+    description: "Logo de Daybook Travel",
   };
 }
 
@@ -28,7 +28,7 @@ export function logoParaExcel(content: Uint8Array): ImageType<ArrayBuffer> {
 export function cabeceraExcel(title: string, date: string, demo: boolean): SheetData {
   return [
     [{ value: "", height: 84 }],
-    [{ value: `FCC TRAVEL · ${title}`, fontWeight: "bold", fontSize: 16, color: FCC_BLUE, height: 28, span: 2 }],
+    [{ value: `DAYBOOK TRAVEL · ${title}`, fontWeight: "bold", fontSize: 16, color: DAYBOOK_INK, height: 28, span: 2 }],
     [{ value: `Copiapó · ${date}${demo ? " · DEMOSTRACIÓN: datos ficticios" : ""}`, fontSize: 10, color: "#485360", height: 24, span: 2 }],
   ];
 }
