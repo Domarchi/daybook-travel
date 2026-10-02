@@ -327,6 +327,14 @@ small {
 
 .brand-identity .daybook-logo { width: 100%; }
 
+.login-header-identity { width: 168px; }
+
+.login-card-mark {
+  display: inline-block;
+  width: 56px;
+  margin-bottom: 16px;
+}
+
 .brand-identity-caption {
   color: var(--muted);
   font-size: 10px;
@@ -370,6 +378,11 @@ small {
   .brand-background-top { top: -80px; right: -180px; }
   .brand-background-bottom { bottom: -40px; left: -180px; }
   :root[data-theme="light"] .brand-background-top { top: -35px; right: -140px; }
+
+  .login-header-identity { width: 168px; gap: 5px; }
+  .login-header-identity .daybook-logo { display: inline-block; }
+  .login-header-identity .daybook-mark { display: none; }
+  .login-header-identity .brand-identity-caption { display: block; }
 }
 
 /* Solo el contenido. El velo de los diálogos NO va aquí: es position: fixed y
