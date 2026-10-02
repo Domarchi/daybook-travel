@@ -4,6 +4,7 @@ import { FormEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
 import BrandBackground from "@/components/brand-background";
 import BrandIdentity from "@/components/ui/brand-identity";
+import BrandMark from "@/components/ui/brand-mark";
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
@@ -12,7 +13,7 @@ import { SectionKicker } from "@/components/ui/section-kicker";
 
 // El pie es el mismo de la aplicación, así que las clases son las mismas.
 const PIE =
-  "mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
+  "mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:mt-4 max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
 // Comparte el fondo estático de la entrada para evitar un cambio visual de fondo.
@@ -55,19 +56,23 @@ export function LoginView({
     <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">
       <BrandBackground />
       <header className="relative z-[1] flex min-h-[92px] items-center justify-between gap-5 border-b border-line py-3">
-        <BrandIdentity />
+        <BrandIdentity className="login-header-identity" />
         <div className="flex items-center gap-[14px] text-[10px] font-[750] tracking-[0.09em] text-muted">
           <ThemeToggle theme={theme} onToggle={toggleTheme} compact />
         </div>
       </header>
-      <section className="relative z-[1] mx-auto my-10 grid w-[min(100%,430px)] content-center max-[760px]:my-[34px]">
-        <div className="rounded-lg border border-line bg-surface p-[clamp(28px,4vw,40px)] shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-7">
+      <section className="relative z-[1] mx-auto my-8 grid w-[min(100%,430px)] content-center gap-3 max-[760px]:my-4">
+        <div
+          data-login-card
+          className="rounded-lg border border-line bg-surface p-[clamp(28px,4vw,40px)] shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-6"
+        >
+          <BrandMark className="login-card-mark" />
           <SectionKicker>Acceso al equipo</SectionKicker>
           <h2 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
-            Entra a tu agenda
+            Bienvenido a Daybook Travel
           </h2>
           <p className="mt-2 mb-[22px] text-[13px] text-muted">
-            Usa el correo habilitado para Daybook Travel.
+            Usa el mismo correo y contraseña de Daybook Asistencia.
           </p>
           <form onSubmit={login} aria-busy={busy} className="grid gap-[15px]">
             <Label>
@@ -103,20 +108,18 @@ export function LoginView({
               {notice}
             </p>
           )}
-          <div className="mt-[22px] mb-[14px] grid gap-[7px] border-t border-line pt-[18px] text-[11px] text-muted">
-            <span>¿Quieres conocerla primero?</span>
-            <Button
-              type="button"
-              onClick={enterDemo}
-              className="justify-between"
-            >
-              Abrir demostración <ArrowUpRight size={18} />
-            </Button>
-          </div>
-          <small className="text-muted">
+          <small className="mt-4 block text-muted">
             El responsable de la aplicación debe habilitar tu correo.
           </small>
         </div>
+        <Button
+          data-demo-action
+          type="button"
+          onClick={enterDemo}
+          className="w-full justify-between"
+        >
+          Abrir demostración <ArrowUpRight size={18} />
+        </Button>
       </section>
       <footer className={"relative z-[1] " + PIE}>
         <span>Daybook Travel</span>
