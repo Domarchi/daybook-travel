@@ -68,9 +68,9 @@ export function LoginView({
         >
           <BrandMark className="login-card-mark" />
           <SectionKicker>Acceso al equipo</SectionKicker>
-          <h2 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
+          <h1 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
             Bienvenido a Daybook Travel
-          </h2>
+          </h1>
           <p className="mt-2 mb-[22px] text-[13px] text-muted">
             Usa el mismo correo y contraseña de Daybook Asistencia.
           </p>

@@ -44,3 +44,47 @@ test("el login conserva la identidad completa y la jerarquía de Daybook Asisten
   assert.match(view, /data-login-card/);
   assert.match(view, /data-demo-action/);
 });
+
+test("la identidad usa el descriptor aprobado de Travel", async () => {
+  const identity = await read("components/ui/brand-identity.tsx");
+
+  assert.match(
+    identity,
+    />\s*Gestión de traslados · FCC\s*</,
+    "la identidad debe mostrar el descriptor exacto aprobado",
+  );
+  assert.doesNotMatch(identity, /Coordinación de viajes/);
+});
+
+test("el login comienza con un único h1", async () => {
+  const view = await read("components/login-view.tsx");
+
+  assert.equal((view.match(/<h1\b/g) ?? []).length, 1, "el login debe tener un único h1");
+  assert.equal((view.match(/<h2\b/g) ?? []).length, 0, "el login no debe comenzar en h2");
+});
+
+test("el harness recorre y activa el login con teclado nativo", async () => {
+  const browser = await read("scripts/browser-login.mjs");
+
+  assert.match(
+    browser,
+    /const keyboardStops = \[[\s\S]*?button\[aria-label\^="Activar modo"\][\s\S]*?input\[name="email"\][\s\S]*?input\[name="password"\][\s\S]*?form button[\s\S]*?\[data-demo-action\][\s\S]*?\];/,
+    "el contrato rápido debe fijar tema → correo → contraseña → submit → demo",
+  );
+  assert.match(
+    browser,
+    /for \(const stop of keyboardStops\) \{\s*await pressTab\(cdp\);\s*await assertKeyboardFocus\(cdp, stop, label\);/,
+    "cada parada debe alcanzarse con Tab y comprobar el foco real",
+  );
+  assert.match(
+    browser,
+    /async function pressEnter\(cdp\)[\s\S]*?type: "rawKeyDown"[\s\S]*?type: "char"[\s\S]*?text: "\\r"[\s\S]*?type: "keyUp"/,
+    "Enter debe usar rawKeyDown → char con retorno → keyUp",
+  );
+  assert.equal(
+    (browser.match(/await pressEnter\(cdp\);/g) ?? []).length,
+    2,
+    "tema y demo deben activarse con Enter nativo",
+  );
+  assert.doesNotMatch(browser, /\.click\(\)/, "el flujo declarado de teclado no puede usar click() JavaScript");
+});

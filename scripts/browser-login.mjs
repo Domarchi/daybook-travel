@@ -254,6 +254,59 @@ function assertNear(actual, expected, tolerance, label) {
   );
 }
 
+async function pressTab(cdp) {
+  await cdp.send("Input.dispatchKeyEvent", {
+    type: "rawKeyDown",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+    nativeVirtualKeyCode: 9,
+  });
+  await cdp.send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Tab",
+    code: "Tab",
+    windowsVirtualKeyCode: 9,
+    nativeVirtualKeyCode: 9,
+  });
+}
+
+async function pressEnter(cdp) {
+  const key = {
+    key: "Enter",
+    code: "Enter",
+    windowsVirtualKeyCode: 13,
+    nativeVirtualKeyCode: 13,
+  };
+  await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...key });
+  await cdp.send("Input.dispatchKeyEvent", {
+    type: "char",
+    text: "\r",
+    unmodifiedText: "\r",
+    ...key,
+  });
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...key });
+}
+
+async function assertKeyboardFocus(cdp, stop, label) {
+  const focus = await cdp.evaluate(`(() => {
+    const expected = document.querySelector(${JSON.stringify(stop.selector)});
+    const active = document.activeElement;
+    const style = active ? getComputedStyle(active) : null;
+    return {
+      matches: Boolean(expected && active === expected),
+      tag: active?.tagName,
+      name: active?.getAttribute("name"),
+      text: active?.textContent?.trim(),
+      outline: style?.outlineStyle,
+      outlineWidth: style?.outlineWidth,
+    };
+  })()`);
+  assert.equal(focus.matches, true, `foco ${stop.name} ${label}: ${JSON.stringify(focus)}`);
+  assert.notEqual(focus.outline, "none", `foco visible ${stop.name} ${label}: ${JSON.stringify(focus)}`);
+  assert.notEqual(focus.outlineWidth, "0px", `foco visible ${stop.name} ${label}: ${JSON.stringify(focus)}`);
+}
+
 async function openTarget(cdpPort) {
   const response = await fetch(`http://127.0.0.1:${cdpPort}/json/new?about%3Ablank`, {
     method: "PUT",
@@ -295,7 +348,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     await cdp.send("Page.navigate", { url: appUrl });
     await waitUntil(
       cdp,
-      `document.querySelector("h2")?.textContent?.trim() === "Bienvenido a Daybook Travel"`,
+      `document.querySelector("h1")?.textContent?.trim() === "Bienvenido a Daybook Travel"`,
       `título de login en ${label}`,
     );
     await waitUntil(
@@ -330,13 +383,13 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
         },
         logo: rect(".login-header-identity .daybook-logo"),
         mark: rect(".login-card-mark"),
-        title: rect("h2"),
+        title: rect("h1"),
         card: rect("[data-login-card]"),
         email: rect('input[name="email"]'),
         password: rect('input[name="password"]'),
         submit: rect("form button"),
         demo: rect("[data-demo-action]"),
-        titleText: document.querySelector("h2")?.textContent?.trim(),
+        titleText: document.querySelector("h1")?.textContent?.trim(),
         copy: document.querySelector("[data-login-card] p")?.textContent?.trim(),
       };
     })()`);
@@ -378,36 +431,33 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       `overflow vertical ${label}: ${JSON.stringify(metrics.document)}`,
     );
 
-    await cdp.send("Input.dispatchKeyEvent", {
-      type: "rawKeyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9,
-    });
-    await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
-    await cdp.send("Input.dispatchKeyEvent", {
-      type: "rawKeyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9,
-    });
-    await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 });
-    const focus = await cdp.evaluate(`(() => ({
-      name: document.activeElement?.getAttribute("name"),
-      outline: getComputedStyle(document.activeElement).outlineStyle,
-      outlineWidth: getComputedStyle(document.activeElement).outlineWidth,
-    }))()`);
-    assert.equal(focus.name, "email", `orden de foco ${label}: ${JSON.stringify(focus)}`);
-    assert.notEqual(focus.outline, "none", `foco visible ${label}: ${JSON.stringify(focus)}`);
-    assert.notEqual(focus.outlineWidth, "0px", `foco visible ${label}: ${JSON.stringify(focus)}`);
-
     const initialTheme = await cdp.evaluate(`document.documentElement.dataset.theme`);
-    await cdp.evaluate(`document.querySelector('button[aria-label^="Activar modo"]')?.click()`);
-    await waitUntil(
-      cdp,
-      `document.documentElement.dataset.theme !== ${JSON.stringify(initialTheme)}`,
-      `cambio de tema en ${label}`,
-    );
-
-    await cdp.evaluate(`document.querySelector("[data-demo-action]")?.click()`);
+    const keyboardStops = [
+      { name: "tema", selector: 'button[aria-label^="Activar modo"]' },
+      { name: "correo", selector: 'input[name="email"]' },
+      { name: "contraseña", selector: 'input[name="password"]' },
+      { name: "submit", selector: "form button" },
+      { name: "demostración", selector: "[data-demo-action]" },
+    ];
+    for (const stop of keyboardStops) {
+      await pressTab(cdp);
+      await assertKeyboardFocus(cdp, stop, label);
+      if (stop.name === "tema") {
+        await pressEnter(cdp);
+        await waitUntil(
+          cdp,
+          `document.documentElement.dataset.theme !== ${JSON.stringify(initialTheme)}`,
+          `cambio de tema por teclado en ${label}`,
+        );
+      }
+      if (stop.name === "demostración") {
+        await pressEnter(cdp);
+      }
+    }
     await waitUntil(
       cdp,
       `document.body.innerText.includes("Demostración con datos ficticios") && !document.querySelector("[data-login-card]")`,
-      `apertura de demostración en ${label}`,
+      `apertura de demostración por teclado en ${label}`,
     );
     await delay(100);
     assert.deepEqual(collector.errors, [], `errores de navegador ${label}`);
