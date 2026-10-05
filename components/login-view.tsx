@@ -100,6 +100,9 @@ export function LoginView({
               {!busy && <ArrowUpRight size={18} />}
             </Button>
           </form>
+          <a href="/recuperar-clave" data-recovery-action className="flex min-h-11 items-center text-[13px] text-foreground-soft underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+            ¿Olvidaste tu contraseña?
+          </a>
           {notice && (
             <p
               role="alert"
@@ -108,7 +111,7 @@ export function LoginView({
               {notice}
             </p>
           )}
-          <small className="mt-4 block text-muted">
+          <small className="block text-muted">
             El responsable de la aplicación debe habilitar tu correo.
           </small>
         </div>

@@ -11,6 +11,9 @@
 // nunca llama a db().
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { createRecoveryAccess } from './password-recovery';
+
+export const recoveryAccess = createRecoveryAccess();
 let cliente: SupabaseClient | null = null;
 
 export function db(): SupabaseClient {
@@ -26,6 +29,17 @@ export function db(): SupabaseClient {
     );
   }
 
-  cliente = createClient(url, clave);
+  // Registrar el observador antes de inicializar evita perder PASSWORD_RECOVERY
+  // aunque el singleton se cree antes de montar /actualizar-clave.
+  cliente = createClient(url, clave, { auth: { skipAutoInitialize: true } });
+  cliente.auth.onAuthStateChange((event, session) => {
+    recoveryAccess.record(event, session);
+  });
+  void cliente.auth.initialize().then(({ error }) => {
+    if (error) recoveryAccess.invalidate();
+    // El SDK emite PASSWORD_RECOVERY mediante setTimeout tras procesar la URL.
+    // finish sólo cierra el estado de espera; jamás autoriza por INITIAL_SESSION.
+    setTimeout(() => recoveryAccess.finish(), 0);
+  }).catch(() => recoveryAccess.invalidate());
   return cliente;
 }

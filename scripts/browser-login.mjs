@@ -321,6 +321,16 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
   const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
   const collector = browserErrorCollector(cdp);
   const label = `${width}x${height}`;
+  let externalRequests = 0;
+  cdp.onEvent(({ method, params }) => {
+    if (method !== "Fetch.requestPaused") return;
+    const local = new URL(params.request.url).origin === new URL(appUrl).origin;
+    if (!local) externalRequests++;
+    void cdp.send(local ? "Fetch.continueRequest" : "Fetch.failRequest", {
+      requestId: params.requestId,
+      ...(local ? {} : { errorReason: "BlockedByClient" }),
+    }).catch(() => {});
+  });
 
   try {
     await Promise.all([
@@ -345,6 +355,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
         ? "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
         : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140 Safari/537.36",
     });
+    await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*" }] });
     await cdp.send("Page.navigate", { url: appUrl });
     await waitUntil(
       cdp,
@@ -405,10 +416,8 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     assertNear(metrics.mark.width, 56, 0.5, `isotipo ${label}`);
     assertNear(metrics.mark.height, 56, 0.5, `alto de isotipo ${label}`);
     assertNear(metrics.card.width, mobile ? 354 : 430, 0.5, `tarjeta ${label}`);
-    assert.ok(
-      metrics.card.height >= 500 && metrics.card.height <= 560,
-      `alto de tarjeta ${label}: esperado 500–560, recibido ${metrics.card.height}`,
-    );
+    // Enlace de 44 px; sustituye el margen anterior de 16 px: incremento neto de 28 px.
+    assertNear(metrics.card.height, mobile ? 563.27 : 575.77, 1, `alto de tarjeta ${label}`);
     assert.equal(metrics.titleText, "Bienvenido a Daybook Travel");
     assert.equal(metrics.title.fontSize, "28px");
     assert.equal(metrics.copy, "Usa el mismo correo y contraseña de Daybook Asistencia.");
@@ -437,6 +446,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       { name: "correo", selector: 'input[name="email"]' },
       { name: "contraseña", selector: 'input[name="password"]' },
       { name: "submit", selector: "form button" },
+      { name: "recuperación", selector: "[data-recovery-action]" },
       { name: "demostración", selector: "[data-demo-action]" },
     ];
     for (const stop of keyboardStops) {
@@ -461,6 +471,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     );
     await delay(100);
     assert.deepEqual(collector.errors, [], `errores de navegador ${label}`);
+    assert.equal(externalRequests, 0, `requests externos ${label}`);
 
     return `${label}: logo 168×${metrics.logo.height.toFixed(2)}, isotipo 56×56, tarjeta ${metrics.card.width.toFixed(0)}×${metrics.card.height.toFixed(2)}, sin overflow ni errores`;
   } finally {
@@ -470,7 +481,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
   }
 }
 
-async function main() {
+export async function startBrowser() {
   ownedRoot = await mkdtemp(join(tmpdir(), "daybook-travel-browser-"));
   const port = await freePort();
   const appUrl = `http://127.0.0.1:${port}/`;
@@ -508,14 +519,23 @@ async function main() {
   const chrome = spawnOwned(await chromePath(), chromeArgs);
   const cdpPort = await waitForDevTools(profile, chrome);
 
+  return { cdpPort, appUrl };
+}
+
+async function main() {
+  const { cdpPort, appUrl } = await startBrowser();
   const results = [];
   results.push(await runViewport({ cdpPort, appUrl, width: 390, height: 844, mobile: true }));
   results.push(await runViewport({ cdpPort, appUrl, width: 1440, height: 900, mobile: false }));
   for (const result of results) console.log(`✓ ${result}`);
 }
 
-try {
-  await main();
-} finally {
-  await teardown();
+export { Cdp, openTarget, waitUntil, delay, teardown, pressTab, pressEnter, assertKeyboardFocus };
+
+if (process.argv[1] === new URL(import.meta.url).pathname) {
+  try {
+    await main();
+  } finally {
+    await teardown();
+  }
 }
