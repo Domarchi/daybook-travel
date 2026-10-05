@@ -4,6 +4,7 @@ import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { once } from "node:events";
 
 const ROOT = process.cwd();
@@ -254,10 +255,11 @@ function assertNear(actual, expected, tolerance, label) {
   );
 }
 
-async function pressTab(cdp) {
+async function pressTab(cdp, backwards = false) {
   await cdp.send("Input.dispatchKeyEvent", {
     type: "rawKeyDown",
     key: "Tab",
+    modifiers: backwards ? 8 : 0,
     code: "Tab",
     windowsVirtualKeyCode: 9,
     nativeVirtualKeyCode: 9,
@@ -265,6 +267,7 @@ async function pressTab(cdp) {
   await cdp.send("Input.dispatchKeyEvent", {
     type: "keyUp",
     key: "Tab",
+    modifiers: backwards ? 8 : 0,
     code: "Tab",
     windowsVirtualKeyCode: 9,
     nativeVirtualKeyCode: 9,
@@ -469,7 +472,6 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       `document.body.innerText.includes("Demostración con datos ficticios") && !document.querySelector("[data-login-card]")`,
       `apertura de demostración por teclado en ${label}`,
     );
-    await delay(100);
     assert.deepEqual(collector.errors, [], `errores de navegador ${label}`);
     assert.equal(externalRequests, 0, `requests externos ${label}`);
 
@@ -532,7 +534,7 @@ async function main() {
 
 export { Cdp, openTarget, waitUntil, delay, teardown, pressTab, pressEnter, assertKeyboardFocus };
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     await main();
   } finally {

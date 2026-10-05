@@ -31,7 +31,21 @@ export function db(): SupabaseClient {
 
   // Registrar el observador antes de inicializar evita perder PASSWORD_RECOVERY
   // aunque el singleton se cree antes de montar /actualizar-clave.
-  cliente = createClient(url, clave, { auth: { skipAutoInitialize: true } });
+  cliente = createClient(url, clave, { auth: {
+    skipAutoInitialize: true,
+    detectSessionInUrl(callbackUrl, params) {
+      // Los parámetros ya los extrajo el SDK. Sólo inspeccionamos tipo y nombres;
+      // nunca copiamos, parseamos ni persistimos valores de tokens.
+      const callback = ['access_token', 'error', 'error_description', 'error_code'].some(key => key in params);
+      if (callbackUrl.pathname === '/actualizar-clave') {
+        if (callback && params.type === 'recovery') recoveryAccess.beginLocalCallback();
+        // El SDK conserva sus parámetros locales para validar. Reemplazar ahora
+        // evita que su posterior location.hash='' deje el fragmento detrás de Atrás.
+        history.replaceState(history.state, '', '/actualizar-clave');
+      }
+      return callback;
+    },
+  } });
   cliente.auth.onAuthStateChange((event, session) => {
     recoveryAccess.record(event, session);
   });

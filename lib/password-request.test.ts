@@ -11,9 +11,9 @@ test('solicita callback exacto desde cada origen conservando correo como login',
   }
 });
 test('respuesta idéntica para cuenta existente o ausente; errores privados genéricos', async () => {
-  for (const error of [null,{message:'private',status:429}]) {
+  for (const error of [null,{code:'user_not_found',message:'private',status:404},{message:'private',status:429}]) {
     const request=createPasswordRequest(()=>({resetPasswordForEmail:async()=>({error})}));
-    assert.equal(await request.send('synthetic@example.invalid','https://example.invalid'),error ? REQUEST_ERROR : REQUEST_SENT);
+    assert.equal(await request.send('synthetic@example.invalid','https://example.invalid'),error && error.code !== 'user_not_found' ? REQUEST_ERROR : REQUEST_SENT);
   }
   for (const getAuth of [()=>{throw new Error('private config')},()=>({resetPasswordForEmail:async()=>{throw new Error('private network')}})]) {
     assert.equal(await createPasswordRequest(getAuth).send('synthetic@example.invalid','https://example.invalid'),REQUEST_ERROR);

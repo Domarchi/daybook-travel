@@ -29,7 +29,8 @@ export function createPasswordRequest(
         const { error } = await getAuth().resetPasswordForEmail(email, {
           redirectTo: new URL('/actualizar-clave', origin).href,
         });
-        return error ? REQUEST_ERROR : REQUEST_SENT;
+        const absent = error && typeof error === 'object' && 'code' in error && error.code === 'user_not_found';
+        return error && !absent ? REQUEST_ERROR : REQUEST_SENT;
       } catch {
         return REQUEST_ERROR;
       } finally {

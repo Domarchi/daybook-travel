@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -21,4 +21,8 @@ jobs:
       - run: npm test
       - run: npx tsc --noEmit
       - run: npm run build
+      # Chrome del runner; CDP nativo, sin descargas npm globales ni agent-browser.
+      - run: google-chrome --version
       - run: npm run test:browser
+      - run: npm run test:browser:recovery
+        timeout-minutes: 10
