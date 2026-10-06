@@ -22,9 +22,8 @@ let expectedPassword;
 // Diagnósticos atribuibles a respuestas negativas deliberadas de la fixture.
 // La identidad CDP de request queda sólo en memoria; nunca se imprime.
 const fixtureDiagnostics = new WeakMap();
-function expectedFixtureDiagnostic(url, method, context) {
-  if (url.origin !== AUTH) return null;
-  const cases = [
+function fixtureDiagnosticCases() {
+  return [
     ['unknown','POST','/auth/v1/recover',404],
     ['quota','POST','/auth/v1/recover',429],
     ['transport','POST','/auth/v1/recover','ConnectionFailed'],
@@ -37,7 +36,10 @@ function expectedFixtureDiagnostic(url, method, context) {
     ['signout-error','POST','/auth/v1/logout',503],
     ['login-error','POST','/auth/v1/token',400],
   ];
-  const found=cases.find(([kind,verb,path]) => context === kind && method === verb && url.pathname === path);
+}
+function expectedFixtureDiagnostic(url, method, context) {
+  if (url.origin !== AUTH) return null;
+  const found=fixtureDiagnosticCases().find(([kind,verb,path]) => context === kind && method === verb && url.pathname === path);
   if (!found || url.pathname === '/auth/v1/token' && url.searchParams.get('grant_type') !== 'password') return null;
   return {context,method:found[1],path:found[2],outcome:found[3]};
 }
@@ -289,11 +291,71 @@ async function keyboardStep(cdp, state, name, backwards, viewport) {
   assert.equal(visible, true, `${id}:foco-visible`);
 }
 
+async function documentInventory(cdp, state, order, viewport) {
+  const effective = await cdp.evaluate(`(() => {
+    const names=${JSON.stringify(stops)}, order=${JSON.stringify(order)}, elements=[];
+    const visit = root => {
+      for (const element of root.querySelectorAll('*')) {
+        elements.push(element);
+        if (element.shadowRoot) visit(element.shadowRoot);
+      }
+    };
+    visit(document);
+    return elements.filter(element =>
+      (element.tabIndex >= 0 || element.isContentEditable && element.getAttribute('tabindex') === null) &&
+      !element.matches(':disabled') && !element.closest('[inert]') && element.getClientRects().length &&
+      !['hidden','collapse'].includes(getComputedStyle(element).visibility))
+      .map(element => order.find(name => element === document.querySelector(names[name])) ?? 'unexpected');
+  })()`);
+  const id = `M1 document boundary ${viewport}/${state}:inventory`;
+  try { assert.equal(JSON.stringify(effective), JSON.stringify(order), id); }
+  catch (error) {
+    if (error instanceof assert.AssertionError) error.documentBoundaryAssertion = id;
+    throw error;
+  }
+}
+
+async function documentBoundaryStep(cdp, state, viewport, backwards, name, edge, wrapLast = null) {
+  await pressTab(cdp, backwards);
+  const exact = await cdp.evaluate(wrapLast !== null
+    ? `document.activeElement === document.body && document.body.tabIndex < 0 && !document.body.isContentEditable
+      ? 'body' : document.hasFocus() && document.activeElement === document.querySelector(${JSON.stringify(stops[wrapLast])})
+      ? 'wrap-last' : 'invalid'`
+    : name === null
+      ? `document.activeElement === document.body && document.body.tabIndex < 0 && !document.body.isContentEditable`
+      : `document.hasFocus() && document.activeElement === document.querySelector(${JSON.stringify(stops[name])})`);
+  const id = `M1 document boundary ${viewport}/${state}:${edge}`;
+  try { assert.equal(wrapLast === null ? exact === true : exact === 'body' || exact === 'wrap-last', true, id); }
+  catch (error) {
+    if (error instanceof assert.AssertionError) error.documentBoundaryAssertion = id;
+    throw error;
+  }
+  return exact;
+}
+
 async function keyboardSequence(cdp, state, order, viewport, mobile) {
+  const bodyBoundary = await cdp.evaluate(`document.body.tabIndex < 0 && !document.body.isContentEditable`);
+  const bodyId = `M1 document boundary ${viewport}/${state}:inventory`;
+  try { assert.equal(bodyBoundary, true, bodyId); }
+  catch (error) {
+    if (error instanceof assert.AssertionError) error.documentBoundaryAssertion = bodyId;
+    throw error;
+  }
   await titleAnchor(cdp, mobile);
   await keyboardStep(cdp, state, order[0], true, viewport);
   for (const name of order.slice(1)) await keyboardStep(cdp, state, name, false, viewport);
+  // Las paradas T1 preceden al inventario: mantienen su assertion exacta para
+  // remove/reorder. M1 observa TODO el documento dentro del mismo certify.
+  await documentInventory(cdp, state, order, viewport);
+  await documentBoundaryStep(cdp, state, viewport, false, null, 'end-forward');
+  await documentBoundaryStep(cdp, state, viewport, true, order.at(-1), 'end-reverse');
   for (const name of order.slice(0,-1).reverse()) await keyboardStep(cdp, state, name, true, viewport);
+  const begin = await documentBoundaryStep(cdp, state, viewport, true, null, 'begin-reverse', order.at(-1));
+  if (begin === 'wrap-last') {
+    // Variante medida: último exacto -> un Tab BODY -> un Tab primero exacto.
+    await documentBoundaryStep(cdp, state, viewport, false, null, 'begin-wrap-forward');
+  }
+  await documentBoundaryStep(cdp, state, viewport, false, order[0], 'begin-forward');
   // Termina siempre en tema; los consumidores declaran cada paso posterior.
 }
 async function effectiveViewport(cdp) {
@@ -344,6 +406,22 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
   const errors = [];
   const diagnosticCounts={};
   const countDiagnostic = category => { diagnosticCounts[category]=(diagnosticCounts[category] ?? 0)+1; };
+  let runtimeCanary=null;
+  const fixtureLogCoverage=new Map();
+  const fixtureLogRequests=new Set();
+  const assertCollectorLiveness = () => {
+    const missing=[];
+    if (diagnosticCounts['expected.canary.runtime-console'] !== 1) missing.push('Runtime.consoleAPICalled');
+    if (diagnosticCounts['expected.canary.runtime-exception'] !== 1) missing.push('Runtime.exceptionThrown');
+    const catalog=fixtureDiagnosticCases();
+    for (const entry of catalog) {
+      if (fixtureLogCoverage.get(JSON.stringify(entry)) !== 1) missing.push('Log.entryAdded:'+entry[0]);
+    }
+    if (fixtureLogCoverage.size !== catalog.length || fixtureLogRequests.size !== catalog.length) {
+      missing.push('Log.entryAdded:catalogo-correlacionado');
+    }
+    assert.equal(missing.length,0,`I1 collector sin vivacidad ${width}x${height}: ${missing.join(', ')}`);
+  };
   const hmrLifecycle=createHmrLifecycleCollector(appUrl);
   const finishHmrTransition = () => {
     const result=hmrLifecycle.finish();
@@ -429,16 +507,49 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
     }
     if (method === 'Network.loadingFailed') observeDiagnostic('loading-failed',params.errorText,params.requestId,undefined,'network',params.canceled === true);
     if (method === 'Network.webSocketFrameError') observeDiagnostic('websocket-frame-error',params.errorMessage,params.requestId);
-    if (method === 'Runtime.exceptionThrown') { countDiagnostic('unexpected.runtime-exception'); errors.push('runtime exception'); }
+    if (method === 'Runtime.exceptionThrown') {
+      const detail=params.exceptionDetails;
+      const expected=runtimeCanary?.open && !runtimeCanary.exceptionSeen
+        && detail.executionContextId === runtimeCanary.contextId
+        && detail.text === 'Uncaught'
+        && detail.exception?.type === 'object' && detail.exception.subtype === 'error'
+        && detail.exception.className === 'TravelCollectorCanary'
+        && detail.exception.description?.split('\n')[0] === 'TravelCollectorCanary: '+runtimeCanary.marker
+        && detail.stackTrace?.callFrames?.[0]?.url === runtimeCanary.source
+        && detail.stackTrace.callFrames[0].functionName === 'throwCanary';
+      if (expected) {
+        runtimeCanary.exceptionSeen=true;
+        countDiagnostic('expected.canary.runtime-exception');
+      } else {
+        countDiagnostic('unexpected.runtime-exception'); errors.push('runtime exception');
+      }
+    }
     if (method === 'Runtime.consoleAPICalled' && params.type === 'error') {
-      countDiagnostic('unexpected.console-error');
-      errors.push('unexpected console error');
+      const expected=runtimeCanary?.open && !runtimeCanary.consoleSeen
+        && params.executionContextId === runtimeCanary.contextId
+        && params.args?.length === 1 && params.args[0].type === 'string'
+        && params.args[0].value === runtimeCanary.marker;
+      if (expected) {
+        runtimeCanary.consoleSeen=true;
+        countDiagnostic('expected.canary.runtime-console');
+      } else {
+        countDiagnostic('unexpected.console-error');
+        errors.push('unexpected console error');
+      }
     }
     if (method === 'Log.entryAdded' && params.entry.level === 'error') {
       countDiagnostic('raw.log-error');
       const entry=params.entry;
       const diagnostic=fixtureDiagnostics.get(cdp)?.get(entry.networkRequestId);
       if (isExpectedFixtureLog(entry,diagnostic)) {
+        fixtureDiagnostics.get(cdp).delete(entry.networkRequestId);
+        // Positividad sólo tras clasificar el Log real contra la respuesta HTTP
+        // correlacionada. Un mismo request nunca aporta dos pruebas de vivacidad.
+        if (!fixtureLogRequests.has(entry.networkRequestId)) {
+          fixtureLogRequests.add(entry.networkRequestId);
+          const key=JSON.stringify([diagnostic.context,diagnostic.method,diagnostic.path,diagnostic.outcome]);
+          fixtureLogCoverage.set(key,(fixtureLogCoverage.get(key) ?? 0)+1);
+        }
         const delivery=diagnostic.context === scenario ? 'same-context' : 'deferred-context';
         countDiagnostic(`expected.fixture-transport.${diagnostic.context}.${delivery}`);
       } else if (hmrLifecycle.stage(entry,diagnosticPhase)) {
@@ -461,6 +572,37 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
   });
   try {
     await Promise.all(['Page.enable','Runtime.enable','Log.enable','Network.enable'].map(x=>cdp.send(x)));
+    // El target recién creado está en about:blank: sin SDK, auth ni cliente Next
+    // que pueda reenviar estos canaries al MCP del producto. No tocar sus globals.
+    const {frameTree}=await cdp.send('Page.getFrameTree');
+    assert.equal(frameTree.frame.url,'about:blank','I1 canary sólo en documento propio vacío');
+    const marker='TRAVEL_COLLECTOR_CANARY_'+randomUUID();
+    const {executionContextId}=await cdp.send('Page.createIsolatedWorld',{
+      frameId:frameTree.frame.id,worldName:marker,
+    });
+    assert.ok(Number.isInteger(executionContextId),'I1 contexto aislado propio disponible');
+    runtimeCanary={contextId:executionContextId,marker,source:marker+'.js',
+      open:true,consoleSeen:false,exceptionSeen:false};
+    try {
+      const emitted=await cdp.send('Runtime.evaluate',{
+        contextId:executionContextId,returnByValue:true,
+        expression:`(() => {
+          class TravelCollectorCanary extends Error {
+            constructor(message) { super(message); this.name = 'TravelCollectorCanary'; }
+          }
+          console.error(${JSON.stringify(marker)});
+          setTimeout(function throwCanary() { throw new TravelCollectorCanary(${JSON.stringify(marker)}); }, 0);
+        })();\n//# sourceURL=${runtimeCanary.source}`,
+      });
+      assert.ok(!emitted.exceptionDetails,'I1 emisión del canary sin excepción síncrona');
+      // La excepción asíncrona debe llegar por Runtime.exceptionThrown real,
+      // nunca como retorno de evaluate ni mediante una llamada al callback.
+      const deadline=Date.now()+2000;
+      while ((!runtimeCanary.consoleSeen || !runtimeCanary.exceptionSeen) && Date.now() < deadline) await delay(20);
+    } finally {
+      // No aceptar duplicados ni un marcador tardío/reutilizado en otra fase.
+      runtimeCanary.open=false;
+    }
     await cdp.send('Emulation.setDeviceMetricsOverride',{width,height,screenWidth:width,screenHeight:height,deviceScaleFactor:1,mobile});
     await cdp.send('Emulation.setTouchEmulationEnabled', mobile ? {enabled:true,maxTouchPoints:5} : {enabled:false});
     const viewport = `${width}x${height}`;
@@ -480,13 +622,6 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
         await certify();
       }
       checkedStates.add(state);
-      const effective = await cdp.evaluate(`(() => {
-        const names=${JSON.stringify(stops)};
-        return [...document.querySelectorAll('main a[href],main button,main input,main select,main textarea,main [tabindex]')]
-          .filter(element => element.tabIndex >= 0 && !element.disabled && element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden')
-          .map(element => Object.keys(names).find(name => element.matches(names[name]) && ${JSON.stringify(order)}.includes(name)) ?? 'unexpected');
-      })()`);
-      assert.deepEqual(effective, order, `T1:${viewport}:${state}:controles-efectivos`);
       console.log(`✓ T1 ${viewport} ${state}: forward=${order.join('>')}; reverse=${[...order].reverse().join('>')}`);
     };
     const loginToRequest = async () => {
@@ -897,6 +1032,7 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
     await cdp.evaluate('localStorage.clear(); sessionStorage.clear()');
     console.log(`collector ${viewport}: ${JSON.stringify(diagnosticCounts)}`);
     console.log(`collector diagnostic ${viewport}: ${JSON.stringify([...diagnosticDetails].map(([detail,count]) => ({...JSON.parse(detail),count})))}`);
+    assertCollectorLiveness();
     assert.deepEqual(errors,[],'collector sin errores inesperados');
     console.log(`✓ recovery ${width}x${height}: missing/malformed/reused/expired/normal/recovery, política, mismatch, update, signOut y limpieza`);
     console.log(`✓ request ${width}x${height}: callback, no enumeración, cuota/transporte, doble envío, tema, teclado`);
@@ -908,24 +1044,34 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
 
 async function checkMcp(appUrl) {
   async function call(method, params) {
-    const response = await fetch(new URL('/_next/mcp',appUrl), {
-      method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},
-      body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(15000),
-    });
-    if (response.status === 404) return null;
+    let response;
+    try {
+      response = await fetch(new URL('/_next/mcp',appUrl), {
+        method:'POST', headers:{'Content-Type':'application/json',Accept:'application/json, text/event-stream'},
+        body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(15000),
+      });
+    } catch { assert.fail('MCP local debe responder correctamente'); }
     assert.equal(response.ok, true, 'MCP local debe responder correctamente');
-    const body = await response.text();
-    const data = body.startsWith('event:') || body.startsWith('data:')
-      ? JSON.parse(body.split('\n').find(line => line.startsWith('data:')).slice(5))
-      : JSON.parse(body);
-    assert.ok(!data.error, 'MCP devolvió error de protocolo');
+    let data;
+    try {
+      const body = await response.text();
+      data = body.startsWith('event:') || body.startsWith('data:')
+        ? JSON.parse(body.split('\n').find(line => line.startsWith('data:')).slice(5))
+        : JSON.parse(body);
+    } catch { assert.fail('MCP respuesta de protocolo inválida'); }
+    assert.ok(data && typeof data === 'object' && !Array.isArray(data)
+      && data.jsonrpc === '2.0' && data.id === 1, 'MCP respuesta de protocolo inválida');
+    assert.ok(!('error' in data), 'MCP devolvió error de protocolo');
+    assert.ok(data.result && typeof data.result === 'object' && !Array.isArray(data.result),
+      'MCP respuesta de protocolo inválida');
     return data.result;
   }
   const catalog = await call('tools/list', {});
-  if (!catalog?.tools?.some(tool => tool.name === 'get_compilation_issues')) {
-    console.log('MCP no expone integración de issues; sin certificación MCP');
-    return;
-  }
+  assert.ok(Array.isArray(catalog.tools) && catalog.tools.every(tool => tool
+    && typeof tool === 'object' && !Array.isArray(tool) && typeof tool.name === 'string'
+    && tool.name.length > 0 && tool.name === tool.name.trim()), 'MCP catálogo de tools inválido');
+  assert.equal(catalog.tools.filter(tool => tool.name === 'get_compilation_issues').length, 1,
+    'MCP requiere una única tool get_compilation_issues');
   assertCompilationIssues(await call('tools/call',{name:'get_compilation_issues',arguments:{}}));
   console.log('✓ MCP local: issues obtenidos y assertados vacíos');
 }

@@ -294,7 +294,9 @@ for (const platform of ['linux','darwin','win32']) {
     const receiptLines=output.filter(line => line.startsWith('Chrome sandbox: '));
     assert.equal(receiptLines.length,1,'T3 recibo de argv obligatorio en el arranque compartido');
     const receipt=JSON.parse(receiptLines[0].slice('Chrome sandbox: '.length));
-    assert.deepEqual(receipt,{sandboxEnabled:true,flags},'T3 recibo sólo booleano y nombres de flags efectivos');
+    assert.deepEqual(receipt,{sandboxRequested:true,argvValidated:true,flags,
+      executableFormatVerified:true,seccomp:'not-measured',namespaces:'not-measured'},
+      'T3 recibo de validación previa, sin afirmar sandbox observado');
     assert.ok(!output.join('\n').includes('sensitive-profile-marker'),'T3 no imprimir valores de argv');
     const assertion=start.search(/assertSandboxedChromeArgs\(\s*chromeArgs\s*\)/);
     assert.ok(assertion >= 0 && assertion < start.indexOf('const chrome = spawnOwned'),
@@ -308,7 +310,7 @@ test('T3 guard runtime rechaza bypasses y no revela valores en el rechazo', () =
   const guard=runInNewContext(`${source}\nassertSandboxedChromeArgs`,{assert});
   const safe=['--headless=new','--user-data-dir=/sensitive-profile-marker','about:blank'];
   assert.deepEqual(JSON.parse(JSON.stringify(guard(safe))),
-    {sandboxEnabled:true,flags:['--headless','--user-data-dir']});
+    {sandboxRequested:true,argvValidated:true,flags:['--headless','--user-data-dir']});
   for (const bypass of ['--no-sandbox','--no-sandbox=true','--disable-setuid-sandbox',
     '--disable-seccomp-filter-sandbox','--disable-namespace-sandbox','--disable-gpu-sandbox',
     '--no-zygote','--single-process','--in-process-gpu','--disable-web-security',
@@ -338,6 +340,10 @@ test('T3 ambos gates usan exclusivamente el startBrowser compartido', () => {
 // es distinto de la versión del navegador usado por el supervisor localmente.
 async function t4Workflow() {
   const yaml=await readFile(new URL('.github/workflows/ci.yml',root),'utf8');
+  return t4WorkflowSource(yaml);
+}
+
+function t4WorkflowSource(yaml: string) {
   const job=yaml.match(/^  verify:\r?\n([\s\S]*?)(?=^  [A-Za-z_][\w-]*:|(?![\s\S]))/m)?.[1];
   assert.ok(job,'T4 job verify existente');
   const steps=job.split(/(?=^ {6}- )/m).filter(block => /^ {6}- /.test(block));
@@ -358,6 +364,24 @@ function t4Setup(steps: string[]) {
   return {setup,id};
 }
 
+// Tests normales y tracer M3 comparten el contrato exacto del job/step.
+function t4JobTimeout(job: string) {
+  const timeout=t4Value(job.split(/^ {4}steps:/m)[0],'timeout-minutes',4);
+  assert.equal(timeout,'20','T4 timeout verify/job exacto: 20 minutos');
+}
+
+function t4BrowserStep(steps: string[], script: string) {
+  const matches=steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'run',8) === 'npm run '+script);
+  assert.equal(matches.length,1,`T4 step explícito npm run ${script}`);
+  return matches[0];
+}
+
+function t4BrowserTimeout(browser: string, script: string) {
+  const expected: Record<string,string>={'test:browser':'5','test:browser:recovery':'10'};
+  assert.equal(t4Value(browser,'timeout-minutes',8),expected[script],
+    `T4 timeout verify/${script} exacto: ${expected[script]} minutos`);
+}
+
 test('T4 Chrome CI tiene pin concreto verificado, dependencias y timeout de job', async () => {
   const {job,steps}=await t4Workflow();
   const {setup,id}=t4Setup(steps);
@@ -367,16 +391,13 @@ test('T4 Chrome CI tiene pin concreto verificado, dependencias y timeout de job'
   assert.equal(t4Value(inputs,'install-dependencies',10),'true','T4 instalar dependencias Linux');
   assert.equal(steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'id',8) === id).length,1,
     'T4 id de setup único en el job');
-  const timeout=t4Value(job.split(/^ {4}steps:/m)[0],'timeout-minutes',4);
-  assert.ok(/^[1-9]\d*$/.test(timeout),'T4 timeout de job entero positivo');
+  t4JobTimeout(job);
 });
 
 for (const script of ['test:browser','test:browser:recovery']) {
   test(`T4 ${script}: CHROME_PATH del setup y timeout propio`, async () => {
     const {steps}=await t4Workflow();
-    const matches=steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'run',8) === 'npm run '+script);
-    assert.equal(matches.length,1,`T4 step explícito npm run ${script}`);
-    const browser=matches[0];
+    const browser=t4BrowserStep(steps,script);
     const env=browser.match(/^ {8}env:\r?\n((?: {10}[^\r\n]*\r?\n?)*)/m)?.[1] ?? '';
     const chromePath=t4Value(env,'CHROME_PATH',10);
     assert.ok(chromePath,`T4 ${script} recibe CHROME_PATH explícito`);
@@ -384,8 +405,41 @@ for (const script of ['test:browser','test:browser:recovery']) {
     assert.equal(chromePath,'${{ steps.'+id+'.outputs.chrome-path }}',
       `T4 ${script} usa el output chrome-path exacto del setup`);
     assert.ok(steps.indexOf(setup) < steps.indexOf(browser),'T4 setup precede al browser');
-    assert.ok(/^[1-9]\d*$/.test(t4Value(browser,'timeout-minutes',8)),
-      `T4 ${script} tiene timeout-minutes entero positivo`);
+    t4BrowserTimeout(browser,script);
+  });
+}
+
+for (const mutation of [
+  {target:'verify/job',script:null,site:'    timeout-minutes: 20\n',replacement:'    timeout-minutes: 200\n',
+    value:'200',expected:'T4 timeout verify/job exacto: 20 minutos'},
+  {target:'verify/test:browser',script:'test:browser',
+    site:'      - run: npm run test:browser\n        timeout-minutes: 5\n',
+    replacement:'      - run: npm run test:browser\n        timeout-minutes: 50\n',
+    value:'50',expected:'T4 timeout verify/test:browser exacto: 5 minutos'},
+  {target:'verify/test:browser:recovery',script:'test:browser:recovery',
+    site:'      - run: npm run test:browser:recovery\n        timeout-minutes: 10\n',
+    replacement:'      - run: npm run test:browser:recovery\n        timeout-minutes: 100\n',
+    value:'100',expected:'T4 timeout verify/test:browser:recovery exacto: 10 minutos'},
+]) {
+  test(`M3 timeout exacto ${mutation.target} rechaza ampliación a ${mutation.value}`, async () => {
+    const yaml=await readFile(new URL('.github/workflows/ci.yml',root),'utf8');
+    function guard(workflow: string) {
+      const {job,steps}=t4WorkflowSource(workflow);
+      t4JobTimeout(job);
+      for (const script of ['test:browser','test:browser:recovery']) {
+        t4BrowserTimeout(t4BrowserStep(steps,script),script);
+      }
+    }
+    assert.doesNotThrow(()=>guard(yaml),'M3 workflow real correcto resuelve el guard actual');
+    assert.equal(yaml.split(mutation.site).length-1,1,'M3 sitio único en workflow real');
+    const mutated=yaml.replace(mutation.site,()=>mutation.replacement);
+    const {job,steps}=t4WorkflowSource(mutated);
+    const observed=mutation.script===null
+      ? t4Value(job.split(/^ {4}steps:/m)[0],'timeout-minutes',4)
+      : t4Value(t4BrowserStep(steps,mutation.script),'timeout-minutes',8);
+    assert.equal(observed,mutation.value,'M3 timeout mutado pertenece al job/step requerido');
+    assert.throws(()=>guard(mutated),{code:'ERR_ASSERTION',message:new RegExp('^'+mutation.expected+'(?:\\n|$)')},
+      `M3 timeout exacto ${mutation.target}: rechazo nombrado obligatorio`);
   });
 }
 
@@ -403,7 +457,7 @@ for (const scenario of ['login-error','query-provider-error']) {
       type RuntimeEvent = { method: string; params: { type: string; args: Record<string,string>[] } };
       let handler: ((event: RuntimeEvent) => void) | undefined;
       runInNewContext(subscription,{
-        scenario,errors,
+        scenario,errors,runtimeCanary:null,
         countDiagnostic:(category: string) => counts.set(category,(counts.get(category) ?? 0)+1),
         cdp:{onEvent:(callback: (event: RuntimeEvent) => void) => { handler=callback; }},
       });

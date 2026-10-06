@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, open, readFile, realpath, rm, stat } from "node:fs/promises";
+import { constants } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,23 +30,69 @@ async function freePort() {
 }
 
 async function chromePath() {
-  const candidates = [
-    process.env.CHROME_PATH,
+  const explicit = process.env.CHROME_PATH !== undefined;
+  const candidates = explicit ? [process.env.CHROME_PATH] : [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
-  ].filter(Boolean);
+  ];
 
   for (const candidate of candidates) {
+    let executable;
     try {
-      await access(candidate);
-      return candidate;
-    } catch {}
+      executable = await realpath(candidate);
+    } catch (error) {
+      if (!explicit && ["ENOENT", "ENOTDIR"].includes(error.code)) continue;
+      throw new Error("T3 CHROME_PATH no accesible");
+    }
+    try {
+      let info = await stat(executable);
+      if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");
+      await access(executable, constants.X_OK);
+      // Único wrapper conocido: nunca ejecutarlo ni interpretar sus argumentos.
+      const vendor = executable === "/opt/google/chrome/google-chrome";
+      if (vendor) {
+        if (info.uid !== 0 || (info.mode & 0o022) !== 0) {
+          throw new Error("T3 CHROME_PATH wrapper no autorizado");
+        }
+        executable = await realpath("/opt/google/chrome/chrome");
+        info = await stat(executable);
+        if (executable !== "/opt/google/chrome/chrome" || !info.isFile()
+          || info.uid !== 0 || (info.mode & 0o022) !== 0) {
+          throw new Error("T3 CHROME_PATH binario vendor no autorizado");
+        }
+        await access(executable, constants.X_OK);
+      }
+      const file = await open(executable, "r");
+      try {
+        const header = Buffer.alloc(8);
+        const { bytesRead } = await file.read(header, 0, header.length, 0);
+        if (header[0] === 0x23 && header[1] === 0x21) {
+          throw new Error("T3 CHROME_PATH wrapper no autorizado");
+        }
+        const magic = header.subarray(0, 4).toString("hex");
+        const elf = bytesRead === 8 && magic === "7f454c46"
+          && [1, 2].includes(header[4]) && [1, 2].includes(header[5]) && header[6] === 1;
+        const mach = bytesRead === 8 && ["feedface", "cefaedfe", "feedfacf", "cffaedfe"].includes(magic);
+        const fatBE = ["cafebabe", "cafebabf"].includes(magic);
+        const fatLE = ["bebafeca", "bfbafeca"].includes(magic);
+        const architectures = fatBE ? header.readUInt32BE(4) : fatLE ? header.readUInt32LE(4) : 0;
+        const fatMach = bytesRead === 8 && architectures > 0 && architectures <= 64;
+        if (!(elf || !vendor && (mach || fatMach))) {
+          throw new Error("T3 CHROME_PATH formato ejecutable no autorizado");
+        }
+      } finally { await file.close(); }
+      return executable;
+    } catch (error) {
+      // Fallos FS sanitizados; ningún rechazo habilita otro candidato.
+      if (error.code) throw new Error("T3 CHROME_PATH ejecutable no verificable");
+      throw error;
+    }
   }
-  throw new Error(`No se encontró Chrome/Chromium. Rutas revisadas: ${candidates.join(", ")}`);
+  throw new Error("T3 no se encontró un ejecutable Chrome/Chromium");
 }
 
 function rememberOutput(child) {
@@ -507,10 +554,11 @@ function assertSandboxedChromeArgs(argv) {
   assert.ok(new Set(flags).size === flags.length, "T3 flags Chrome sin duplicados");
   assert.ok(argv.filter((arg) => arg === "about:blank").length === 1, "T3 destino inicial cerrado");
   // Sólo nombres de flags y estado: no perfil, puerto, URL ni valores de argv.
-  return { sandboxEnabled: true, flags };
+  return { sandboxRequested: true, argvValidated: true, flags };
 }
 
 export async function startBrowser() {
+  const chromeExecutable = await chromePath();
   ownedRoot = await mkdtemp(join(tmpdir(), "daybook-travel-browser-"));
   const port = await freePort();
   const appUrl = `http://127.0.0.1:${port}/`;
@@ -522,6 +570,7 @@ export async function startBrowser() {
   ], {
     env: {
       ...process.env,
+      TRAVEL_BROWSER_FIXTURE: "document-boundaries-v1",
       NEXT_TELEMETRY_DISABLED: "1",
       NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "browser-test-publishable-key",
@@ -544,8 +593,12 @@ export async function startBrowser() {
     "--disable-features=Translate,OptimizationHints,MediaRouter",
     "about:blank",
   ];
-  console.log(`Chrome sandbox: ${JSON.stringify(assertSandboxedChromeArgs(chromeArgs))}`);
-  const chrome = spawnOwned(await chromePath(), chromeArgs);
+  // Evidencia previa al spawn: no afirma estado de procesos/renderer del SO.
+  console.log(`Chrome sandbox: ${JSON.stringify({
+    ...assertSandboxedChromeArgs(chromeArgs), executableFormatVerified: true,
+    seccomp: "not-measured", namespaces: "not-measured",
+  })}`);
+  const chrome = spawnOwned(chromeExecutable, chromeArgs);
   const cdpPort = await waitForDevTools(profile, chrome);
 
   return { cdpPort, appUrl };
