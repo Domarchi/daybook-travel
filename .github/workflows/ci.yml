@@ -21,8 +21,16 @@ jobs:
       - run: npm test
       - run: npx tsc --noEmit
       - run: npm run build
-      # Chrome del runner; CDP nativo, sin descargas npm globales ni agent-browser.
-      - run: google-chrome --version
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+        with:
+          chrome-version: '154.0.8037.92'
+          install-dependencies: true
       - run: npm run test:browser
+        timeout-minutes: 5
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
       - run: npm run test:browser:recovery
         timeout-minutes: 10
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}

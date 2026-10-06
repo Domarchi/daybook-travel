@@ -483,6 +483,33 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
   }
 }
 
+function assertSandboxedChromeArgs(argv) {
+  // Lista cerrada de argumentos efectivos: ningún flag extra ni cambio de
+  // features puede reducir el sandbox. El perfil sólo se usa como un argv.
+  const allowed = new Set([
+    "--headless=new",
+    "--remote-debugging-port=0",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-domain-reliability",
+    "--disable-sync",
+    "--metrics-recording-only",
+    "--disable-features=Translate,OptimizationHints,MediaRouter",
+    "about:blank",
+  ]);
+  assert.ok(Array.isArray(argv), "T3 argv debe ser una lista");
+  assert.ok(argv.every((arg) => typeof arg === "string" && (allowed.has(arg)
+    || (arg.startsWith("--user-data-dir=") && arg.length > "--user-data-dir=".length
+      && !/[\0\r\n]/.test(arg)))), "T3 argumento Chrome fuera del contrato de sandbox");
+  const flags = argv.filter((arg) => arg.startsWith("--")).map((arg) => arg.split("=")[0]);
+  assert.ok(new Set(flags).size === flags.length, "T3 flags Chrome sin duplicados");
+  assert.ok(argv.filter((arg) => arg === "about:blank").length === 1, "T3 destino inicial cerrado");
+  // Sólo nombres de flags y estado: no perfil, puerto, URL ni valores de argv.
+  return { sandboxEnabled: true, flags };
+}
+
 export async function startBrowser() {
   ownedRoot = await mkdtemp(join(tmpdir(), "daybook-travel-browser-"));
   const port = await freePort();
@@ -517,7 +544,7 @@ export async function startBrowser() {
     "--disable-features=Translate,OptimizationHints,MediaRouter",
     "about:blank",
   ];
-  if (process.platform === "linux") chromeArgs.unshift("--no-sandbox");
+  console.log(`Chrome sandbox: ${JSON.stringify(assertSandboxedChromeArgs(chromeArgs))}`);
   const chrome = spawnOwned(await chromePath(), chromeArgs);
   const cdpPort = await waitForDevTools(profile, chrome);
 
