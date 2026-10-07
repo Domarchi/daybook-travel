@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
@@ -188,6 +188,44 @@ test("B3 espera hidratación antes de verificar el teclado real", async () => {
   assert.match(verifier, /hidratación/);
 });
 
+test("B3 rechaza un override arbitrario antes de crear recursos o ejecutarlo", { timeout: 60_000 }, async (t) => {
+  const probeRoot = await mkdtemp(join(tmpdir(), "travel-b3-untrusted-override-"));
+  const browserTempRoot = join(probeRoot, "browser-tmp");
+  const arbitraryExecutable = join(probeRoot, "google-chrome");
+  const executionMarker = join(probeRoot, "arbitrary-executable-ran");
+  const portFile = join(probeRoot, "next-port");
+  await mkdir(browserTempRoot);
+  await writeFile(arbitraryExecutable, "#!/bin/sh\nprintf 'arbitrary executable ran\\n' > \"$TRAVEL_B3_EXECUTION_MARKER\"\n", "utf8");
+  await chmod(arbitraryExecutable, 0o700);
+  t.after(async () => { await rm(probeRoot, { recursive: true, force: true }); });
+
+  const verifier = spawn(process.execPath, ["scripts/travel-agent-confirmation-browser.mjs"], {
+    cwd: new URL("../", import.meta.url),
+    env: {
+      ...process.env,
+      PATH: `${dirname(process.execPath)}:${process.env.PATH ?? ""}`,
+      TMPDIR: browserTempRoot,
+      TRAVEL_B3_CHROME_PATH: arbitraryExecutable,
+      TRAVEL_B3_EXECUTION_MARKER: executionMarker,
+      TRAVEL_B3_TEST_SERVER_PORT_FILE: portFile,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  verifier.stdout.on("data", (chunk) => { output += chunk; });
+  verifier.stderr.on("data", (chunk) => { output += chunk; });
+  const [code, signal] = await once(verifier, "close") as [number | null, NodeJS.Signals | null];
+
+  assert.equal(signal, null);
+  assert.notEqual(code, 0);
+  await assert.rejects(access(executionMarker), { code: "ENOENT" });
+  await assert.rejects(access(portFile), { code: "ENOENT" });
+  await assert.rejects(access(new URL("../app/b3-confirmation-test/page.tsx", import.meta.url)), { code: "ENOENT" });
+  assert.deepEqual(await readdir(browserTempRoot), []);
+  assert.match(output, /BrowserLaunchError: TRAVEL_B3_CHROME_PATH sólo acepta rutas allowlisted/);
+});
+
+
 async function portAcceptsConnections(port: number) {
   return new Promise<boolean>((resolveConnection) => {
     const socket = createConnection({ host: "127.0.0.1", port });
@@ -209,10 +247,7 @@ async function portAcceptsConnections(port: number) {
 
 test("B3 limpia fixture y servidor cuando Chrome emite error al iniciar", { timeout: 60_000 }, async (t) => {
   const probeRoot = await mkdtemp(join(tmpdir(), "travel-b3-spawn-error-"));
-  const chromeWithoutExecutePermission = join(probeRoot, "chrome-sin-ejecucion");
   const portFile = join(probeRoot, "next-port");
-  await writeFile(chromeWithoutExecutePermission, "no ejecutar", "utf8");
-  await chmod(chromeWithoutExecutePermission, 0o600);
   t.after(async () => { await rm(probeRoot, { recursive: true, force: true }); });
 
   const nextDir = new URL("../.next/", import.meta.url);
@@ -234,12 +269,11 @@ test("B3 limpia fixture y servidor cuando Chrome emite error al iniciar", { time
     nextDevWasPresent = false;
   }
 
-  const verifier = spawn(process.execPath, ["scripts/travel-agent-confirmation-browser.mjs"], {
+  const verifier = spawn(process.execPath, ["scripts/travel-agent-confirmation-browser.mjs", "--travel-b3-test-force-chrome-eacces"], {
     cwd: new URL("../", import.meta.url),
     env: {
       ...process.env,
       PATH: `${dirname(process.execPath)}:${process.env.PATH ?? ""}`,
-      TRAVEL_B3_CHROME_PATH: chromeWithoutExecutePermission,
       TRAVEL_B3_TEST_SERVER_PORT_FILE: portFile,
     },
     stdio: ["ignore", "pipe", "pipe"],

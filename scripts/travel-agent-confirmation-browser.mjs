@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -25,37 +25,58 @@ class BrowserLaunchError extends Error {
 }
 
 function chromeCandidates() {
-  const candidates = [];
-  const add = (candidate) => {
-    if (candidate && !candidates.includes(candidate)) candidates.push(candidate);
-  };
-  add(process.env.TRAVEL_B3_CHROME_PATH?.trim());
-  if (process.platform === "darwin") {
-    add("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
-    add("/Applications/Chromium.app/Contents/MacOS/Chromium");
-  } else if (process.platform === "win32") {
-    add("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe");
-    add("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
-  } else {
-    add("/usr/bin/google-chrome");
-    add("/usr/bin/google-chrome-stable");
-    add("/usr/bin/chromium");
-    add("/usr/bin/chromium-browser");
-  }
-  return candidates;
+  if (process.platform === "darwin") return [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  ];
+  if (process.platform === "win32") return [
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  ];
+  return [
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+  ];
 }
 
-async function resolveChromePath() {
-  const candidates = chromeCandidates();
+async function canonicalChromeCandidates(candidates) {
+  const canonical = new Set();
   for (const candidate of candidates) {
     try {
-      await stat(candidate);
-      return candidate;
+      canonical.add(await realpath(candidate));
     } catch (error) {
       if (error?.code !== "ENOENT") throw error;
     }
   }
-  throw new BrowserLaunchError(`No se encontró Chrome. Defina TRAVEL_B3_CHROME_PATH con una ruta existente. Rutas revisadas: ${candidates.join(", ") || "ninguna"}`);
+  return canonical;
+}
+
+async function resolveChromePath() {
+  const candidates = chromeCandidates();
+  const canonicalCandidates = await canonicalChromeCandidates(candidates);
+  const override = process.env.TRAVEL_B3_CHROME_PATH?.trim();
+  if (override) {
+    let canonicalOverride;
+    try {
+      canonicalOverride = await realpath(override);
+    } catch {
+      throw new BrowserLaunchError("TRAVEL_B3_CHROME_PATH sólo acepta rutas allowlisted de Chrome/Chromium.");
+    }
+    if (!canonicalCandidates.has(canonicalOverride)) {
+      throw new BrowserLaunchError("TRAVEL_B3_CHROME_PATH sólo acepta rutas allowlisted de Chrome/Chromium.");
+    }
+    return canonicalOverride;
+  }
+  for (const candidate of candidates) {
+    try {
+      return await realpath(candidate);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  throw new BrowserLaunchError(`No se encontró Chrome en rutas allowlisted: ${candidates.join(", ") || "ninguna"}`);
 }
 
 const delay = (ms) => new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
@@ -366,7 +387,10 @@ async function main() {
   const profile = join(ownedRoot, "chrome-profile");
   const chromeArgs = ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "--disable-background-networking", "about:blank"];
   if (process.platform === "linux") chromeArgs.unshift("--no-sandbox");
-  const chrome = spawnOwned(chromePath, chromeArgs, {}, "Chrome");
+  const chromeCommand = process.argv.includes("--travel-b3-test-force-chrome-eacces")
+    ? (process.platform === "win32" ? "C:\\Windows" : "/")
+    : chromePath;
+  const chrome = spawnOwned(chromeCommand, chromeArgs, {}, "Chrome");
   const cdpPort = await waitForDevTools(profile, chrome);
   for (const viewport of [
     { width: 390, height: 844, mobile: true },
