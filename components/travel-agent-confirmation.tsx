@@ -4,9 +4,13 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ControlConfirmacionHumana,
+  crearIdentidadPropuestaConfirmacion,
   crearModeloConfirmacionTravel,
   type ConfirmacionLocal,
+  type ModeloConfirmacionTravel,
 } from "@/lib/travel-agent-confirmation";
+
+type ModeloConfirmacionListo = Extract<ModeloConfirmacionTravel, { kind: "ready" }>;
 
 export function TravelAgentConfirmation({
   result,
@@ -18,9 +22,6 @@ export function TravelAgentConfirmation({
   onConfirm: (confirmation: ConfirmacionLocal) => void;
 }) {
   const model = crearModeloConfirmacionTravel({ result, current });
-  const control = useRef(new ControlConfirmacionHumana()).current;
-  const [confirmed, setConfirmed] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   if (model.kind !== "ready") {
     return (
@@ -38,6 +39,26 @@ export function TravelAgentConfirmation({
       </section>
     );
   }
+
+  return (
+    <TravelAgentConfirmationReady
+      key={crearIdentidadPropuestaConfirmacion(model)}
+      model={model}
+      onConfirm={onConfirm}
+    />
+  );
+}
+
+function TravelAgentConfirmationReady({
+  model,
+  onConfirm,
+}: {
+  model: ModeloConfirmacionListo;
+  onConfirm: (confirmation: ConfirmacionLocal) => void;
+}) {
+  const control = useRef(new ControlConfirmacionHumana()).current;
+  const [confirmed, setConfirmed] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   function handleConfirmation(checked: boolean) {
     control.setConfirmed(checked);

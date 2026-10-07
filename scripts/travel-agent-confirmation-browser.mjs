@@ -173,6 +173,15 @@ async function pressSpace(cdp) {
   await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...key });
 }
 
+async function pressShiftTab(cdp) {
+  const shift = { key: "Shift", code: "ShiftLeft", windowsVirtualKeyCode: 16, nativeVirtualKeyCode: 16 };
+  const tab = { key: "Tab", code: "Tab", windowsVirtualKeyCode: 9, nativeVirtualKeyCode: 9, modifiers: 8 };
+  await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...shift });
+  await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...tab });
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...tab });
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...shift });
+}
+
 async function pressEnter(cdp) {
   const key = { key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 };
   await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...key });
@@ -223,11 +232,28 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     await pressTab(cdp);
     assert.equal(await cdp.evaluate('document.activeElement?.textContent?.trim()'), "Aplicar propuesta", `foco acción ${label}`);
     await pressEnter(cdp);
-    await waitUntil(cdp, 'document.querySelector("[data-confirm-count]")?.textContent === "1"', `primera confirmación ${label}`);
-    assert.equal(await cdp.evaluate('document.querySelector("button")?.disabled'), true, `acción bloqueada tras envío ${label}`);
+    await waitUntil(cdp, 'document.querySelector("[data-confirm-count]")?.textContent === "1"', `primera confirmación A ${label}`);
+    assert.equal(await cdp.evaluate('document.querySelector("button")?.disabled'), true, `acción bloqueada tras envío A ${label}`);
     await pressEnter(cdp);
-    assert.equal(await cdp.evaluate('document.querySelector("[data-confirm-count]")?.textContent'), "1", `no duplica callback ${label}`);
-    return `${label}: checkbox y acción activados por teclado una vez`;
+    assert.equal(await cdp.evaluate('document.querySelector("[data-confirm-count]")?.textContent'), "1", `no duplica callback A ${label}`);
+
+    await pressTab(cdp);
+    assert.equal(await cdp.evaluate('document.activeElement?.getAttribute("data-b3-replace-proposal")'), "true", `foco para sustituir B ${label}`);
+    await pressEnter(cdp);
+    await waitUntil(cdp, 'document.querySelector("[data-b3-proposal]")?.textContent === "B"', `propuesta B ${label}`);
+    await waitUntil(cdp, 'document.querySelector("#travel-agent-human-confirmation")?.checked === false && document.querySelector("#travel-agent-human-confirmation")?.disabled === false', `reset de confirmación B ${label}`);
+    assert.equal(await cdp.evaluate('document.querySelector("button")?.disabled'), true, `acción bloqueada para B ${label}`);
+    assert.equal(await cdp.evaluate('document.querySelector("[data-confirm-count]")?.textContent'), "1", `B no reenvía callback de A ${label}`);
+
+    await pressShiftTab(cdp);
+    assert.equal(await cdp.evaluate('document.activeElement?.id'), "travel-agent-human-confirmation", `foco checkbox B ${label}`);
+    await pressSpace(cdp);
+    await waitUntil(cdp, 'document.querySelector("button")?.disabled === false', `acción B habilitada ${label}`);
+    await pressTab(cdp);
+    assert.equal(await cdp.evaluate('document.activeElement?.textContent?.trim()'), "Aplicar propuesta", `foco acción B ${label}`);
+    await pressEnter(cdp);
+    await waitUntil(cdp, 'document.querySelector("[data-confirm-count]")?.textContent === "2"', `confirmación B ${label}`);
+    return `${label}: A y B requieren confirmación humana independiente por teclado`;
   } finally {
     try { await cdp.send("Page.close"); } catch {}
     cdp.close();
@@ -242,7 +268,7 @@ async function writeFixture() {
     throw error;
   }
   routeCreated = true;
-  await writeFile(pagePath, `"use client";\n\nimport { useEffect, useState } from "react";\nimport { TravelAgentConfirmation } from "@/components/travel-agent-confirmation";\n\nexport default function ConfirmationFixture() {\n  const [count, setCount] = useState(0);\n  const [hydrated, setHydrated] = useState(false);\n  useEffect(() => { setHydrated(true); }, []);\n  return <main data-b3-hydrated={hydrated ? "true" : "false"} className="p-4"><TravelAgentConfirmation current={{ date: "2026-11-12", requested_time: "08:00", baggage: "Mochila", notes: "Base sintética" }} result={{ status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "09:30", notes: "Ajuste sintético" } }} onConfirm={() => setCount((value) => value + 1)} /><output data-confirm-count>{count}</output></main>;\n}\n`, "utf8");
+  await writeFile(pagePath, `"use client";\n\nimport { useEffect, useState } from "react";\nimport { TravelAgentConfirmation } from "@/components/travel-agent-confirmation";\n\nexport default function ConfirmationFixture() {\n  const [count, setCount] = useState(0);\n  const [proposal, setProposal] = useState("A");\n  const [hydrated, setHydrated] = useState(false);\n  useEffect(() => { setHydrated(true); }, []);\n  const result = proposal === "A" ? { status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "09:30", notes: "Ajuste A sintético" } } : { status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "10:45", notes: "Ajuste B sintético" } };\n  return <main data-b3-hydrated={hydrated ? "true" : "false"} className="grid gap-4 p-4"><TravelAgentConfirmation current={{ date: "2026-11-12", requested_time: "08:00", baggage: "Mochila", notes: "Base sintética" }} result={result} onConfirm={() => setCount((value) => value + 1)} /><button type="button" data-b3-replace-proposal onClick={() => setProposal("B")}>Sustituir propuesta</button><output data-b3-proposal>{proposal}</output><output data-confirm-count>{count}</output></main>;\n}\n`, "utf8");
 }
 
 async function main() {

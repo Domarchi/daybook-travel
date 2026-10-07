@@ -7,6 +7,11 @@ export type CampoRevisionTravel = {
   after: string;
 };
 
+export type PropuestaCanonicaTravel = Readonly<{
+  key: CampoProponible;
+  value: string | null;
+}>;
+
 export type ModeloConfirmacionTravel =
   | {
       kind: "ready";
@@ -14,6 +19,7 @@ export type ModeloConfirmacionTravel =
       requiresHumanConfirmation: true;
       canApply: false;
       fields: readonly CampoRevisionTravel[];
+      canonicalProposal: readonly PropuestaCanonicaTravel[];
     }
   | {
       kind: "unavailable";
@@ -81,19 +87,31 @@ export function crearModeloConfirmacionTravel(value: unknown): ModeloConfirmacio
   const validation = validarPropuestaTravel(proposal);
   if (!validation.ok) return { kind: "unavailable", diagnostic: "proposal_invalid" };
 
-  const fields = CAMPOS_PROPONIBLES.flatMap((key) => {
+  const canonicalProposal = CAMPOS_PROPONIBLES.flatMap((key) => {
     if (!Object.hasOwn(validation.propuesta, key)) return [];
-    return [{ key, label: LABELS[key], before: mostrar(current[key]), after: mostrar(validation.propuesta[key] ?? null) }];
+    return [Object.freeze({ key, value: validation.propuesta[key] ?? null })];
   });
-  if (fields.length === 0) return { kind: "unavailable", diagnostic: "proposal_invalid" };
+  if (canonicalProposal.length === 0) return { kind: "unavailable", diagnostic: "proposal_invalid" };
+  const fields = canonicalProposal.map((field) => Object.freeze({
+    key: field.key,
+    label: LABELS[field.key],
+    before: mostrar(current[field.key]),
+    after: mostrar(field.value),
+  }));
 
   return Object.freeze({
     kind: "ready" as const,
     status: "pending_confirmation" as const,
     requiresHumanConfirmation: true as const,
     canApply: false as const,
-    fields: Object.freeze(fields.map((field) => Object.freeze(field))),
+    fields: Object.freeze(fields),
+    canonicalProposal: Object.freeze(canonicalProposal),
   });
+}
+
+/** Identidad determinista de la propuesta allowlisted; no incluye datos extra ni sensibles. */
+export function crearIdentidadPropuestaConfirmacion(model: Extract<ModeloConfirmacionTravel, { kind: "ready" }>): string {
+  return JSON.stringify(model.canonicalProposal.map((field) => [field.key, field.value]));
 }
 
 /** Guarda una sola confirmación humana local; no aplica viajes ni transporta propuestas. */

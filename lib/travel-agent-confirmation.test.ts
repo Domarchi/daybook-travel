@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const modulePath = process.env.TRAVEL_AGENT_CONFIRMATION_MODULE ?? "./travel-agent-confirmation.ts";
-const { crearModeloConfirmacionTravel, ControlConfirmacionHumana } = await import(modulePath);
+const { crearModeloConfirmacionTravel, crearIdentidadPropuestaConfirmacion, ControlConfirmacionHumana } = await import(modulePath);
 
 const viajeSintetico = () => ({
   date: "2026-11-12",
@@ -37,6 +37,29 @@ test("B3 deja pendiente la propuesta, muestra sólo los cuatro campos permitidos
     "date", "requested_time", "baggage", "notes",
   ]);
   assert.doesNotMatch(JSON.stringify(model), /pnr|no-debe-renderizarse|person_id|no-debe-salir/);
+});
+
+
+test("B3 da una identidad canónica estable a cada propuesta sólo con cambios allowlisted", () => {
+  const current = viajeSintetico();
+  const propuestaA = crearModeloConfirmacionTravel({
+    result: { status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "09:30", pnr: "no-debe-contar" } },
+    current,
+  });
+  const propuestaAConExtraDistinto = crearModeloConfirmacionTravel({
+    result: { status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "09:30", pnr: "otro-secreto" } },
+    current,
+  });
+  const propuestaB = crearModeloConfirmacionTravel({
+    result: { status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "10:45" } },
+    current,
+  });
+  assert.equal(propuestaA.kind, "ready");
+  assert.equal(propuestaAConExtraDistinto.kind, "ready");
+  assert.equal(propuestaB.kind, "ready");
+  if (propuestaA.kind !== "ready" || propuestaAConExtraDistinto.kind !== "ready" || propuestaB.kind !== "ready") throw new Error("Se esperaban propuestas válidas.");
+  assert.equal(crearIdentidadPropuestaConfirmacion(propuestaA), crearIdentidadPropuestaConfirmacion(propuestaAConExtraDistinto));
+  assert.notEqual(crearIdentidadPropuestaConfirmacion(propuestaA), crearIdentidadPropuestaConfirmacion(propuestaB));
 });
 
 
