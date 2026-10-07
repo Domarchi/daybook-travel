@@ -113,12 +113,17 @@ function spawnOwned(command, args, options = {}) {
     ...options,
   });
   child.output = rememberOutput(child);
+  // Un fallo de spawn no siempre emite `exit`; conservarlo evita que el poller
+  // espere un DevToolsActivePort imposible y que teardown espere un hijo que
+  // nunca tuvo PID/proceso propio.
+  child.launchError = null;
+  child.once("error", (error) => { child.launchError = error; });
   children.push(child);
   return child;
 }
 
 async function stopOwned(child) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  if (!child || child.launchError || child.exitCode !== null || child.signalCode !== null) return;
   const exited = once(child, "exit");
   const signal = (name) => {
     try {
@@ -138,8 +143,14 @@ async function stopOwned(child) {
 async function teardown() {
   if (tearingDown) return;
   tearingDown = true;
-  for (const child of [...children].reverse()) await stopOwned(child);
-  if (ownedRoot) await rm(ownedRoot, { recursive: true, force: true });
+  try {
+    for (const child of [...children].reverse()) await stopOwned(child);
+    children.length = 0;
+    if (ownedRoot) await rm(ownedRoot, { recursive: true, force: true });
+    ownedRoot = undefined;
+  } finally {
+    tearingDown = false;
+  }
 }
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -174,6 +185,10 @@ async function waitForDevTools(profile, child) {
   const deadline = Date.now() + 20_000;
   let lastError = "archivo todavía ausente";
   while (Date.now() < deadline) {
+    if (child.launchError) {
+      const code = typeof child.launchError.code === "string" ? child.launchError.code : "UNKNOWN";
+      throw new Error(`Chrome no pudo iniciarse (${code})`);
+    }
     if (child.exitCode !== null) {
       throw new Error(`Chrome terminó antes de exponer CDP (${child.exitCode}).\n${child.output()}`);
     }
@@ -558,50 +573,65 @@ function assertSandboxedChromeArgs(argv) {
 }
 
 export async function startBrowser() {
+  // Sólo pruebas locales sintéticas pueden inyectar un servidor efímero. La
+  // invocación normal no lee flags de proceso ni cambia el runner de Next.
+  const testConfig = globalThis.__travelBrowserStartTest ?? {};
+  const nextEntrypoint = testConfig.nextEntrypoint ?? join(ROOT, "node_modules/next/dist/bin/next");
+  const temporaryParent = testConfig.temporaryParent ?? tmpdir();
+  const onPort = testConfig.onPort ?? (() => {});
+  assert.equal(typeof nextEntrypoint, "string", "browser runner requiere entrypoint string");
+  assert.equal(typeof temporaryParent, "string", "browser runner requiere parent temporal string");
+  assert.equal(typeof onPort, "function", "browser runner requiere callback de puerto");
   const chromeExecutable = await chromePath();
-  ownedRoot = await mkdtemp(join(tmpdir(), "daybook-travel-browser-"));
-  const port = await freePort();
-  const appUrl = `http://127.0.0.1:${port}/`;
-  const next = spawnOwned(process.execPath, [
-    join(ROOT, "node_modules/next/dist/bin/next"),
-    "dev",
-    "--hostname", "127.0.0.1",
-    "--port", String(port),
-  ], {
-    env: {
-      ...process.env,
-      TRAVEL_BROWSER_FIXTURE: "document-boundaries-v1",
-      NEXT_TELEMETRY_DISABLED: "1",
-      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "browser-test-publishable-key",
-    },
-  });
-  await waitForHttp(appUrl, next);
+  try {
+    ownedRoot = await mkdtemp(join(temporaryParent, "daybook-travel-browser-"));
+    const port = await freePort();
+    onPort(port);
+    const appUrl = `http://127.0.0.1:${port}/`;
+    const next = spawnOwned(process.execPath, [
+      nextEntrypoint,
+      "dev",
+      "--hostname", "127.0.0.1",
+      "--port", String(port),
+    ], {
+      env: {
+        ...process.env,
+        TRAVEL_BROWSER_FIXTURE: "document-boundaries-v1",
+        NEXT_TELEMETRY_DISABLED: "1",
+        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "browser-test-publishable-key",
+      },
+    });
+    await waitForHttp(appUrl, next);
 
-  const profile = join(ownedRoot, "chrome-profile");
-  const chromeArgs = [
-    "--headless=new",
-    "--remote-debugging-port=0",
-    `--user-data-dir=${profile}`,
-    "--no-first-run",
-    "--no-default-browser-check",
-    "--disable-background-networking",
-    "--disable-component-update",
-    "--disable-domain-reliability",
-    "--disable-sync",
-    "--metrics-recording-only",
-    "--disable-features=Translate,OptimizationHints,MediaRouter",
-    "about:blank",
-  ];
-  // Evidencia previa al spawn: no afirma estado de procesos/renderer del SO.
-  console.log(`Chrome sandbox: ${JSON.stringify({
-    ...assertSandboxedChromeArgs(chromeArgs), executableFormatVerified: true,
-    seccomp: "not-measured", namespaces: "not-measured",
-  })}`);
-  const chrome = spawnOwned(chromeExecutable, chromeArgs);
-  const cdpPort = await waitForDevTools(profile, chrome);
+    const profile = join(ownedRoot, "chrome-profile");
+    const chromeArgs = [
+      "--headless=new",
+      "--remote-debugging-port=0",
+      `--user-data-dir=${profile}`,
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-background-networking",
+      "--disable-component-update",
+      "--disable-domain-reliability",
+      "--disable-sync",
+      "--metrics-recording-only",
+      "--disable-features=Translate,OptimizationHints,MediaRouter",
+      "about:blank",
+    ];
+    // Evidencia previa al spawn: no afirma estado de procesos/renderer del SO.
+    console.log(`Chrome sandbox: ${JSON.stringify({
+      ...assertSandboxedChromeArgs(chromeArgs), executableFormatVerified: true,
+      seccomp: "not-measured", namespaces: "not-measured",
+    })}`);
+    const chrome = spawnOwned(chromeExecutable, chromeArgs);
+    const cdpPort = await waitForDevTools(profile, chrome);
 
-  return { cdpPort, appUrl };
+    return { cdpPort, appUrl };
+  } catch (error) {
+    await teardown();
+    throw error;
+  }
 }
 
 async function main() {

@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node --experimental-strip-types --test --test-timeout=10000 lib/*.test.ts",
-    "test:browser:recovery": "node scripts/browser-recovery.mjs",
+    "test:browser:recovery": "node scripts/browser-recovery-tab-mutants.mjs",
+    "test:browser:recovery:baseline": "node scripts/browser-recovery.mjs",
     "test:browser": "node scripts/browser-login.mjs",
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
