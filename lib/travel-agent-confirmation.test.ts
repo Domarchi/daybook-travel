@@ -90,3 +90,73 @@ test("B3 falla cerrado para resultados failed o invalid y no expone diagnóstico
     assert.doesNotMatch(JSON.stringify(model), /transport_error|model_response_invalid|no-debe-salir/);
   }
 });
+
+
+test("B3 conserva un verificador de teclado real para escritorio y móvil", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /TravelAgentConfirmation/);
+  assert.match(verifier, /pressTab/);
+  assert.match(verifier, /pressEnter/);
+  assert.match(verifier, /width: 390, height: 844, mobile: true/);
+  assert.match(verifier, /width: 1440, height: 900, mobile: false/);
+  assert.match(verifier, /confirm-count/);
+});
+
+
+test("B3 no borra un .next ajeno al limpiar el verificador", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /stat\(join\(ROOT, "\.next"\)\)/);
+  assert.doesNotMatch(verifier, /readFile\(join\(ROOT, "\.next"\)\)/);
+});
+
+
+test("B3 usa una ruta temporal que Next puede descubrir", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /const ROUTE_SEGMENT = "b3-confirmation-test"/);
+  assert.doesNotMatch(verifier, /__b3-confirmation-test/);
+});
+
+
+test("B3 verifica el estado canónico sin depender de text-transform visual", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /textContent\.includes\("pending_confirmation"\)/);
+  assert.doesNotMatch(verifier, /innerText\.includes\("pending_confirmation"\)/);
+});
+
+
+test("B3 usa keyDown para que Space active el checkbox controlado", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /async function pressSpace[\s\S]*?type: "keyDown"/);
+});
+
+
+test("B3 espera el ciclo React antes de declarar habilitada la acción", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /await waitUntil\(cdp, 'document\.querySelector\("button"\)\?\.disabled === false'/);
+});
+
+
+test("B3 controla Space de forma explícita para el checkbox accesible", async () => {
+  const view = await readFile(new URL("components/travel-agent-confirmation.tsx", root), "utf8");
+  assert.match(view, /onKeyDown=\{\(event\) => \{[\s\S]*?event\.key !== " "[\s\S]*?event\.preventDefault\(\)/);
+});
+
+
+test("B3 acepta la representación Spacebar de CDP sin relajar otros atajos", async () => {
+  const view = await readFile(new URL("components/travel-agent-confirmation.tsx", root), "utf8");
+  assert.match(view, /event\.key !== "Spacebar"/);
+});
+
+
+test("B3 emite Spacebar explícito desde CDP para el control de teclado", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /async function pressSpace[\s\S]*?key: "Spacebar"/);
+});
+
+
+test("B3 espera hidratación antes de verificar el teclado real", async () => {
+  const verifier = await readFile(new URL("scripts/travel-agent-confirmation-browser.mjs", root), "utf8");
+  assert.match(verifier, /useEffect/);
+  assert.match(verifier, /data-b3-hydrated/);
+  assert.match(verifier, /hidratación/);
+});

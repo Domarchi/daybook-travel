@@ -91,6 +91,11 @@ export function TravelAgentConfirmation({
             checked={confirmed}
             disabled={submitted}
             onChange={(event) => handleConfirmation(event.currentTarget.checked)}
+            onKeyDown={(event) => {
+              if (event.key !== " " && event.key !== "Spacebar") return;
+              event.preventDefault();
+              handleConfirmation(!confirmed);
+            }}
             className="mt-0.5 size-4 accent-[var(--primary)]"
           />
           Confirmo que revisé la propuesta y que requiere confirmación humana.
