@@ -107,7 +107,7 @@ export function aplicarPropuestaTravel(input: unknown): ResultadoAplicacion {
   }
 
   const trip = { ...input.trip };
-  const receipts = input.receipts.map((receipt) => ({ ...receipt, changedFields: [...receipt.changedFields] }));
+  const receipts = input.receipts.map(normalizarReceiptTravel);
   if (typeof input.tripId !== "string" || input.tripId !== trip.id) {
     return rechazo("trip_id_invalido", trip, receipts);
   }
@@ -151,6 +151,20 @@ export function aplicarPropuestaTravel(input: unknown): ResultadoAplicacion {
   return { ok: true, replayed: false, trip: updatedTrip, receipts: [...receipts, receipt] };
 }
 
+/**
+ * Límite de confianza: receipts previos estructuralmente válidos se aceptan por
+ * compatibilidad, pero toda salida se reconstruye con la allowlist canónica.
+ * Ninguna clave adicional ni referencia mutable del input cruza este límite.
+ */
+function normalizarReceiptTravel(receipt: ReceiptTravel): ReceiptTravel {
+  return {
+    kind: receipt.kind,
+    idempotencyKey: receipt.idempotencyKey,
+    tripVersion: receipt.tripVersion,
+    changedFields: [...receipt.changedFields],
+  };
+}
+
 function autoriza(authorize: unknown, tripId: string, tripVersion: number): boolean {
   try {
     return (authorize as (context: { tripId: string; tripVersion: number }) => unknown)({ tripId, tripVersion }) === true;
@@ -168,7 +182,7 @@ function rechazoDeEntrada(input: unknown): ResultadoAplicacion {
     ? { ...input.trip }
     : { id: "", version: 0, date: "", requested_time: null, baggage: "", notes: "" };
   const receipts = esRegistro(input) && Array.isArray(input.receipts) && input.receipts.every(esReceiptTravel)
-    ? input.receipts.map((receipt) => ({ ...receipt, changedFields: [...receipt.changedFields] }))
+    ? input.receipts.map(normalizarReceiptTravel)
     : [];
   return rechazo("entrada_invalida", trip, receipts);
 }

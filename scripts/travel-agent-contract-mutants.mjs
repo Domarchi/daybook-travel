@@ -19,6 +19,17 @@ const mutants = [
     from: "if (input.confirmed !== true) {",
     to: "if (false) {",
   },
+  {
+    name: "propaga-claves-extra-en-receipt",
+    from: `  return {
+    kind: receipt.kind,
+    idempotencyKey: receipt.idempotencyKey,
+    tripVersion: receipt.tripVersion,
+    changedFields: [...receipt.changedFields],
+  };`,
+    to: "  return { ...receipt, changedFields: [...receipt.changedFields] };",
+    failurePattern: /extraSensitive: 'synthetic-private-value'/,
+  },
 ];
 
 for (const mutant of mutants) {
@@ -28,6 +39,7 @@ for (const mutant of mutants) {
   writeFileSync(mutantFile, source.replace(mutant.from, mutant.to), "utf8");
 
   let status;
+  let output = "";
   try {
     execFileSync(node, ["--experimental-strip-types", "--test", testPath], {
       cwd: root,
@@ -39,9 +51,15 @@ for (const mutant of mutants) {
     });
   } catch (error) {
     status = error && typeof error === "object" && "status" in error ? error.status : undefined;
+    output = error && typeof error === "object" && "stdout" in error && Buffer.isBuffer(error.stdout)
+      ? error.stdout.toString("utf8")
+      : "";
   } finally {
     rmSync(mutantFile, { force: true });
   }
   assert.ok(typeof status === "number" && status !== 0, `El mutante ${mutant.name} sobrevivió.`);
-  process.stdout.write(`MUTANTE ${mutant.name}: eliminado (exit ${status})\n`);
+  if (mutant.failurePattern) {
+    assert.match(output, mutant.failurePattern, `El mutante ${mutant.name} no falló por la fuga de clave extra.`);
+  }
+  process.stdout.write(`MUTANTE ${mutant.name}: eliminado (exit ${status})${mutant.failurePattern ? "; caso E falló por clave extra" : ""}\n`);
 }

@@ -114,3 +114,47 @@ test("D: replay y versión obsoleta no duplican ni mutan", () => {
   assert.deepEqual(stale.trip, primero.trip);
   assert.deepEqual(stale.receipts, primero.receipts);
 });
+
+
+test("E: normaliza receipts previos en rechazo y replay sin filtrar claves o valores extras", () => {
+  const receiptPreexistente = {
+    kind: "travel_proposal_applied" as const,
+    idempotencyKey: "proposal_prior001",
+    tripVersion: 7,
+    changedFields: ["notes"] as const,
+    extraSensitive: "synthetic-private-value",
+  };
+  const receiptCanonico = {
+    kind: "travel_proposal_applied",
+    idempotencyKey: "proposal_prior001",
+    tripVersion: 7,
+    changedFields: ["notes"],
+  };
+
+  const entradaRechazada = solicitud({ confirmed: false, receipts: [receiptPreexistente] });
+  const rechazo = aplicarPropuestaTravel(entradaRechazada);
+  assert.equal(rechazo.ok, false);
+  assert.equal(rechazo.reason, "confirmacion_requerida");
+  assert.deepEqual(rechazo.receipts, [receiptCanonico]);
+  assert.notStrictEqual(rechazo.receipts, entradaRechazada.receipts);
+  assert.notStrictEqual(rechazo.receipts[0], receiptPreexistente);
+  assert.equal("extraSensitive" in rechazo.receipts[0], false);
+  assert.doesNotMatch(JSON.stringify(rechazo.receipts), /synthetic-private-value/);
+
+  const entradaReplay = solicitud({
+    idempotencyKey: receiptPreexistente.idempotencyKey,
+    receipts: [receiptPreexistente],
+  });
+  const replay = aplicarPropuestaTravel(entradaReplay);
+  assert.equal(replay.ok, true);
+  assert.equal(replay.replayed, true);
+  assert.deepEqual(replay.receipts, [receiptCanonico]);
+  assert.notStrictEqual(replay.receipts, entradaReplay.receipts);
+  assert.notStrictEqual(replay.receipts[0], receiptPreexistente);
+  assert.equal("extraSensitive" in replay.receipts[0], false);
+  assert.doesNotMatch(JSON.stringify(replay.receipts), /synthetic-private-value/);
+
+  assert.equal(receiptPreexistente.extraSensitive, "synthetic-private-value");
+  assert.deepEqual(entradaRechazada.receipts, [receiptPreexistente]);
+  assert.deepEqual(entradaReplay.receipts, [receiptPreexistente]);
+});
