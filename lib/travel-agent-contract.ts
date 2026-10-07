@@ -106,7 +106,7 @@ export function aplicarPropuestaTravel(input: unknown): ResultadoAplicacion {
     return rechazoDeEntrada(input);
   }
 
-  const trip = { ...input.trip };
+  const trip = normalizarViajeLocal(input.trip);
   const receipts = input.receipts.map(normalizarReceiptTravel);
   if (typeof input.tripId !== "string" || input.tripId !== trip.id) {
     return rechazo("trip_id_invalido", trip, receipts);
@@ -141,7 +141,7 @@ export function aplicarPropuestaTravel(input: unknown): ResultadoAplicacion {
   }
 
   const changedFields = CAMPOS_PROPONIBLES.filter((field) => Object.hasOwn(validacion.propuesta, field));
-  const updatedTrip: ViajeLocal = { ...trip, ...validacion.propuesta, version: trip.version + 1 };
+  const updatedTrip = aplicarPropuestaAViajeLocal(trip, validacion.propuesta);
   const receipt: ReceiptTravel = {
     kind: "travel_proposal_applied",
     idempotencyKey: input.idempotencyKey,
@@ -156,6 +156,28 @@ export function aplicarPropuestaTravel(input: unknown): ResultadoAplicacion {
  * compatibilidad, pero toda salida se reconstruye con la allowlist canónica.
  * Ninguna clave adicional ni referencia mutable del input cruza este límite.
  */
+function normalizarViajeLocal(trip: ViajeLocal): ViajeLocal {
+  return {
+    id: trip.id,
+    version: trip.version,
+    date: trip.date,
+    requested_time: trip.requested_time,
+    baggage: trip.baggage,
+    notes: trip.notes,
+  };
+}
+
+function aplicarPropuestaAViajeLocal(trip: ViajeLocal, propuesta: PropuestaTravel): ViajeLocal {
+  return {
+    id: trip.id,
+    version: trip.version + 1,
+    date: propuesta.date ?? trip.date,
+    requested_time: Object.hasOwn(propuesta, "requested_time") ? propuesta.requested_time ?? null : trip.requested_time,
+    baggage: propuesta.baggage ?? trip.baggage,
+    notes: propuesta.notes ?? trip.notes,
+  };
+}
+
 function normalizarReceiptTravel(receipt: ReceiptTravel): ReceiptTravel {
   return {
     kind: receipt.kind,
@@ -179,7 +201,7 @@ function rechazo(reason: string, trip: ViajeLocal, receipts: ReceiptTravel[]): R
 
 function rechazoDeEntrada(input: unknown): ResultadoAplicacion {
   const trip = esRegistro(input) && esViajeLocal(input.trip)
-    ? { ...input.trip }
+    ? normalizarViajeLocal(input.trip)
     : { id: "", version: 0, date: "", requested_time: null, baggage: "", notes: "" };
   const receipts = esRegistro(input) && Array.isArray(input.receipts) && input.receipts.every(esReceiptTravel)
     ? input.receipts.map(normalizarReceiptTravel)

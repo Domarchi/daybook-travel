@@ -158,3 +158,41 @@ test("E: normaliza receipts previos en rechazo y replay sin filtrar claves o val
   assert.deepEqual(entradaRechazada.receipts, [receiptPreexistente]);
   assert.deepEqual(entradaReplay.receipts, [receiptPreexistente]);
 });
+
+
+test("F: acepta claves extra de trip por compatibilidad, pero reconstruye rechazo, éxito y replay sin mutar la entrada", () => {
+  const marker = "synthetic-trip-secret";
+  const keys = ["baggage", "date", "id", "notes", "requested_time", "version"];
+  const assertTripCanonico = (resultado: ReturnType<typeof aplicarPropuestaTravel>, entrada: Record<string, unknown>, expected: Record<string, unknown>) => {
+    assert.deepEqual(resultado.trip, expected);
+    assert.notStrictEqual(resultado.trip, entrada.trip);
+    assert.deepEqual(Object.keys(resultado.trip).sort(), keys);
+    assert.equal("extraSensitive" in resultado.trip, false);
+    assert.doesNotMatch(JSON.stringify(resultado.trip), /synthetic-trip-secret/);
+    assert.equal((entrada.trip as { extraSensitive?: unknown }).extraSensitive, marker);
+  };
+
+  const tripRechazado = { ...viaje(), extraSensitive: marker };
+  const entradaRechazada = solicitud({ trip: tripRechazado, confirmed: false });
+  const rechazo = aplicarPropuestaTravel(entradaRechazada);
+  assert.equal(rechazo.ok, false);
+  assert.equal(rechazo.reason, "confirmacion_requerida");
+  assertTripCanonico(rechazo, entradaRechazada, viaje());
+  assert.deepEqual(entradaRechazada.trip, tripRechazado);
+
+  const tripExitoso = { ...viaje(), extraSensitive: marker };
+  const entradaExitosa = solicitud({ trip: tripExitoso });
+  const exito = aplicarPropuestaTravel(entradaExitosa);
+  assert.equal(exito.ok, true);
+  assert.equal(exito.replayed, false);
+  assertTripCanonico(exito, entradaExitosa, { ...viaje(), ...propuestaPermitida(), version: 8 });
+  assert.deepEqual(entradaExitosa.trip, tripExitoso);
+
+  const tripReplay = { ...viaje(), extraSensitive: marker };
+  const entradaReplay = solicitud({ trip: tripReplay, receipts: exito.receipts });
+  const replay = aplicarPropuestaTravel(entradaReplay);
+  assert.equal(replay.ok, true);
+  assert.equal(replay.replayed, true);
+  assertTripCanonico(replay, entradaReplay, viaje());
+  assert.deepEqual(entradaReplay.trip, tripReplay);
+});

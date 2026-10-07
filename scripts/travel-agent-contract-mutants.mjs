@@ -20,6 +20,21 @@ const mutants = [
     to: "if (false) {",
   },
   {
+    name: "propaga-claves-extra-en-trip",
+    from: `function normalizarViajeLocal(trip: ViajeLocal): ViajeLocal {
+  return {
+    id: trip.id,
+    version: trip.version,
+    date: trip.date,
+    requested_time: trip.requested_time,
+    baggage: trip.baggage,
+    notes: trip.notes,
+  };
+}`,
+    to: "function normalizarViajeLocal(trip: ViajeLocal): ViajeLocal { return { ...trip }; }",
+    failurePattern: /extraSensitive: 'synthetic-trip-secret'/,
+  },
+  {
     name: "propaga-claves-extra-en-receipt",
     from: `  return {
     kind: receipt.kind,
@@ -61,5 +76,5 @@ for (const mutant of mutants) {
   if (mutant.failurePattern) {
     assert.match(output, mutant.failurePattern, `El mutante ${mutant.name} no falló por la fuga de clave extra.`);
   }
-  process.stdout.write(`MUTANTE ${mutant.name}: eliminado (exit ${status})${mutant.failurePattern ? "; caso E falló por clave extra" : ""}\n`);
+  process.stdout.write(`MUTANTE ${mutant.name}: eliminado (exit ${status})${mutant.failurePattern ? "; prueba de clave extra falló" : ""}\n`);
 }
