@@ -15,6 +15,48 @@ const children = [];
 let ownedRoot;
 let routeCreated = false;
 let removeNext = false;
+let removeNextDev = false;
+
+class BrowserLaunchError extends Error {
+  constructor(message, cause) {
+    super(message, cause ? { cause } : undefined);
+    this.name = "BrowserLaunchError";
+  }
+}
+
+function chromeCandidates() {
+  const candidates = [];
+  const add = (candidate) => {
+    if (candidate && !candidates.includes(candidate)) candidates.push(candidate);
+  };
+  add(process.env.TRAVEL_B3_CHROME_PATH?.trim());
+  if (process.platform === "darwin") {
+    add("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+    add("/Applications/Chromium.app/Contents/MacOS/Chromium");
+  } else if (process.platform === "win32") {
+    add("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe");
+    add("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe");
+  } else {
+    add("/usr/bin/google-chrome");
+    add("/usr/bin/google-chrome-stable");
+    add("/usr/bin/chromium");
+    add("/usr/bin/chromium-browser");
+  }
+  return candidates;
+}
+
+async function resolveChromePath() {
+  const candidates = chromeCandidates();
+  for (const candidate of candidates) {
+    try {
+      await stat(candidate);
+      return candidate;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  throw new BrowserLaunchError(`No se encontró Chrome. Defina TRAVEL_B3_CHROME_PATH con una ruta existente. Rutas revisadas: ${candidates.join(", ") || "ninguna"}`);
+}
 
 const delay = (ms) => new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
 
@@ -31,24 +73,33 @@ async function freePort() {
   return port;
 }
 
-function spawnOwned(command, args, options = {}) {
-  const child = spawn(command, args, {
-    cwd: ROOT,
-    detached: process.platform !== "win32",
-    stdio: ["ignore", "pipe", "pipe"],
-    ...options,
-  });
+function spawnOwned(command, args, options = {}, label = command) {
+  let child;
+  try {
+    child = spawn(command, args, {
+      cwd: ROOT,
+      detached: process.platform !== "win32",
+      stdio: ["ignore", "pipe", "pipe"],
+      ...options,
+    });
+  } catch (error) {
+    throw new BrowserLaunchError(`No se pudo iniciar ${label}: ${error?.code ?? error?.message ?? String(error)}`, error);
+  }
   let output = "";
   const collect = (chunk) => { output = (output + chunk.toString()).slice(-20_000); };
   child.stdout?.on("data", collect);
   child.stderr?.on("data", collect);
   child.output = () => output;
+  child.launchError = null;
+  child.once("error", (error) => {
+    child.launchError = new BrowserLaunchError(`No se pudo iniciar ${label}: ${error?.code ?? error?.message ?? String(error)}`, error);
+  });
   children.push(child);
   return child;
 }
 
 async function stopOwned(child) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  if (!child || !child.pid || child.exitCode !== null || child.signalCode !== null) return;
   const exited = once(child, "exit");
   try {
     if (process.platform === "win32") child.kill("SIGTERM");
@@ -67,16 +118,27 @@ async function stopOwned(child) {
 }
 
 async function teardown() {
-  for (const child of [...children].reverse()) await stopOwned(child);
-  if (routeCreated) await rm(routeDir, { recursive: true, force: true });
-  if (removeNext) await rm(join(ROOT, ".next"), { recursive: true, force: true });
-  if (ownedRoot) await rm(ownedRoot, { recursive: true, force: true });
+  let firstError;
+  const clean = async (operation) => {
+    try {
+      await operation();
+    } catch (error) {
+      firstError ??= error;
+    }
+  };
+  for (const child of [...children].reverse()) await clean(() => stopOwned(child));
+  if (routeCreated) await clean(() => rm(routeDir, { recursive: true, force: true }));
+  if (removeNextDev) await clean(() => rm(join(ROOT, ".next", "dev"), { recursive: true, force: true }));
+  if (removeNext) await clean(() => rm(join(ROOT, ".next"), { recursive: true, force: true }));
+  if (ownedRoot) await clean(() => rm(ownedRoot, { recursive: true, force: true }));
+  if (firstError) throw firstError;
 }
 
 async function waitForHttp(url, child) {
   const deadline = Date.now() + DEADLINE_MS;
   let lastError = "sin respuesta";
   while (Date.now() < deadline) {
+    if (child.launchError) throw child.launchError;
     if (child.exitCode !== null) throw new Error(`Next terminó antes de estar listo.\n${child.output()}`);
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(1_500) });
@@ -95,6 +157,7 @@ async function waitForDevTools(profile, child) {
   const portFile = join(profile, "DevToolsActivePort");
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
+    if (child.launchError) throw child.launchError;
     if (child.exitCode !== null) throw new Error(`Chrome terminó antes de CDP.\n${child.output()}`);
     try {
       const [port] = (await readFile(portFile, "utf8")).trim().split("\n");
@@ -271,16 +334,29 @@ async function writeFixture() {
   await writeFile(pagePath, `"use client";\n\nimport { useEffect, useState } from "react";\nimport { TravelAgentConfirmation } from "@/components/travel-agent-confirmation";\n\nexport default function ConfirmationFixture() {\n  const [count, setCount] = useState(0);\n  const [proposal, setProposal] = useState("A");\n  const [hydrated, setHydrated] = useState(false);\n  useEffect(() => { setHydrated(true); }, []);\n  const result = proposal === "A" ? { status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "09:30", notes: "Ajuste A sintético" } } : { status: "pending_confirmation", requiresHumanConfirmation: true, proposal: { requested_time: "10:45", notes: "Ajuste B sintético" } };\n  return <main data-b3-hydrated={hydrated ? "true" : "false"} className="grid gap-4 p-4"><TravelAgentConfirmation current={{ date: "2026-11-12", requested_time: "08:00", baggage: "Mochila", notes: "Base sintética" }} result={result} onConfirm={() => setCount((value) => value + 1)} /><button type="button" data-b3-replace-proposal onClick={() => setProposal("B")}>Sustituir propuesta</button><output data-b3-proposal>{proposal}</output><output data-confirm-count>{count}</output></main>;\n}\n`, "utf8");
 }
 
+async function recordTestServerPort(port) {
+  const path = process.env.TRAVEL_B3_TEST_SERVER_PORT_FILE;
+  if (path) await writeFile(path, `${port}\n`, { encoding: "utf8", flag: "wx" });
+}
+
 async function main() {
+  const chromePath = await resolveChromePath();
   ownedRoot = await mkdtemp(join(tmpdir(), "travel-b3-browser-"));
   try {
     await stat(join(ROOT, ".next"));
+    try {
+      await stat(join(ROOT, ".next", "dev"));
+    } catch (error) {
+      if (error?.code === "ENOENT") removeNextDev = true;
+      else throw error;
+    }
   } catch (error) {
     if (error?.code === "ENOENT") removeNext = true;
     else throw error;
   }
   await writeFixture();
   const port = await freePort();
+  await recordTestServerPort(port);
   const next = spawnOwned(process.execPath, [join(ROOT, "node_modules/next/dist/bin/next"), "dev", "--hostname", "127.0.0.1", "--port", String(port)], {
     env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
   });
@@ -290,7 +366,7 @@ async function main() {
   const profile = join(ownedRoot, "chrome-profile");
   const chromeArgs = ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "--disable-background-networking", "about:blank"];
   if (process.platform === "linux") chromeArgs.unshift("--no-sandbox");
-  const chrome = spawnOwned("/usr/bin/google-chrome", chromeArgs);
+  const chrome = spawnOwned(chromePath, chromeArgs, {}, "Chrome");
   const cdpPort = await waitForDevTools(profile, chrome);
   for (const viewport of [
     { width: 390, height: 844, mobile: true },

@@ -1,4 +1,10 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { once } from "node:events";
+import { createConnection } from "node:net";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
 const modulePath = process.env.TRAVEL_AGENT_CONFIRMATION_MODULE ?? "./travel-agent-confirmation.ts";
@@ -82,8 +88,6 @@ test("B3 requiere confirmación humana y entrega una sola señal local sin propu
   assert.equal(gate.confirm(), null);
 });
 
-
-import { readFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
 
@@ -182,4 +186,76 @@ test("B3 espera hidratación antes de verificar el teclado real", async () => {
   assert.match(verifier, /useEffect/);
   assert.match(verifier, /data-b3-hydrated/);
   assert.match(verifier, /hidratación/);
+});
+
+async function portAcceptsConnections(port: number) {
+  return new Promise<boolean>((resolveConnection) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    const finish = (connected: boolean) => {
+      socket.destroy();
+      resolveConnection(connected);
+    };
+    const timeout = setTimeout(() => finish(false), 1_000);
+    socket.once("connect", () => {
+      clearTimeout(timeout);
+      finish(true);
+    });
+    socket.once("error", () => {
+      clearTimeout(timeout);
+      finish(false);
+    });
+  });
+}
+
+test("B3 limpia fixture y servidor cuando Chrome emite error al iniciar", { timeout: 60_000 }, async (t) => {
+  const probeRoot = await mkdtemp(join(tmpdir(), "travel-b3-spawn-error-"));
+  const chromeWithoutExecutePermission = join(probeRoot, "chrome-sin-ejecucion");
+  const portFile = join(probeRoot, "next-port");
+  await writeFile(chromeWithoutExecutePermission, "no ejecutar", "utf8");
+  await chmod(chromeWithoutExecutePermission, 0o600);
+  t.after(async () => { await rm(probeRoot, { recursive: true, force: true }); });
+
+  const nextDir = new URL("../.next/", import.meta.url);
+  let nextDirCreated = false;
+  try {
+    await access(nextDir);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+    await mkdir(nextDir, { recursive: true });
+    nextDirCreated = true;
+  }
+  if (nextDirCreated) t.after(async () => { await rm(nextDir, { recursive: true, force: true }); });
+  const nextDevDir = new URL("../.next/dev/", import.meta.url);
+  let nextDevWasPresent = true;
+  try {
+    await access(nextDevDir);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+    nextDevWasPresent = false;
+  }
+
+  const verifier = spawn(process.execPath, ["scripts/travel-agent-confirmation-browser.mjs"], {
+    cwd: new URL("../", import.meta.url),
+    env: {
+      ...process.env,
+      PATH: `${dirname(process.execPath)}:${process.env.PATH ?? ""}`,
+      TRAVEL_B3_CHROME_PATH: chromeWithoutExecutePermission,
+      TRAVEL_B3_TEST_SERVER_PORT_FILE: portFile,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  verifier.stdout.on("data", (chunk) => { output += chunk; });
+  verifier.stderr.on("data", (chunk) => { output += chunk; });
+  const [code, signal] = await once(verifier, "close") as [number | null, NodeJS.Signals | null];
+
+  assert.equal(signal, null);
+  assert.notEqual(code, 0);
+  assert.match(output, /BrowserLaunchError: No se pudo iniciar Chrome[\s\S]*EACCES/);
+
+  const port = Number((await readFile(portFile, "utf8")).trim());
+  assert.equal(Number.isInteger(port), true);
+  await assert.rejects(access(new URL("../app/b3-confirmation-test/page.tsx", import.meta.url)), { code: "ENOENT" });
+  if (!nextDevWasPresent) await assert.rejects(access(nextDevDir), { code: "ENOENT" });
+  assert.equal(await portAcceptsConnections(port), false, `Next quedó escuchando en el puerto ${port}`);
 });
