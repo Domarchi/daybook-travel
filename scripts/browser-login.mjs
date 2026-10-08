@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, lstat, mkdtemp, open, readFile, realpath, rm, stat } from "node:fs/promises";
+import { access, mkdtemp, open, readFile, realpath, rm, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -32,7 +32,6 @@ async function freePort() {
 async function chromePath() {
   const explicit = process.env.CHROME_PATH !== undefined;
   const candidates = explicit ? [process.env.CHROME_PATH] : [
-    "/opt/travel-ci-chrome/bundle/chrome",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/usr/bin/google-chrome",
@@ -44,7 +43,6 @@ async function chromePath() {
   // de /usr/bin son sólo puntos de descubrimiento: jamás son una autorización
   // por sí mismas después de realpath.
   const systemExecutables = new Set([
-    "/opt/travel-ci-chrome/bundle/chrome",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/opt/google/chrome/chrome",
@@ -52,15 +50,6 @@ async function chromePath() {
     "/usr/lib/chromium-browser/chromium-browser",
   ]);
   const vendorWrapper = "/opt/google/chrome/google-chrome";
-
-  async function rootOwnedCiChrome(path) {
-    if (path !== "/opt/travel-ci-chrome/bundle/chrome") return true;
-    for (const ancestor of ["/opt", "/opt/travel-ci-chrome", "/opt/travel-ci-chrome/bundle", path]) {
-      const info = await lstat(ancestor);
-      if (info.isSymbolicLink() || info.uid !== 0 || (info.mode & 0o022) !== 0) return false;
-    }
-    return true;
-  }
 
   for (const candidate of candidates) {
     let executable;
@@ -75,8 +64,7 @@ async function chromePath() {
       const info = await stat(executable);
       if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");
       await access(executable, constants.X_OK);
-      const systemTrusted = systemExecutables.has(executable) && (info.mode & 0o022) === 0
-        && await rootOwnedCiChrome(executable);
+      const systemTrusted = systemExecutables.has(executable) && (info.mode & 0o022) === 0;
       if (!systemTrusted) {
         throw new Error("T3 CHROME_PATH fuera de la lista permitida");
       }

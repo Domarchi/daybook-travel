@@ -20,9 +20,10 @@ const privatePaths=[workflowPath,testPath];
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const save=(path,value)=>writeFile(path,JSON.stringify(value,null,2)+'\n',{flag:'wx'});
 const normalNames=[
-  'T4 Chrome CI tiene pin concreto verificado, dependencias y timeout de job',
-  'T4 test:browser: CHROME_PATH del setup y timeout propio',
-  'T4 test:browser:recovery: CHROME_PATH del setup y timeout propio',
+  'T4 CI usa sólo Chrome del sistema ya permitido y timeout de job',
+  'T4 test:browser: Chrome del sistema y timeout propio',
+  'T4 test:browser:recovery: Chrome del sistema y timeout propio',
+  'M3 rechaza reintroducir staging privilegiado de Chrome',
 ];
 const assertionIds=[
   'T4 timeout verify/job exacto: 20 minutos',

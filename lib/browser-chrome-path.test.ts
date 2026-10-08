@@ -90,7 +90,7 @@ test('T3 GITHUB_ACTIONS y un contrato de checkout falsificados no autorizan ELF 
   }
 });
 
-test('T3 ruta CI fija exige toda la cadena root y no escribible', async () => {
+test('T3 la antigua ruta especial de CI no se autoriza aunque aparente ser root/no-escribible', async () => {
   const fixed = '/opt/travel-ci-chrome/bundle/chrome';
   const resolve = (owner: number) => runInNewContext(`${resolverSource}\nchromePath`, {
     process: { env: { CHROME_PATH: fixed }, platform: 'linux' }, constants,
@@ -100,10 +100,9 @@ test('T3 ruta CI fija exige toda la cadena root y no escribible', async () => {
     lstat: async () => ({ isSymbolicLink: () => false, uid: owner, mode: 0o40755 }),
     open: async () => ({ stat: async () => ({ isFile: () => true, dev: 1, ino: 2 }), close: async () => {} }),
   }) as () => Promise<{ file: { close(): Promise<void> } }>;
-  await assert.rejects(resolve(1000), { message: /^T3 CHROME_PATH fuera de la lista permitida$/ },
-    'T3 un checkout/usuario no puede crear la ruta CI permitida');
-  const accepted = await resolve(0)();
-  await accepted.file.close();
+  await assert.rejects(resolve(1000), { message: /^T3 CHROME_PATH fuera de la lista permitida$/ });
+  await assert.rejects(resolve(0), { message: /^T3 CHROME_PATH fuera de la lista permitida$/ },
+    'T3 root/mode no son una frontera cuando el checkout conserva sudo');
 });
 
 test('T3 CHROME_PATH conserva aceptación del Chrome del sistema sin ejecutarlo', async (t) => {

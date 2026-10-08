@@ -362,13 +362,11 @@ function t4Value(block: string, key: string, indent: number): string {
   return value.replace(/^(['"])(.*)\1$/,'$2');
 }
 
-function t4Setup(steps: string[]) {
-  const setups=steps.filter(step => /^ {6}(?:- |  )uses: ['"]?browser-actions\/setup-chrome@v2['"]?[ \t]*$/m.test(step));
-  assert.equal(setups.length,1,'T4 un setup Chrome explícito browser-actions/setup-chrome@v2');
-  const setup=setups[0];
-  const id=t4Value(setup.replace(/^ {6}- /,'        '),'id',8);
-  assert.match(id,/^[A-Za-z_][A-Za-z0-9_-]*$/,'T4 setup Chrome con id propio');
-  return {setup,id};
+function t4NoPrivilegedCiChrome(job: string) {
+  assert.doesNotMatch(job,/browser-actions\/setup-chrome|travel-ci-chrome|\bCHROME_PATH\b/,
+    'T4 CI no añade una autorización Chrome dinámica o de checkout');
+  assert.doesNotMatch(job,/\bsudo\b/,
+    'T4 CI no presenta root/mode como frontera frente al checkout');
 }
 
 // Tests normales y tracer M3 comparten el contrato exacto del job/step.
@@ -389,39 +387,33 @@ function t4BrowserTimeout(browser: string, script: string) {
     `T4 timeout verify/${script} exacto: ${expected[script]} minutos`);
 }
 
-test('T4 Chrome CI tiene pin concreto verificado, dependencias y timeout de job', async () => {
+test('T4 CI usa sólo Chrome del sistema ya permitido y timeout de job', async () => {
   const {job,steps}=await t4Workflow();
-  const {setup,id}=t4Setup(steps);
-  const inputs=setup.match(/^ {8}with:\r?\n((?: {10}[^\r\n]*\r?\n?)*)/m)?.[1] ?? '';
-  assert.equal(t4Value(inputs,'chrome-version',10),'154.0.8037.92',
-    'T4 pin exacto, sin latest/stable ni versión local confundida con CI');
-  assert.equal(t4Value(inputs,'install-dependencies',10),'true','T4 instalar dependencias Linux');
-  assert.equal(steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'id',8) === id).length,1,
-    'T4 id de setup único en el job');
+  t4NoPrivilegedCiChrome(job);
+  assert.equal(steps.filter(step => /^ {6}(?:- |  )uses: ['"]?browser-actions\/setup-chrome@/m.test(step)).length,0,
+    'T4 no instala un binario de ruta dinámica para ampliarla en runtime');
   t4JobTimeout(job);
 });
 
 for (const script of ['test:browser','test:browser:recovery']) {
-  test(`T4 ${script}: Chrome CI en allowlist raíz y timeout propio`, async () => {
-    const {steps}=await t4Workflow();
+  test(`T4 ${script}: Chrome del sistema y timeout propio`, async () => {
+    const {job,steps}=await t4Workflow();
     const browser=t4BrowserStep(steps,script);
-    const {setup,id}=t4Setup(steps);
-    const installers=steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'name',8) === 'Instalar Chrome CI en allowlist raíz');
-    assert.equal(installers.length,1,'T4 un instalador CI con destino fijo');
-    const installer=installers[0];
-    const installRun=installer.match(/^ {8}run: \|\r?\n([\s\S]*)$/m)?.[1] ?? '';
-    assert.match(installer,new RegExp('SETUP_CHROME_PATH: \\${\\{ steps\\.'+id+'\\.outputs\\.chrome-path \\}\\}'),
-      'T4 sólo el workflow consume el output dinámico');
-    assert.match(installRun,/sudo cp -a -- .*\/opt\/travel-ci-chrome\/bundle/,'T4 copia bundle a ruta fija');
-    assert.match(installRun,/sudo chown -R root:root \/opt\/travel-ci-chrome/,'T4 destino CI propiedad de root');
-    assert.match(installRun,/sudo chmod -R go-w \/opt\/travel-ci-chrome/,'T4 destino CI no escribible');
-    assert.doesNotMatch(installRun,/travel-ci-chrome\.json|GITHUB_ACTIONS/,'T4 no introduce contrato falsificable');
+    t4NoPrivilegedCiChrome(job);
     assert.doesNotMatch(browser,/CHROME_PATH/,'T4 browser no recibe ejecutable desde entorno');
-    assert.ok(steps.indexOf(setup) < steps.indexOf(installer) && steps.indexOf(installer) < steps.indexOf(browser),
-      'T4 setup y copia raíz preceden al browser');
     t4BrowserTimeout(browser,script);
   });
 }
+
+test('M3 rechaza reintroducir staging privilegiado de Chrome', async () => {
+  const yaml=await readFile(new URL('.github/workflows/ci.yml',root),'utf8');
+  const mutated=yaml.replace('      - run: npm run test:browser\n',
+    '      - run: sudo cp /tmp/chrome /opt/travel-ci-chrome/bundle/chrome\n      - run: npm run test:browser\n');
+  assert.notEqual(mutated,yaml,'M3 mutación de staging privilegiado aplicada');
+  const {job}=t4WorkflowSource(mutated);
+  assert.throws(()=>t4NoPrivilegedCiChrome(job),{code:'ERR_ASSERTION',message:/^T4 CI no añade una autorización Chrome dinámica/},
+    'M3 el guard mata la reintroducción de frontera root forjable');
+});
 
 for (const mutation of [
   {target:'verify/job',script:null,site:'    timeout-minutes: 20\n',replacement:'    timeout-minutes: 200\n',

@@ -182,8 +182,6 @@ async function mutants(root,evidence,source,records,os,abort) {
   const variants=[
     {id:'allowlist-return',site:'if (!systemTrusted) {',replacement:'if (false) {',
       file:unitPath,name:'T3 CHROME_PATH ELF privado se rechaza antes de spawn y sin fallback'},
-    {id:'ci-root-owner',site:'info.uid !== 0',replacement:'false',file:unitPath,
-      name:'T3 ruta CI fija exige toda la cadena root y no escribible'},
     {id:'explicit-fallback',site:'const explicit = process.env.CHROME_PATH !== undefined;',replacement:'const explicit = false;',name:'T3 M2 no-fallback rechazo previo a spawn'},
     {id:'directory-return',site:'if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");',
       replacement:'if (!info.isFile()) return executable;',name:'T3 M2 file rechazo previo a spawn'},
