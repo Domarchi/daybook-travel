@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { access, copyFile, lstat, mkdtemp, open, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { hostname, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 
@@ -162,15 +162,25 @@ test('T3 CHROME_PATH conserva aceptación del Chrome del sistema sin ejecutarlo'
     t.skip('Integración Linux LOCAL: no prueba aceptación de binarios en este host');
     return;
   }
-  const file = await stat(realChrome).catch((error: NodeJS.ErrnoException) => {
-    if (hostname() !== 'domarchithinkpad' && ['ENOENT', 'ENOTDIR'].includes(error.code ?? '')) return null;
-    throw error;
-  });
-  if (file === null) {
-    t.skip('Integración Linux LOCAL: Chrome del sistema no instalado; aceptación no probada en este host');
+
+  // GitHub Ubuntu instala Chromium aquí; los hosts de desarrollo suelen usar
+  // Chrome de Google. Ambas rutas son canónicas y ya están en la allowlist.
+  const selected = await (async () => {
+    for (const candidate of [githubRunnerChromium, realChrome]) {
+      const file = await stat(candidate).catch((error: NodeJS.ErrnoException) => {
+        if (['ENOENT', 'ENOTDIR'].includes(error.code ?? '')) return null;
+        throw error;
+      });
+      if (file?.isFile()) return candidate;
+    }
+    return null;
+  })();
+  if (selected === null) {
+    t.skip('Integración Linux LOCAL: no hay Chrome/Chromium canónico instalado; aceptación no probada en este host');
     return;
   }
-  const model = resolver(realChrome);
+  assert.ok((await stat(selected)).isFile(), 'T3 la ruta canónica elegida existe y es un archivo');
+  const model = resolver(selected);
   const accepted = await model.resolve();
   await accepted.file.close();
   assert.ok(accepted, 'T3 resolver devuelve descriptor abierto, no una ruta ejecutable');
