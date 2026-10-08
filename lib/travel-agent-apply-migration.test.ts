@@ -34,6 +34,17 @@ test("B2 migration serializes the receipt before the only trip UPDATE and return
   assert.match(sql, /if found then[\s\S]*?'replayed', true[\s\S]*?'proposal_identity', v_receipt\.proposal_identity[\s\S]*?'applied_version', v_receipt\.applied_version/i);
 });
 
+test("B2 migration replaya exactamente el snapshot del receipt y conserva sus invariantes de relación y versión", () => {
+  const replay = sql.match(/if found then([\s\S]*?)end if;\s*\n\s*select \* into v_trip from public\.trips where id = p_trip_id for update;/i)?.[1] ?? "";
+
+  assert.match(replay, /'trip'\s*,\s*v_receipt\.applied_trip/i, "el replay debe devolver el snapshot persistido");
+  assert.doesNotMatch(replay, /'trip'\s*,\s*to_jsonb\s*\(\s*v_trip\s*\)/i, "el viaje actual no puede reemplazar el snapshot");
+  assert.match(replay, /'proposal_identity'\s*,\s*v_receipt\.proposal_identity/i);
+  assert.match(replay, /'applied_version'\s*,\s*v_receipt\.applied_version/i);
+  assert.match(sql, /applied_trip[\s\S]*?and \(applied_trip ->> 'version'\)::bigint = applied_version/i);
+  assert.match(sql, /applied_trip[\s\S]*?and applied_trip - 'id' - 'version' - 'date' - 'requested_time' - 'baggage' - 'notes' = '\{\}'::jsonb/i);
+});
+
 test("B2 migration rejects unallowlisted proposal keys and its UPDATE contains only B1 columns", () => {
   assert.match(sql, /where k\.key not in \('date', 'requested_time', 'baggage', 'notes'\)[\s\S]*?campo_no_permitido/i);
   const update = sql.match(/update public\.trips\s+set([\s\S]*?)\s+where id = v_trip\.id/i)?.[1] ?? "";
