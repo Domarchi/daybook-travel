@@ -48,6 +48,7 @@ async function chromePath() {
     "/opt/google/chrome/chrome",
     "/usr/lib/chromium/chromium",
     "/usr/lib/chromium-browser/chromium-browser",
+    "/usr/local/share/chromium/chrome-linux/chrome",
   ]);
   const vendorWrapper = "/opt/google/chrome/google-chrome";
 

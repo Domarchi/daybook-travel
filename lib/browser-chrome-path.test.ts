@@ -13,6 +13,7 @@ const commandSource = source.match(/^function chromeCommand\([^]*?^}/m)?.[0];
 assert.ok(commandSource, 'T3 extraer chromeCommand real existente');
 const ownedTmp = tmpdir();
 const realChrome = '/opt/google/chrome/chrome';
+const githubRunnerChromium = '/usr/local/share/chromium/chrome-linux/chrome';
 
 function resolver(explicitPath: string, options: { ci?: boolean } = {}, implementation = resolverSource) {
   const accessed: string[] = [];
@@ -103,6 +104,23 @@ test('T3 la antigua ruta especial de CI no se autoriza aunque aparente ser root/
   await assert.rejects(resolve(1000), { message: /^T3 CHROME_PATH fuera de la lista permitida$/ });
   await assert.rejects(resolve(0), { message: /^T3 CHROME_PATH fuera de la lista permitida$/ },
     'T3 root/mode no son una frontera cuando el checkout conserva sudo');
+});
+
+test('T3 acepta sólo el binario canónico de Chromium preinstalado en GitHub Ubuntu', async () => {
+  let closed = 0;
+  const resolve = runInNewContext(`${resolverSource}\nchromePath`, {
+    process: { env: { CHROME_PATH: githubRunnerChromium }, platform: 'linux' }, constants,
+    realpath: async () => githubRunnerChromium,
+    access: async () => {},
+    stat: async () => ({ isFile: () => true, mode: 0o100755, dev: 1, ino: 2 }),
+    open: async () => ({
+      stat: async () => ({ isFile: () => true, dev: 1, ino: 2 }),
+      close: async () => { closed++; },
+    }),
+  }) as () => Promise<{ file: { close(): Promise<void> } }>;
+  const accepted = await resolve();
+  await accepted.file.close();
+  assert.equal(closed, 1, 'T3 conserva descriptor, no una ruta alternativa');
 });
 
 test('T3 CHROME_PATH conserva aceptación del Chrome del sistema sin ejecutarlo', async (t) => {

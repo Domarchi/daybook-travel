@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
@@ -14,8 +15,7 @@ const sourceRoot = fileURLToPath(new URL('../', import.meta.url));
 const harness = await readFile(new URL('../scripts/browser-login.mjs', import.meta.url), 'utf8');
 const marker = 'TRAVEL_BROWSER_FIXTURE'; // Protocolo propio del harness, no variable interna Next.
 const fixtureMode = 'document-boundaries-v1';
-// Gate unit local de esta tarea; no se presenta como fixture portable de CI.
-const ownedTmp = '/home/domarchithinkpad/.hermes/cache/scratch/tc-d0et9_nt';
+const ownedTmp = tmpdir();
 
 async function observeStartup() {
   const start = harness.match(/^export async function startBrowser\([^]*?^}/m)?.[0];
