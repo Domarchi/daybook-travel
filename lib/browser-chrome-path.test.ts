@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { access, copyFile, lstat, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { access, copyFile, lstat, mkdtemp, open, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,32 +9,48 @@ import { runInNewContext } from 'node:vm';
 const source = await readFile(new URL('../scripts/browser-login.mjs', import.meta.url), 'utf8');
 const resolverSource = source.match(/^async function chromePath\([^]*?^}/m)?.[0];
 assert.ok(resolverSource, 'T3 extraer chromePath real existente');
+const commandSource = source.match(/^function chromeCommand\([^]*?^}/m)?.[0];
+assert.ok(commandSource, 'T3 extraer chromeCommand real existente');
 const ownedTmp = tmpdir();
 const realChrome = '/opt/google/chrome/chrome';
 
-function resolver(explicitPath: string, options: { root?: string; ci?: boolean } = {}, implementation = resolverSource) {
+function resolver(explicitPath: string, options: { ci?: boolean } = {}, implementation = resolverSource) {
   const accessed: string[] = [];
   const spawned: unknown[][] = [];
   const noSpawn = (...args: unknown[]) => { spawned.push(args); assert.fail('T3 chromePath no debe ejecutar procesos'); };
   const resolve = runInNewContext(`${implementation}\nchromePath`, {
     process: { env: { CHROME_PATH: explicitPath, GITHUB_ACTIONS: options.ci ? 'true' : undefined }, platform: process.platform },
-    ROOT: options.root ?? process.cwd(), join, createHash,
     access: async (path: string, mode?: number) => { accessed.push(path); await access(path, mode); },
-    lstat, readFile, realpath, stat, constants, spawn: noSpawn, spawnOwned: noSpawn,
-  }) as () => Promise<string>;
+    lstat, open, readFile, realpath, stat, constants, spawn: noSpawn, spawnOwned: noSpawn,
+  }) as () => Promise<{ file: Awaited<ReturnType<typeof open>> }>;
   return { resolve, accessed, spawned };
 }
 
 test('M2 allowlist-return: el mutante que la elimina acepta el ELF privado (RED)', async () => {
   const root = await mkdtemp(join(ownedTmp, 'd1-allowlist-mutant-'));
   const elf = join(root, 'not-chrome');
-  const guard = 'if (!systemTrusted && !await matchesCiContract(executable)) {';
+  const guard = 'if (!systemTrusted) {';
   const mutated = resolverSource.replace(guard, 'if (false) {');
   try {
     assert.notEqual(mutated, resolverSource, 'M2 sitio de allowlist presente una sola vez');
     await copyFile('/bin/true', elf, constants.COPYFILE_EXCL);
-    assert.equal(await resolver(elf, {}, mutated).resolve(), await realpath(elf),
-      'M2 sin allowlist el ELF arbitrario alcanzaría el retorno previo al spawn');
+    const accepted = await resolver(elf, {}, mutated).resolve();
+    await accepted.file.close();
+    assert.ok(accepted, 'M2 sin allowlist el ELF arbitrario alcanzaría el retorno previo al spawn');
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('T3 spawn recibe descriptor del binario validado, no una ruta sustituible', async () => {
+  const root = await mkdtemp(join(ownedTmp, 'd1-fd-command-'));
+  const elf = join(root, 'chrome');
+  const command = runInNewContext(`${commandSource}\nchromeCommand`, { assert, process: { platform: 'linux' } }) as (file: { fd: number }) => string;
+  try {
+    await copyFile('/bin/true', elf, constants.COPYFILE_EXCL);
+    const file = await open(elf, 'r');
+    try {
+      assert.equal(command(file), `/proc/self/fd/${file.fd}`,
+        'T3 la orden de spawn queda ligada al descriptor abierto');
+    } finally { await file.close(); }
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -59,19 +74,36 @@ for (const kind of ['ELF privado', 'symlink privado al ELF'] as const) {
   });
 }
 
-test('T3 contrato CI fijo acepta sólo el binario y digest establecidos por workflow', async () => {
-  const root = await mkdtemp(join(ownedTmp, 'd1-ci-contract-'));
+test('T3 GITHUB_ACTIONS y un contrato de checkout falsificados no autorizan ELF privado', async () => {
+  const root = await mkdtemp(join(ownedTmp, 'd1-forged-ci-'));
   const elf = join(root, 'setup-chrome');
-  const contract = join(root, '.travel-ci-chrome.json');
+  const forgedContract = join(process.cwd(), '.travel-ci-chrome.json');
   try {
     await copyFile('/bin/true', elf, constants.COPYFILE_EXCL);
-    const hash = createHash('sha256').update(await readFile(elf)).digest('hex');
-    await writeFile(contract, JSON.stringify({ version: 1, platform: process.platform, path: await realpath(elf), sha256: hash }), { mode: 0o400 });
-    assert.equal(await resolver(elf, { root, ci: true }).resolve(), await realpath(elf));
-    await assert.rejects(resolver('/bin/true', { root, ci: true }).resolve,
+    await writeFile(forgedContract, '{"path":"forged"}\n', { flag: 'wx', mode: 0o400 });
+    await assert.rejects(resolver(elf, { ci: true }).resolve,
       { message: /^T3 CHROME_PATH fuera de la lista permitida$/ },
-      'T3 el contrato no autoriza otro ejecutable del ambiente');
-  } finally { await rm(root, { recursive: true, force: true }); }
+      'T3 el selector no lee contrato ni variable de CI para ampliar la allowlist');
+  } finally {
+    await rm(forgedContract, { force: true });
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('T3 ruta CI fija exige toda la cadena root y no escribible', async () => {
+  const fixed = '/opt/travel-ci-chrome/bundle/chrome';
+  const resolve = (owner: number) => runInNewContext(`${resolverSource}\nchromePath`, {
+    process: { env: { CHROME_PATH: fixed }, platform: 'linux' }, constants,
+    realpath: async () => fixed,
+    access: async () => {},
+    stat: async () => ({ isFile: () => true, uid: 0, mode: 0o100755, dev: 1, ino: 2 }),
+    lstat: async () => ({ isSymbolicLink: () => false, uid: owner, mode: 0o40755 }),
+    open: async () => ({ stat: async () => ({ isFile: () => true, dev: 1, ino: 2 }), close: async () => {} }),
+  }) as () => Promise<{ file: { close(): Promise<void> } }>;
+  await assert.rejects(resolve(1000), { message: /^T3 CHROME_PATH fuera de la lista permitida$/ },
+    'T3 un checkout/usuario no puede crear la ruta CI permitida');
+  const accepted = await resolve(0)();
+  await accepted.file.close();
 });
 
 test('T3 CHROME_PATH conserva aceptación del Chrome del sistema sin ejecutarlo', async (t) => {
@@ -88,6 +120,8 @@ test('T3 CHROME_PATH conserva aceptación del Chrome del sistema sin ejecutarlo'
     return;
   }
   const model = resolver(realChrome);
-  assert.equal(await realpath(await model.resolve()), await realpath(realChrome));
+  const accepted = await model.resolve();
+  await accepted.file.close();
+  assert.ok(accepted, 'T3 resolver devuelve descriptor abierto, no una ruta ejecutable');
   assert.deepEqual(model.spawned, [], 'T3 aceptación no ejecuta Chrome');
 });

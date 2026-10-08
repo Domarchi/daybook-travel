@@ -21,8 +21,9 @@ async function observeStartup() {
   const start = harness.match(/^export async function startBrowser\([^]*?^}/m)?.[0];
   const guard = harness.match(/^function assertSandboxedChromeArgs\([^]*?^}/m)?.[0];
   assert.ok(start && guard, 'M1 fixture: extraer startBrowser y guard reales actuales');
-  const launches: { executable: string; argv: string[]; env: Record<string, string> }[] = [];
+  const launches: { executable: string; argv: string[]; env: Record<string, string>; stdio?: unknown[] }[] = [];
   const parentEnv: Record<string, string> = {};
+  let closeCalls = 0;
   const startBrowser = runInNewContext([
     'let ownedRoot;', guard, start.replace(/^export /, ''), 'startBrowser',
   ].join('\n'), {
@@ -30,10 +31,13 @@ async function observeStartup() {
     process: { execPath: '/synthetic/node', env: parentEnv },
     console: { log() {} },
     tmpdir: () => '/synthetic', mkdtemp: async () => '/synthetic/owned-browser',
-    freePort: async () => 43123, waitForHttp: async () => {},
-    chromePath: async () => '/synthetic/chrome', waitForDevTools: async () => 43124,
-    spawnOwned(executable: string, argv: string[], options?: { env?: Record<string, string> }) {
-      launches.push({ executable, argv: Array.from(argv), env: { ...(options?.env ?? parentEnv) } });
+    freePort: async () => 43123, waitForHttp: async () => {}, waitForDevTools: async () => 43124,
+    teardown: async () => {},
+    chromePath: async () => ({ file: { fd: 3, close: async () => { closeCalls++; } } }),
+    chromeCommand(file: { fd: number }) { assert.equal(file.fd, 3); return '/proc/self/fd/3'; },
+    chromeStdio(fd: number) { assert.equal(fd, 3); return ['ignore', 'pipe', 'pipe', 3]; },
+    spawnOwned(executable: string, argv: string[], options?: { env?: Record<string, string>; stdio?: unknown[] }) {
+      launches.push({ executable, argv: Array.from(argv), env: { ...(options?.env ?? parentEnv) }, stdio: options?.stdio });
       return { exitCode: null }; // Doble OS: ningún proceso, socket ni navegador.
     },
   });
@@ -43,6 +47,9 @@ async function observeStartup() {
   assert.equal(launches[0].argv[1], 'dev', 'M1 fixture conserva Next DEV real');
   assert.equal(launches[0].argv.includes('--webpack'), false, 'M1 fixture no cambia compiler');
   assert.equal(launches[1].env[marker], undefined, 'M1 modo fixture sólo al Next propio, no Chrome');
+  assert.equal(launches[1].executable, '/proc/self/fd/3', 'M1 doble representa spawn por descriptor');
+  assert.deepEqual(launches[1].stdio, ['ignore', 'pipe', 'pipe', 3], 'M1 conserva descriptor en hijo simulado');
+  assert.equal(closeCalls, 1, 'M1 descriptor sintético se cierra exactamente tras spawn');
   assert.deepEqual(parentEnv, {}, 'M1 startup no modifica entorno del padre');
   return launches[0].env;
 }

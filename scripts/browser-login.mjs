@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
-import { access, lstat, mkdtemp, readFile, realpath, rm, stat } from "node:fs/promises";
+import { access, lstat, mkdtemp, open, readFile, realpath, rm, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -33,6 +32,7 @@ async function freePort() {
 async function chromePath() {
   const explicit = process.env.CHROME_PATH !== undefined;
   const candidates = explicit ? [process.env.CHROME_PATH] : [
+    "/opt/travel-ci-chrome/bundle/chrome",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/usr/bin/google-chrome",
@@ -44,6 +44,7 @@ async function chromePath() {
   // de /usr/bin son sólo puntos de descubrimiento: jamás son una autorización
   // por sí mismas después de realpath.
   const systemExecutables = new Set([
+    "/opt/travel-ci-chrome/bundle/chrome",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
     "/opt/google/chrome/chrome",
@@ -51,25 +52,14 @@ async function chromePath() {
     "/usr/lib/chromium-browser/chromium-browser",
   ]);
   const vendorWrapper = "/opt/google/chrome/google-chrome";
-  const ciContract = join(ROOT, ".travel-ci-chrome.json");
 
-  async function matchesCiContract(executable) {
-    // El contrato tiene una ubicación fija, es creado por el workflow y liga
-    // exactamente el output de setup-chrome a su digest. CHROME_PATH nunca
-    // elige ni la ubicación ni el contenido del contrato.
-    if (process.env.GITHUB_ACTIONS !== "true") return false;
-    try {
-      const contractInfo = await lstat(ciContract);
-      if (!contractInfo.isFile() || (contractInfo.mode & 0o077) !== 0) return false;
-      const contract = JSON.parse(await readFile(ciContract, "utf8"));
-      if (Object.keys(contract).sort().join(",") !== "path,platform,sha256,version"
-        || contract.version !== 1 || contract.platform !== process.platform
-        || contract.path !== executable || !/^[a-f0-9]{64}$/.test(contract.sha256)) return false;
-      const digest = createHash("sha256").update(await readFile(executable)).digest("hex");
-      return digest === contract.sha256;
-    } catch {
-      return false;
+  async function rootOwnedCiChrome(path) {
+    if (path !== "/opt/travel-ci-chrome/bundle/chrome") return true;
+    for (const ancestor of ["/opt", "/opt/travel-ci-chrome", "/opt/travel-ci-chrome/bundle", path]) {
+      const info = await lstat(ancestor);
+      if (info.isSymbolicLink() || info.uid !== 0 || (info.mode & 0o022) !== 0) return false;
     }
+    return true;
   }
 
   for (const candidate of candidates) {
@@ -82,14 +72,23 @@ async function chromePath() {
     }
     try {
       if (executable === vendorWrapper) executable = await realpath("/opt/google/chrome/chrome");
-      let info = await stat(executable);
+      const info = await stat(executable);
       if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");
       await access(executable, constants.X_OK);
-      const systemTrusted = systemExecutables.has(executable) && (info.mode & 0o022) === 0;
-      if (!systemTrusted && !await matchesCiContract(executable)) {
+      const systemTrusted = systemExecutables.has(executable) && (info.mode & 0o022) === 0
+        && await rootOwnedCiChrome(executable);
+      if (!systemTrusted) {
         throw new Error("T3 CHROME_PATH fuera de la lista permitida");
       }
-      return executable;
+      // El FD se abre después de la allowlist y se hereda al hijo. No se
+      // devuelve una ruta que otro proceso pueda reemplazar antes de exec.
+      const file = await open(executable, constants.O_RDONLY | constants.O_NOFOLLOW);
+      const opened = await file.stat();
+      if (!opened.isFile() || opened.dev !== info.dev || opened.ino !== info.ino) {
+        await file.close();
+        throw new Error("T3 CHROME_PATH cambió durante validación");
+      }
+      return { file };
     } catch (error) {
       // Fallos FS sanitizados; ningún rechazo habilita otro candidato.
       if (error.code) throw new Error("T3 CHROME_PATH ejecutable no verificable");
@@ -97,6 +96,19 @@ async function chromePath() {
     }
   }
   throw new Error("T3 no se encontró un ejecutable Chrome/Chromium");
+}
+
+function chromeCommand(file) {
+  assert.ok(Number.isInteger(file?.fd) && file.fd >= 3, "T3 descriptor Chrome inválido");
+  if (process.platform === "linux") return `/proc/self/fd/${file.fd}`;
+  if (process.platform === "darwin") return `/dev/fd/${file.fd}`;
+  throw new Error("T3 plataforma Chrome no soportada");
+}
+
+function chromeStdio(fd) {
+  const stdio = ["ignore", "pipe", "pipe"];
+  for (let index = 3; index <= fd; index++) stdio[index] = index === fd ? fd : "ignore";
+  return stdio;
 }
 
 function rememberOutput(child) {
@@ -583,10 +595,17 @@ export async function startBrowser() {
   const nextEntrypoint = testConfig.nextEntrypoint ?? join(ROOT, "node_modules/next/dist/bin/next");
   const temporaryParent = testConfig.temporaryParent ?? tmpdir();
   const onPort = testConfig.onPort ?? (() => {});
+  const selectChrome = testConfig.chromePath ?? chromePath;
   assert.equal(typeof nextEntrypoint, "string", "browser runner requiere entrypoint string");
   assert.equal(typeof temporaryParent, "string", "browser runner requiere parent temporal string");
   assert.equal(typeof onPort, "function", "browser runner requiere callback de puerto");
-  const chromeExecutable = await chromePath();
+  assert.equal(typeof selectChrome, "function", "browser runner requiere selector Chrome function");
+  const chromeExecutable = await selectChrome();
+  assert.ok(chromeExecutable && typeof chromeExecutable === "object", "browser runner requiere descriptor Chrome");
+  const chromeFile = chromeExecutable.file;
+  assert.ok(chromeFile && Number.isInteger(chromeFile.fd) && chromeFile.fd >= 3
+    && typeof chromeFile.close === "function", "browser runner requiere descriptor Chrome abierto");
+  let chromeFileOpen = true;
   try {
     ownedRoot = await mkdtemp(join(temporaryParent, "daybook-travel-browser-"));
     const port = await freePort();
@@ -628,13 +647,23 @@ export async function startBrowser() {
       ...assertSandboxedChromeArgs(chromeArgs), executableAllowlistVerified: true,
       seccomp: "not-measured", namespaces: "not-measured",
     })}`);
-    const chrome = spawnOwned(chromeExecutable, chromeArgs);
+    let chrome;
+    try {
+      chrome = spawnOwned(chromeCommand(chromeFile), chromeArgs, {
+        stdio: chromeStdio(chromeFile.fd),
+      });
+    } finally {
+      await chromeFile.close();
+      chromeFileOpen = false;
+    }
     const cdpPort = await waitForDevTools(profile, chrome);
 
     return { cdpPort, appUrl };
   } catch (error) {
     await teardown();
     throw error;
+  } finally {
+    if (chromeFileOpen) await chromeFile.close();
   }
 }
 

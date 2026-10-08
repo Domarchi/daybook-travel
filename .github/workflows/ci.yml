@@ -26,28 +26,19 @@ jobs:
         with:
           chrome-version: '154.0.8037.92'
           install-dependencies: true
-      - name: Fijar contrato verificable de Chrome
+      - name: Instalar Chrome CI en allowlist raíz
         env:
           SETUP_CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           set -euo pipefail
-          node --input-type=module <<'NODE'
-          import { createHash } from 'node:crypto';
-          import { chmod, lstat, readFile, realpath, writeFile } from 'node:fs/promises';
-          import { join } from 'node:path';
-          const path = await realpath(process.env.SETUP_CHROME_PATH ?? '');
-          const info = await lstat(path);
-          if (!info.isFile() || (info.mode & 0o022) !== 0) throw new Error('Chrome de setup no verificable');
-          const sha256 = createHash('sha256').update(await readFile(path)).digest('hex');
-          const contract = join(process.cwd(), '.travel-ci-chrome.json');
-          await writeFile(contract, JSON.stringify({ version: 1, platform: process.platform, path, sha256 }), { flag: 'wx', mode: 0o400 });
-          await chmod(contract, 0o400);
-          NODE
+          test "$(basename -- "$SETUP_CHROME_PATH")" = chrome
+          sudo test ! -e /opt/travel-ci-chrome
+          sudo install -d -o root -g root -m 0755 /opt/travel-ci-chrome
+          sudo cp -a -- "$(dirname -- "$SETUP_CHROME_PATH")" /opt/travel-ci-chrome/bundle
+          sudo chown -R root:root /opt/travel-ci-chrome
+          sudo chmod -R go-w /opt/travel-ci-chrome
+          test "$(realpath /opt/travel-ci-chrome/bundle/chrome)" = /opt/travel-ci-chrome/bundle/chrome
       - run: npm run test:browser
         timeout-minutes: 5
-        env:
-          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
       - run: npm run test:browser:recovery
         timeout-minutes: 10
-        env:
-          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}

@@ -266,25 +266,32 @@ const sandboxFlagNames = [
   '--metrics-recording-only','--disable-features',
 ];
 const sandboxGuardSource = () => login.match(/^(?:export )?function assertSandboxedChromeArgs\([^]*?^}/m)?.[0].replace(/^export /,'') ?? '';
+const chromeCommandSource = () => login.match(/^function chromeCommand\([^]*?^}/m)?.[0] ?? '';
+const chromeStdioSource = () => login.match(/^function chromeStdio\([^]*?^}/m)?.[0] ?? '';
 
-for (const platform of ['linux','darwin','win32']) {
+for (const platform of ['linux','darwin']) {
   test(`T3 ${platform}: argv real del arranque sin bypass y recibo sanitizado`, async () => {
     const start=login.match(/^export async function startBrowser\([^]*?^}/m)?.[0];
     assert.ok(start,'T3 arranque compartido existente');
-    const launches: { command: string; args: string[] }[]=[];
+    const launches: { command: string; args: string[]; stdio?: unknown[] }[]=[];
     const output: string[]=[];
-    await runInNewContext(`let ownedRoot;\n${sandboxGuardSource()}\n${start.replace(/^export /,'')}\nstartBrowser()`, {
+    await runInNewContext(`let ownedRoot;\n${sandboxGuardSource()}\n${chromeCommandSource()}\n${chromeStdioSource()}\n${start.replace(/^export /,'')}\nstartBrowser()`, {
       assert, ROOT:'/synthetic-root',
       process:{platform,execPath:'synthetic-node',env:{CHROME_ARGS:'--no-sandbox',CHROMIUM_FLAGS:'--disable-setuid-sandbox',CHROME_NO_SANDBOX:'1'}},
       mkdtemp:async () => '/sensitive-profile-marker', tmpdir:() => '/synthetic-tmp',
       join:(...parts: string[]) => parts.join('/'), freePort:async () => 3100,
-      chromePath:async () => 'synthetic-chrome', waitForHttp:async () => {}, waitForDevTools:async () => 3200,
-      spawnOwned:(command: string,args: string[]) => { launches.push({command,args:[...args]}); return {}; },
+      chromePath:async () => ({file:{fd:3,close:async () => {}}}), waitForHttp:async () => {}, waitForDevTools:async () => 3200,
+      spawnOwned:(command: string,args: string[],options?: { stdio?: unknown[] }) => {
+        launches.push({command,args:[...args],stdio:options?.stdio}); return {};
+      },
       console:{log:(...values: unknown[]) => output.push(values.join(' '))},
     });
-    const browsers=launches.filter(launch => launch.command === 'synthetic-chrome');
+    const command=platform === 'linux' ? '/proc/self/fd/3' : '/dev/fd/3';
+    const browsers=launches.filter(launch => launch.command === command);
     assert.equal(browsers.length,1,'T3 exactamente un arranque Chrome');
     const argv=browsers[0].args;
+    assert.deepEqual(Array.from(browsers[0].stdio ?? []),['ignore','pipe','pipe',3],
+      'T3 el descriptor validado se conserva en el hijo para resolver /proc/self/fd');
     const flags=argv.filter(arg => arg.startsWith('--')).map(arg => arg.split('=')[0]);
     assert.ok(flags.every(flag => sandboxFlagNames.includes(flag)),
       'T3 ningún flag de bypass, incluido no-sandbox, puede llegar al proceso');
@@ -299,7 +306,7 @@ for (const platform of ['linux','darwin','win32']) {
       'T3 recibo de validación previa, sin afirmar sandbox observado');
     assert.ok(!output.join('\n').includes('sensitive-profile-marker'),'T3 no imprimir valores de argv');
     const assertion=start.search(/assertSandboxedChromeArgs\(\s*chromeArgs\s*\)/);
-    assert.ok(assertion >= 0 && assertion < start.indexOf('const chrome = spawnOwned'),
+    assert.ok(assertion >= 0 && assertion < start.indexOf('chrome = spawnOwned'),
       'T3 assert sobre argv efectivo antes de lanzar Chrome');
   });
 }
@@ -395,25 +402,23 @@ test('T4 Chrome CI tiene pin concreto verificado, dependencias y timeout de job'
 });
 
 for (const script of ['test:browser','test:browser:recovery']) {
-  test(`T4 ${script}: CHROME_PATH del setup y timeout propio`, async () => {
+  test(`T4 ${script}: Chrome CI en allowlist raíz y timeout propio`, async () => {
     const {steps}=await t4Workflow();
     const browser=t4BrowserStep(steps,script);
-    const env=browser.match(/^ {8}env:\r?\n((?: {10}[^\r\n]*\r?\n?)*)/m)?.[1] ?? '';
-    const chromePath=t4Value(env,'CHROME_PATH',10);
-    assert.ok(chromePath,`T4 ${script} recibe CHROME_PATH explícito`);
     const {setup,id}=t4Setup(steps);
-    const contracts=steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'name',8) === 'Fijar contrato verificable de Chrome');
-    assert.equal(contracts.length,1,'T4 un contrato CI de Chrome con nombre fijo');
-    const contract=contracts[0];
-    const contractRun=contract.match(/^ {8}run: \|\r?\n([\s\S]*)$/m)?.[1] ?? '';
-    assert.match(contractRun,/realpath\(process\.env\.SETUP_CHROME_PATH/,'T4 contrato canónico desde output de setup');
-    assert.match(contractRun,/sha256/,'T4 contrato liga digest del binario');
-    assert.match(contractRun,/\.travel-ci-chrome\.json/,'T4 contrato tiene ubicación fija');
-    assert.match(contractRun,/flag: 'wx'/,'T4 contrato no sobrescribe un archivo preexistente');
-    assert.equal(chromePath,'${{ steps.'+id+'.outputs.chrome-path }}',
-      `T4 ${script} usa el output chrome-path exacto del setup`);
-    assert.ok(steps.indexOf(setup) < steps.indexOf(contract) && steps.indexOf(contract) < steps.indexOf(browser),
-      'T4 setup y contrato preceden al browser');
+    const installers=steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'name',8) === 'Instalar Chrome CI en allowlist raíz');
+    assert.equal(installers.length,1,'T4 un instalador CI con destino fijo');
+    const installer=installers[0];
+    const installRun=installer.match(/^ {8}run: \|\r?\n([\s\S]*)$/m)?.[1] ?? '';
+    assert.match(installer,new RegExp('SETUP_CHROME_PATH: \\${\\{ steps\\.'+id+'\\.outputs\\.chrome-path \\}\\}'),
+      'T4 sólo el workflow consume el output dinámico');
+    assert.match(installRun,/sudo cp -a -- .*\/opt\/travel-ci-chrome\/bundle/,'T4 copia bundle a ruta fija');
+    assert.match(installRun,/sudo chown -R root:root \/opt\/travel-ci-chrome/,'T4 destino CI propiedad de root');
+    assert.match(installRun,/sudo chmod -R go-w \/opt\/travel-ci-chrome/,'T4 destino CI no escribible');
+    assert.doesNotMatch(installRun,/travel-ci-chrome\.json|GITHUB_ACTIONS/,'T4 no introduce contrato falsificable');
+    assert.doesNotMatch(browser,/CHROME_PATH/,'T4 browser no recibe ejecutable desde entorno');
+    assert.ok(steps.indexOf(setup) < steps.indexOf(installer) && steps.indexOf(installer) < steps.indexOf(browser),
+      'T4 setup y copia raíz preceden al browser');
     t4BrowserTimeout(browser,script);
   });
 }

@@ -131,8 +131,7 @@ async function runTests(root,file,pattern,records,os,abort) {
 const extraTests=String.raw`import test from 'node:test';
 import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
-import {access,lstat,mkdtemp,mkdir,readFile,realpath,rm,stat,writeFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
+import {access,lstat,mkdtemp,mkdir,open,readFile,realpath,rm,stat,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {runInNewContext} from 'node:vm';
 const source=await readFile(new URL('../scripts/browser-login.mjs',import.meta.url),'utf8');
@@ -141,7 +140,7 @@ function fn(name) {
  assert.ok(value,'M2 función real extraída'); return value;
 }
 function resolver(path) { return runInNewContext(fn('chromePath')+'\nchromePath',
- {ROOT:process.cwd(),join,createHash,process:{env:{CHROME_PATH:path},platform:process.platform},access,lstat,readFile,realpath,stat,constants}); }
+ {process:{env:{CHROME_PATH:path},platform:process.platform},access,lstat,open,readFile,realpath,stat,constants}); }
 for(const kind of ['no-fallback','file']) {
  test('T3 M2 '+kind+' rechazo previo a spawn',async()=>{
   const root=await mkdtemp(join(process.cwd(),'fs-case-'));
@@ -161,6 +160,14 @@ test('T3 M2 argv inseguro rechazo previo a spawn',()=>{
  assert.throws(()=>guard([...safe,'--no-sandbox']),{message:'T3 argumento Chrome fuera del contrato de sandbox'},
   'T3 M2 argv inseguro debe rechazarse antes de spawn');
 });
+test('T3 M2 descriptor no vuelve a una ruta mutable',()=>{
+ const command=runInNewContext(fn('chromeCommand')+'\nchromeCommand',{assert,process:{platform:'linux'}});
+ assert.equal(command({fd:7}),'/proc/self/fd/7','T3 M2 spawn usa el descriptor validado');
+});
+test('T3 M2 descriptor se hereda en el hijo',()=>{
+ const stdio=runInNewContext(fn('chromeStdio')+'\nchromeStdio')({fd:7});
+ assert.deepEqual(stdio,['ignore','pipe','pipe','ignore','ignore','ignore','ignore',7]);
+});
 `;
 
 async function mutants(root,evidence,source,records,os,abort) {
@@ -173,16 +180,22 @@ async function mutants(root,evidence,source,records,os,abort) {
   const before=await manifest(root,paths), results=[];
   const argvSite='assert.ok(argv.every((arg) => typeof arg === "string" && (allowed.has(arg)\n    || (arg.startsWith("--user-data-dir=") && arg.length > "--user-data-dir=".length\n      && !/[\\0\\r\\n]/.test(arg)))), "T3 argumento Chrome fuera del contrato de sandbox");';
   const variants=[
-    {id:'allowlist-return',site:'if (!systemTrusted && !await matchesCiContract(executable)) {',replacement:'if (false) {',
+    {id:'allowlist-return',site:'if (!systemTrusted) {',replacement:'if (false) {',
       file:unitPath,name:'T3 CHROME_PATH ELF privado se rechaza antes de spawn y sin fallback'},
+    {id:'ci-root-owner',site:'info.uid !== 0',replacement:'false',file:unitPath,
+      name:'T3 ruta CI fija exige toda la cadena root y no escribible'},
     {id:'explicit-fallback',site:'const explicit = process.env.CHROME_PATH !== undefined;',replacement:'const explicit = false;',name:'T3 M2 no-fallback rechazo previo a spawn'},
     {id:'directory-return',site:'if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");',
       replacement:'if (!info.isFile()) return executable;',name:'T3 M2 file rechazo previo a spawn'},
     {id:'argv-allow',site:argvSite,replacement:'assert.ok(true, "T3 argumento Chrome fuera del contrato de sandbox");',name:'T3 M2 argv inseguro rechazo previo a spawn',exception:true},
+    {id:'descriptor-path',site:'if (process.platform === "linux") return `/proc/self/fd/${file.fd}`;',replacement:'if (process.platform === "linux") return "/mutable/chrome";',
+      name:'T3 M2 descriptor no vuelve a una ruta mutable',assertionOnly:true},
+    {id:'descriptor-inheritance',site:'for (let index = 3; index <= fd; index++) stdio[index] = index === fd ? fd : "ignore";',replacement:'for (let index = 3; index <= fd; index++) stdio[index] = "ignore";',
+      name:'T3 M2 descriptor se hereda en el hijo',assertionOnly:true},
   ];
   async function control(label) {
     const runs=[];
-    for (const [file,total] of [[unitPath,4],[extraPath,3]]) {
+    for (const [file,total] of [[unitPath,7],[extraPath,5]]) {
       const result=await runTests(root,file,null,records,os,abort); runs.push(result);
       await save(join(evidence,`${label}-${total}.json`),result);
       assert.ok(result.exit.code===0 && !result.timedOut && !result.interrupted && !result.spawnError
@@ -203,7 +216,7 @@ async function mutants(root,evidence,source,records,os,abort) {
       const r=record.run;
       record.killed=r.exit.code===1 && !r.exit.signal && !r.timedOut && !r.interrupted && !r.spawnError
         && r.counts.fail===1 && r.counts.pass===0 && r.assertion && r.namedFailure
-        && (variant.exception ? r.missingException : r.missingRejection);
+        && (variant.exception ? r.missingException : variant.assertionOnly ? true : r.missingRejection);
     } finally {
       await writeFile(join(root,loginPath),source);
       record.restored=(await manifest(root,paths)).sha256;

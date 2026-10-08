@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { access, chmod, copyFile, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, chmod, copyFile, mkdir, mkdtemp, open, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -71,7 +70,7 @@ for (const kind of ['ELF privado', 'symlink privado al ELF'] as const) {
   });
 }
 
-test('D1 error real de spawn tras contrato limpia perfil, server, puerto y conserva .next ajeno', { timeout: 60_000 }, async (t) => {
+test('D1 error real de spawn tras descriptor autorizado limpia perfil, server, puerto y conserva .next ajeno', { timeout: 60_000 }, async (t) => {
   if (process.platform !== 'linux') {
     t.skip('Integración Linux sintética: ChildProcess.error EACCES/ENOEXEC');
     return;
@@ -86,10 +85,8 @@ test('D1 error real de spawn tras contrato limpia perfil, server, puerto y conse
   const fakeServer = join(fixture, 'fixture-server.mjs');
   const fakeChrome = join(fixture, 'chrome-eacces');
   const deniedLoader = join(loaderRoot, 'ld');
-  const contract = join(process.cwd(), '.travel-ci-chrome.json');
   const sentinel = join(process.cwd(), '.next', `d1-preexisting-${process.pid}.marker`);
   const priorChrome = process.env.CHROME_PATH;
-  const priorActions = process.env.GITHUB_ACTIONS;
   let port: number | undefined;
   try {
     await writeFile(fakeServer, `
@@ -110,18 +107,13 @@ test('D1 error real de spawn tras contrato limpia perfil, server, puerto y conse
     await chmod(deniedLoader, 0o600);
     await writeFile(fakeChrome, elf, { mode: 0o700 });
     await chmod(fakeChrome, 0o700);
-    const sha256 = createHash('sha256').update(await readFile(fakeChrome)).digest('hex');
-    await writeFile(contract, JSON.stringify({ version: 1, platform: process.platform, path: fakeChrome, sha256 }),
-      { flag: 'wx', mode: 0o400 });
-    await chmod(contract, 0o400);
     await mkdir(join(process.cwd(), '.next'), { recursive: true });
     await writeFile(sentinel, 'pre-existing\n', { flag: 'wx' });
-    process.env.CHROME_PATH = fakeChrome;
-    process.env.GITHUB_ACTIONS = 'true';
     (globalThis as typeof globalThis & { __travelBrowserStartTest?: unknown }).__travelBrowserStartTest = {
       nextEntrypoint: fakeServer,
       temporaryParent: fixture,
       onPort: (value: number) => { port = value; },
+      chromePath: async () => ({ file: await open(fakeChrome, 'r') }),
     };
 
     await assert.rejects(() => startBrowser(), /Chrome no pudo iniciarse \((?:EACCES|ENOEXEC)\)/,
@@ -137,11 +129,8 @@ test('D1 error real de spawn tras contrato limpia perfil, server, puerto y conse
   } finally {
     if (priorChrome === undefined) delete process.env.CHROME_PATH;
     else process.env.CHROME_PATH = priorChrome;
-    if (priorActions === undefined) delete process.env.GITHUB_ACTIONS;
-    else process.env.GITHUB_ACTIONS = priorActions;
     delete (globalThis as typeof globalThis & { __travelBrowserStartTest?: unknown }).__travelBrowserStartTest;
     await teardown();
-    await rm(contract, { force: true });
     await rm(sentinel, { force: true });
     await rm(fixture, { recursive: true, force: true });
     await rm(loaderRoot, { recursive: true, force: true });
