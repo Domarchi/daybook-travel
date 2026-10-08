@@ -21,7 +21,7 @@ function psql(container: string, sql: string): string {
   return docker(["exec", "-i", container, "psql", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"], sql);
 }
 
-test("B2 conserva el snapshot aplicado al reintentar después de una actualización posterior", async (t) => {
+test("B2 conserva el snapshot aplicado al reintentar después de una actualización posterior", { timeout: 60_000 }, async (t) => {
   const available = spawnSync("docker", ["info"], { encoding: "utf8", timeout: 15_000 });
   if (available.status !== 0) return t.skip("Docker no está disponible para la prueba PostgreSQL aislada");
 
@@ -31,8 +31,11 @@ test("B2 conserva el snapshot aplicado al reintentar después de una actualizaci
 
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const ready = spawnSync("docker", ["exec", container, "pg_isready", "-U", "postgres"], { encoding: "utf8", timeout: 5_000 });
-    if (ready.status === 0) break;
-    if (attempt === 29) assert.fail(`PostgreSQL aislado no inició: ${ready.stderr}`);
+    const query = ready.status === 0
+      ? spawnSync("docker", ["exec", container, "psql", "-qAt", "-U", "postgres", "-d", "postgres", "-c", "select 1"], { encoding: "utf8", timeout: 5_000 })
+      : null;
+    if (query?.status === 0) break;
+    if (attempt === 29) assert.fail(`PostgreSQL aislado no inició: ${ready.stderr} ${query?.stderr ?? ""}`);
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
