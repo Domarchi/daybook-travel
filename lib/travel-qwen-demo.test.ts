@@ -8,10 +8,7 @@ const entornoDemo = { NODE_ENV: "development", TRAVEL_QWEN_DEMO: "1" };
 const solicitudValida = () => new Request("http://travel.local/api/internal/qwen-demo", {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({
-    request: "Mover la hora solicitada a las 09:30.",
-    context: { date: "2026-11-12", requested_time: "08:00", baggage: "Mochila", notes: "Ejemplo sintético" },
-  }),
+  body: JSON.stringify({ scenario: "move-requested-time-v1" }),
 });
 
 test("el timeout del demo cubre la respuesta Qwen local observada y conserva el máximo B2", () => {
@@ -36,7 +33,7 @@ test("demo Qwen permanece 404 sin ambas banderas", async () => {
   }
 });
 
-test("boundary sólo admite el contexto sintético declarado, construye SYNTHETIC y usa el endpoint fijo", async () => {
+test("boundary sólo admite el escenario enumerado, construye la fixture en servidor y usa el endpoint fijo", async () => {
   let receivedUrl = "";
   let receivedBody: unknown;
   const response = await manejarDemoQwen({
@@ -44,7 +41,7 @@ test("boundary sólo admite el contexto sintético declarado, construye SYNTHETI
     fetch: async (url, init) => {
       receivedUrl = url;
       receivedBody = JSON.parse(String(init?.body));
-      return { ok: true, status: 200, text: async () => JSON.stringify({ requested_time: "09:30", notes: "Cambio sintético" }) };
+      return { ok: true, status: 200, text: async () => JSON.stringify({ requested_time: "09:30" }) };
     },
   });
 
@@ -56,16 +53,69 @@ test("boundary sólo admite el contexto sintético declarado, construye SYNTHETI
   });
   assert.deepEqual(await response.json(), {
     status: "pending_confirmation", requiresHumanConfirmation: true,
-    proposal: { requested_time: "09:30", notes: "Cambio sintético" },
+    proposal: { requested_time: "09:30" },
   });
 
-  const forbidden = new Request("http://travel.local/api/internal/qwen-demo", {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ request: "x", context: { date: "2026-11-12", requested_time: null, baggage: "M", notes: "", pnr: "secret" } }),
+  for (const body of [
+    { request: "Cambiar PNR ABC123 para alice@example.test", context: { baggage: "+56 9 1234 5678", notes: "x" } },
+    { scenario: "move-requested-time-v1", request: "PNR ABC123" },
+    { scenario: "other" },
+  ]) {
+    let fetchCalled = false;
+    const rejected = await manejarDemoQwen({
+      request: new Request("http://travel.local/api/internal/qwen-demo", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+      }),
+      env: entornoDemo,
+      fetch: async () => { fetchCalled = true; throw new Error("must not call"); },
+    });
+    assert.equal(rejected.status, 400);
+    assert.deepEqual(await rejected.json(), { error: "request_invalid" });
+    assert.equal(fetchCalled, false);
+  }
+});
+
+test("la respuesta Qwen acepta la fixture controlada completa y proyecta sólo la hora propuesta", async () => {
+  const response = await manejarDemoQwen({
+    request: solicitudValida(), env: entornoDemo,
+    fetch: async () => ({
+      ok: true, status: 200,
+      text: async () => JSON.stringify({
+        date: "2026-11-12",
+        requested_time: "09:30",
+        baggage: "Mochila",
+        notes: "Ejemplo sintético",
+      }),
+    }),
   });
-  const rejected = await manejarDemoQwen({ request: forbidden, env: entornoDemo, fetch: async () => { throw new Error("must not call"); } });
-  assert.equal(rejected.status, 400);
-  assert.deepEqual(await rejected.json(), { error: "request_invalid" });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    status: "pending_confirmation", requiresHumanConfirmation: true,
+    proposal: { requested_time: "09:30" },
+  });
+});
+
+test("la respuesta Qwen rechaza valores no controlados, claves extra y otra hora", async () => {
+  const propuestasInvalidas = [
+    { requested_time: "09:30", notes: "PNR ABC123 alice@example.test +56 9 1234 5678" },
+    { date: "2026-11-13", requested_time: "09:30", baggage: "Mochila", notes: "Ejemplo sintético" },
+    { date: "2026-11-12", requested_time: "09:30", baggage: "Maleta", notes: "Ejemplo sintético" },
+    { date: "2026-11-12", requested_time: "09:30", baggage: "Mochila", notes: "Otra nota" },
+    { date: "2026-11-12", requested_time: "09:30", baggage: "Mochila", notes: "Ejemplo sintético", extra: "x" },
+    { requested_time: "10:00" },
+  ];
+
+  for (const proposal of propuestasInvalidas) {
+    const response = await manejarDemoQwen({
+      request: solicitudValida(), env: entornoDemo,
+      fetch: async () => ({
+        ok: true, status: 200,
+        text: async () => JSON.stringify(proposal),
+      }),
+    });
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), { error: "proposal_unavailable" });
+  }
 });
 
 test("errores de transporte, HTTP y modelo se vuelven fallo genérico y no existe autoridad apply", async () => {

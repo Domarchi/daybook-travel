@@ -2,8 +2,20 @@ import { ejecutarInferenciaPrivada } from "./travel-private-inference.ts";
 
 export const URL_DEMO_QWEN = "http://127.0.0.1:8714/v1/private-inference" as const;
 export const DEMO_QWEN_TIMEOUT_MS = 7_500;
-const LIMITE_SOLICITUD = 500;
-const CAMPOS_CONTEXTO = new Set(["date", "requested_time", "baggage", "notes"]);
+export const ESCENARIO_DEMO_QWEN = "move-requested-time-v1" as const;
+const SOLICITUD_ESCENARIO = "Mover la hora solicitada a las 09:30." as const;
+const CONTEXTO_ESCENARIO = Object.freeze({
+  date: "2026-11-12",
+  requested_time: "08:00",
+  baggage: "Mochila",
+  notes: "Ejemplo sintético",
+});
+const PROPUESTA_ESCENARIO = Object.freeze({ requested_time: "09:30" });
+const PROPUESTA_CONTROLADA = Object.freeze({
+  ...CONTEXTO_ESCENARIO,
+  ...PROPUESTA_ESCENARIO,
+});
+const CAMPOS_PROPUESTA_CONTROLADA = new Set(Object.keys(PROPUESTA_CONTROLADA));
 
 type EntornoDemo = { NODE_ENV?: string; TRAVEL_QWEN_DEMO?: string };
 type FetchDemo = typeof fetch;
@@ -14,17 +26,16 @@ function esRegistro(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-function solicitudPermitida(value: unknown): value is {
-  request: string;
-  context: { date: string; requested_time: string | null; baggage: string; notes: string };
-} {
-  if (!esRegistro(value) || Object.keys(value).some((key) => key !== "request" && key !== "context") ||
-    typeof value.request !== "string" || value.request.length < 1 || value.request.length > LIMITE_SOLICITUD ||
-    !esRegistro(value.context) || Object.keys(value.context).some((key) => !CAMPOS_CONTEXTO.has(key))) return false;
-  for (const field of CAMPOS_CONTEXTO) if (!Object.hasOwn(value.context, field)) return false;
-  return typeof value.context.date === "string" &&
-    (typeof value.context.requested_time === "string" || value.context.requested_time === null) &&
-    typeof value.context.baggage === "string" && typeof value.context.notes === "string";
+function escenarioPermitido(value: unknown): boolean {
+  return esRegistro(value) && Object.keys(value).length === 1 && value.scenario === ESCENARIO_DEMO_QWEN;
+}
+
+function esCambioEsperado(proposal: unknown): boolean {
+  if (!esRegistro(proposal) || proposal.requested_time !== PROPUESTA_ESCENARIO.requested_time) return false;
+  const fields = Object.keys(proposal);
+  return fields.length > 0 && fields.every((field) =>
+    CAMPOS_PROPUESTA_CONTROLADA.has(field) && proposal[field] === PROPUESTA_CONTROLADA[field as keyof typeof PROPUESTA_CONTROLADA],
+  );
 }
 
 export function demoQwenHabilitado(env: EntornoDemo): boolean {
@@ -54,21 +65,23 @@ export async function manejarDemoQwen({
   } catch {
     return json({ error: "request_invalid" }, 400);
   }
-  if (!solicitudPermitida(body)) return json({ error: "request_invalid" }, 400);
+  if (!escenarioPermitido(body)) return json({ error: "request_invalid" }, 400);
 
   const result = await ejecutarInferenciaPrivada({
     input: {
       fixture: "travel-b2-synthetic-v1",
-      requestText: `SYNTHETIC: ${body.request}`,
-      context: body.context,
+      requestText: `SYNTHETIC: ${SOLICITUD_ESCENARIO}`,
+      context: CONTEXTO_ESCENARIO,
     },
     endpoint: { baseUrl: "http://127.0.0.1:8714", path: "/v1/private-inference", timeoutMs: DEMO_QWEN_TIMEOUT_MS },
     fetch,
   });
-  if (result.status !== "pending_confirmation") return json({ error: "proposal_unavailable" }, 502);
+  if (result.status !== "pending_confirmation" || !esCambioEsperado(result.proposal)) {
+    return json({ error: "proposal_unavailable" }, 502);
+  }
   return json({
     status: result.status,
     requiresHumanConfirmation: result.requiresHumanConfirmation,
-    proposal: result.proposal,
+    proposal: { ...PROPUESTA_ESCENARIO },
   }, 200);
 }

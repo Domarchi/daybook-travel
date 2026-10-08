@@ -12,6 +12,9 @@ test("UI demo sólo muestra campos B2 permitidos y la confirmación está deshab
   assert.match(view, /nunca cambia datos de viaje/i);
   assert.doesNotMatch(view, /aplicarPropuestaTravel|travel-agent-apply|onConfirm|\/apply|mutation/i);
   assert.doesNotMatch(view, /result\.(?!proposal|requiresHumanConfirmation|status)/);
+  assert.doesNotMatch(view, /<textarea|<input|onChange|setRequest|setContext/);
+  assert.match(view, /move-requested-time-v1/);
+  assert.match(view, /Solo lectura/);
 });
 
 test("la página y API demo son límites de desarrollo cerrados", async () => {
