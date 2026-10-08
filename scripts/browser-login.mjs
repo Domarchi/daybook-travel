@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, open, readFile, realpath, rm, stat } from "node:fs/promises";
+import { constants } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { once } from "node:events";
 
 const ROOT = process.cwd();
@@ -28,23 +30,75 @@ async function freePort() {
 }
 
 async function chromePath() {
-  const candidates = [
-    process.env.CHROME_PATH,
+  const explicit = process.env.CHROME_PATH !== undefined;
+  const candidates = explicit ? [process.env.CHROME_PATH] : [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/usr/local/share/chromium/chrome-linux/chrome",
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
-  ].filter(Boolean);
+  ];
+  // Rutas canónicas de binarios Chrome instalados por el sistema. Las rutas
+  // de /usr/bin son sólo puntos de descubrimiento: jamás son una autorización
+  // por sí mismas después de realpath.
+  const systemExecutables = new Set([
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/opt/google/chrome/chrome",
+    "/usr/lib/chromium/chromium",
+    "/usr/lib/chromium-browser/chromium-browser",
+    "/usr/local/share/chromium/chrome-linux/chrome",
+  ]);
+  const vendorWrapper = "/opt/google/chrome/google-chrome";
 
   for (const candidate of candidates) {
+    let executable;
     try {
-      await access(candidate);
-      return candidate;
-    } catch {}
+      executable = await realpath(candidate);
+    } catch (error) {
+      if (!explicit && ["ENOENT", "ENOTDIR"].includes(error.code)) continue;
+      throw new Error("T3 CHROME_PATH no accesible");
+    }
+    try {
+      if (executable === vendorWrapper) executable = await realpath("/opt/google/chrome/chrome");
+      const info = await stat(executable);
+      if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");
+      await access(executable, constants.X_OK);
+      const systemTrusted = systemExecutables.has(executable) && (info.mode & 0o022) === 0;
+      if (!systemTrusted) {
+        throw new Error("T3 CHROME_PATH fuera de la lista permitida");
+      }
+      // El FD se abre después de la allowlist y se hereda al hijo. No se
+      // devuelve una ruta que otro proceso pueda reemplazar antes de exec.
+      const file = await open(executable, constants.O_RDONLY | constants.O_NOFOLLOW);
+      const opened = await file.stat();
+      if (!opened.isFile() || opened.dev !== info.dev || opened.ino !== info.ino) {
+        await file.close();
+        throw new Error("T3 CHROME_PATH cambió durante validación");
+      }
+      return { file };
+    } catch (error) {
+      // Fallos FS sanitizados; ningún rechazo habilita otro candidato.
+      if (error.code) throw new Error("T3 CHROME_PATH ejecutable no verificable");
+      throw error;
+    }
   }
-  throw new Error(`No se encontró Chrome/Chromium. Rutas revisadas: ${candidates.join(", ")}`);
+  throw new Error("T3 no se encontró un ejecutable Chrome/Chromium");
+}
+
+function chromeCommand(file) {
+  assert.ok(Number.isInteger(file?.fd) && file.fd >= 3, "T3 descriptor Chrome inválido");
+  if (process.platform === "linux") return `/proc/self/fd/${file.fd}`;
+  if (process.platform === "darwin") return `/dev/fd/${file.fd}`;
+  throw new Error("T3 plataforma Chrome no soportada");
+}
+
+function chromeStdio(fd) {
+  const stdio = ["ignore", "pipe", "pipe"];
+  for (let index = 3; index <= fd; index++) stdio[index] = index === fd ? fd : "ignore";
+  return stdio;
 }
 
 function rememberOutput(child) {
@@ -65,12 +119,17 @@ function spawnOwned(command, args, options = {}) {
     ...options,
   });
   child.output = rememberOutput(child);
+  // Un fallo de spawn no siempre emite `exit`; conservarlo evita que el poller
+  // espere un DevToolsActivePort imposible y que teardown espere un hijo que
+  // nunca tuvo PID/proceso propio.
+  child.launchError = null;
+  child.once("error", (error) => { child.launchError = error; });
   children.push(child);
   return child;
 }
 
 async function stopOwned(child) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  if (!child || child.launchError || child.exitCode !== null || child.signalCode !== null) return;
   const exited = once(child, "exit");
   const signal = (name) => {
     try {
@@ -90,8 +149,14 @@ async function stopOwned(child) {
 async function teardown() {
   if (tearingDown) return;
   tearingDown = true;
-  for (const child of [...children].reverse()) await stopOwned(child);
-  if (ownedRoot) await rm(ownedRoot, { recursive: true, force: true });
+  try {
+    for (const child of [...children].reverse()) await stopOwned(child);
+    children.length = 0;
+    if (ownedRoot) await rm(ownedRoot, { recursive: true, force: true });
+    ownedRoot = undefined;
+  } finally {
+    tearingDown = false;
+  }
 }
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
@@ -126,6 +191,10 @@ async function waitForDevTools(profile, child) {
   const deadline = Date.now() + 20_000;
   let lastError = "archivo todavía ausente";
   while (Date.now() < deadline) {
+    if (child.launchError) {
+      const code = typeof child.launchError.code === "string" ? child.launchError.code : "UNKNOWN";
+      throw new Error(`Chrome no pudo iniciarse (${code})`);
+    }
     if (child.exitCode !== null) {
       throw new Error(`Chrome terminó antes de exponer CDP (${child.exitCode}).\n${child.output()}`);
     }
@@ -254,10 +323,11 @@ function assertNear(actual, expected, tolerance, label) {
   );
 }
 
-async function pressTab(cdp) {
+async function pressTab(cdp, backwards = false) {
   await cdp.send("Input.dispatchKeyEvent", {
     type: "rawKeyDown",
     key: "Tab",
+    modifiers: backwards ? 8 : 0,
     code: "Tab",
     windowsVirtualKeyCode: 9,
     nativeVirtualKeyCode: 9,
@@ -265,6 +335,7 @@ async function pressTab(cdp) {
   await cdp.send("Input.dispatchKeyEvent", {
     type: "keyUp",
     key: "Tab",
+    modifiers: backwards ? 8 : 0,
     code: "Tab",
     windowsVirtualKeyCode: 9,
     nativeVirtualKeyCode: 9,
@@ -321,6 +392,16 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
   const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
   const collector = browserErrorCollector(cdp);
   const label = `${width}x${height}`;
+  let externalRequests = 0;
+  cdp.onEvent(({ method, params }) => {
+    if (method !== "Fetch.requestPaused") return;
+    const local = new URL(params.request.url).origin === new URL(appUrl).origin;
+    if (!local) externalRequests++;
+    void cdp.send(local ? "Fetch.continueRequest" : "Fetch.failRequest", {
+      requestId: params.requestId,
+      ...(local ? {} : { errorReason: "BlockedByClient" }),
+    }).catch(() => {});
+  });
 
   try {
     await Promise.all([
@@ -345,6 +426,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
         ? "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
         : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/140 Safari/537.36",
     });
+    await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*" }] });
     await cdp.send("Page.navigate", { url: appUrl });
     await waitUntil(
       cdp,
@@ -405,10 +487,8 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     assertNear(metrics.mark.width, 56, 0.5, `isotipo ${label}`);
     assertNear(metrics.mark.height, 56, 0.5, `alto de isotipo ${label}`);
     assertNear(metrics.card.width, mobile ? 354 : 430, 0.5, `tarjeta ${label}`);
-    assert.ok(
-      metrics.card.height >= 500 && metrics.card.height <= 560,
-      `alto de tarjeta ${label}: esperado 500–560, recibido ${metrics.card.height}`,
-    );
+    // Enlace de 44 px; sustituye el margen anterior de 16 px: incremento neto de 28 px.
+    assertNear(metrics.card.height, mobile ? 563.27 : 575.77, 1, `alto de tarjeta ${label}`);
     assert.equal(metrics.titleText, "Bienvenido a Daybook Travel");
     assert.equal(metrics.title.fontSize, "28px");
     assert.equal(metrics.copy, "Usa el mismo correo y contraseña de Daybook Asistencia.");
@@ -437,6 +517,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       { name: "correo", selector: 'input[name="email"]' },
       { name: "contraseña", selector: 'input[name="password"]' },
       { name: "submit", selector: "form button" },
+      { name: "recuperación", selector: "[data-recovery-action]" },
       { name: "demostración", selector: "[data-demo-action]" },
     ];
     for (const stop of keyboardStops) {
@@ -459,8 +540,8 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       `document.body.innerText.includes("Demostración con datos ficticios") && !document.querySelector("[data-login-card]")`,
       `apertura de demostración por teclado en ${label}`,
     );
-    await delay(100);
     assert.deepEqual(collector.errors, [], `errores de navegador ${label}`);
+    assert.equal(externalRequests, 0, `requests externos ${label}`);
 
     return `${label}: logo 168×${metrics.logo.height.toFixed(2)}, isotipo 56×56, tarjeta ${metrics.card.width.toFixed(0)}×${metrics.card.height.toFixed(2)}, sin overflow ni errores`;
   } finally {
@@ -470,30 +551,12 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
   }
 }
 
-async function main() {
-  ownedRoot = await mkdtemp(join(tmpdir(), "daybook-travel-browser-"));
-  const port = await freePort();
-  const appUrl = `http://127.0.0.1:${port}/`;
-  const next = spawnOwned(process.execPath, [
-    join(ROOT, "node_modules/next/dist/bin/next"),
-    "dev",
-    "--hostname", "127.0.0.1",
-    "--port", String(port),
-  ], {
-    env: {
-      ...process.env,
-      NEXT_TELEMETRY_DISABLED: "1",
-      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "browser-test-publishable-key",
-    },
-  });
-  await waitForHttp(appUrl, next);
-
-  const profile = join(ownedRoot, "chrome-profile");
-  const chromeArgs = [
+function assertSandboxedChromeArgs(argv) {
+  // Lista cerrada de argumentos efectivos: ningún flag extra ni cambio de
+  // features puede reducir el sandbox. El perfil sólo se usa como un argv.
+  const allowed = new Set([
     "--headless=new",
     "--remote-debugging-port=0",
-    `--user-data-dir=${profile}`,
     "--no-first-run",
     "--no-default-browser-check",
     "--disable-background-networking",
@@ -503,19 +566,111 @@ async function main() {
     "--metrics-recording-only",
     "--disable-features=Translate,OptimizationHints,MediaRouter",
     "about:blank",
-  ];
-  if (process.platform === "linux") chromeArgs.unshift("--no-sandbox");
-  const chrome = spawnOwned(await chromePath(), chromeArgs);
-  const cdpPort = await waitForDevTools(profile, chrome);
+  ]);
+  assert.ok(Array.isArray(argv), "T3 argv debe ser una lista");
+  assert.ok(argv.every((arg) => typeof arg === "string" && (allowed.has(arg)
+    || (arg.startsWith("--user-data-dir=") && arg.length > "--user-data-dir=".length
+      && !/[\0\r\n]/.test(arg)))), "T3 argumento Chrome fuera del contrato de sandbox");
+  const flags = argv.filter((arg) => arg.startsWith("--")).map((arg) => arg.split("=")[0]);
+  assert.ok(new Set(flags).size === flags.length, "T3 flags Chrome sin duplicados");
+  assert.ok(argv.filter((arg) => arg === "about:blank").length === 1, "T3 destino inicial cerrado");
+  // Sólo nombres de flags y estado: no perfil, puerto, URL ni valores de argv.
+  return { sandboxRequested: true, argvValidated: true, flags };
+}
 
+export async function startBrowser() {
+  // Sólo pruebas locales sintéticas pueden inyectar un servidor efímero. La
+  // invocación normal no lee flags de proceso ni cambia el runner de Next.
+  const testConfig = globalThis.__travelBrowserStartTest ?? {};
+  const nextEntrypoint = testConfig.nextEntrypoint ?? join(ROOT, "node_modules/next/dist/bin/next");
+  const temporaryParent = testConfig.temporaryParent ?? tmpdir();
+  const onPort = testConfig.onPort ?? (() => {});
+  const selectChrome = testConfig.chromePath ?? chromePath;
+  assert.equal(typeof nextEntrypoint, "string", "browser runner requiere entrypoint string");
+  assert.equal(typeof temporaryParent, "string", "browser runner requiere parent temporal string");
+  assert.equal(typeof onPort, "function", "browser runner requiere callback de puerto");
+  assert.equal(typeof selectChrome, "function", "browser runner requiere selector Chrome function");
+  const chromeExecutable = await selectChrome();
+  assert.ok(chromeExecutable && typeof chromeExecutable === "object", "browser runner requiere descriptor Chrome");
+  const chromeFile = chromeExecutable.file;
+  assert.ok(chromeFile && Number.isInteger(chromeFile.fd) && chromeFile.fd >= 3
+    && typeof chromeFile.close === "function", "browser runner requiere descriptor Chrome abierto");
+  let chromeFileOpen = true;
+  try {
+    ownedRoot = await mkdtemp(join(temporaryParent, "daybook-travel-browser-"));
+    const port = await freePort();
+    onPort(port);
+    const appUrl = `http://127.0.0.1:${port}/`;
+    const next = spawnOwned(process.execPath, [
+      nextEntrypoint,
+      "dev",
+      "--hostname", "127.0.0.1",
+      "--port", String(port),
+    ], {
+      env: {
+        ...process.env,
+        TRAVEL_BROWSER_FIXTURE: "document-boundaries-v1",
+        NEXT_TELEMETRY_DISABLED: "1",
+        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "browser-test-publishable-key",
+      },
+    });
+    await waitForHttp(appUrl, next);
+
+    const profile = join(ownedRoot, "chrome-profile");
+    const chromeArgs = [
+      "--headless=new",
+      "--remote-debugging-port=0",
+      `--user-data-dir=${profile}`,
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-background-networking",
+      "--disable-component-update",
+      "--disable-domain-reliability",
+      "--disable-sync",
+      "--metrics-recording-only",
+      "--disable-features=Translate,OptimizationHints,MediaRouter",
+      "about:blank",
+    ];
+    // Evidencia previa al spawn: no afirma estado de procesos/renderer del SO.
+    console.log(`Chrome sandbox: ${JSON.stringify({
+      ...assertSandboxedChromeArgs(chromeArgs), executableAllowlistVerified: true,
+      seccomp: "not-measured", namespaces: "not-measured",
+    })}`);
+    let chrome;
+    try {
+      chrome = spawnOwned(chromeCommand(chromeFile), chromeArgs, {
+        stdio: chromeStdio(chromeFile.fd),
+      });
+    } finally {
+      await chromeFile.close();
+      chromeFileOpen = false;
+    }
+    const cdpPort = await waitForDevTools(profile, chrome);
+
+    return { cdpPort, appUrl };
+  } catch (error) {
+    await teardown();
+    throw error;
+  } finally {
+    if (chromeFileOpen) await chromeFile.close();
+  }
+}
+
+async function main() {
+  const { cdpPort, appUrl } = await startBrowser();
   const results = [];
   results.push(await runViewport({ cdpPort, appUrl, width: 390, height: 844, mobile: true }));
   results.push(await runViewport({ cdpPort, appUrl, width: 1440, height: 900, mobile: false }));
   for (const result of results) console.log(`✓ ${result}`);
 }
 
-try {
-  await main();
-} finally {
-  await teardown();
+export { Cdp, openTarget, waitUntil, delay, teardown, pressTab, pressEnter, assertKeyboardFocus };
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    await main();
+  } finally {
+    await teardown();
+  }
 }
