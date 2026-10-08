@@ -131,7 +131,8 @@ async function runTests(root,file,pattern,records,os,abort) {
 const extraTests=String.raw`import test from 'node:test';
 import assert from 'node:assert/strict';
 import {constants} from 'node:fs';
-import {access,mkdtemp,mkdir,open,readFile,realpath,rm,stat,writeFile} from 'node:fs/promises';
+import {access,lstat,mkdtemp,mkdir,readFile,realpath,rm,stat,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {join} from 'node:path';
 import {runInNewContext} from 'node:vm';
 const source=await readFile(new URL('../scripts/browser-login.mjs',import.meta.url),'utf8');
@@ -140,16 +141,15 @@ function fn(name) {
  assert.ok(value,'M2 función real extraída'); return value;
 }
 function resolver(path) { return runInNewContext(fn('chromePath')+'\nchromePath',
- {process:{env:{CHROME_PATH:path}},access,open,realpath,stat,constants,Buffer}); }
-for(const kind of ['no-fallback','format','file']) {
+ {ROOT:process.cwd(),join,createHash,process:{env:{CHROME_PATH:path},platform:process.platform},access,lstat,readFile,realpath,stat,constants}); }
+for(const kind of ['no-fallback','file']) {
  test('T3 M2 '+kind+' rechazo previo a spawn',async()=>{
   const root=await mkdtemp(join(process.cwd(),'fs-case-'));
   try {
    const path=join(root,'candidate');
-   if(kind==='format') await writeFile(path,'ordinary text without executable header\n',{mode:0o700,flag:'wx'});
    if(kind==='file') await mkdir(path);
    const message=kind==='no-fallback' ? 'T3 CHROME_PATH no accesible'
-    :kind==='format' ? 'T3 CHROME_PATH formato ejecutable no autorizado' : 'T3 CHROME_PATH debe ser un archivo ejecutable';
+    : 'T3 CHROME_PATH debe ser un archivo ejecutable';
    await assert.rejects(resolver(path),{message},'T3 M2 '+kind+' rechazo obligatorio');
   } finally {await rm(root,{recursive:true,force:true});}
  });
@@ -171,20 +171,18 @@ async function mutants(root,evidence,source,records,os,abort) {
   await writeFile(join(root,extraPath),extraTests,{flag:'wx'});
   const paths=[loginPath,unitPath,extraPath];
   const before=await manifest(root,paths), results=[];
-  const wrapperSite='if (header[0] === 0x23 && header[1] === 0x21) {\n          throw new Error("T3 CHROME_PATH wrapper no autorizado");\n        }';
   const argvSite='assert.ok(argv.every((arg) => typeof arg === "string" && (allowed.has(arg)\n    || (arg.startsWith("--user-data-dir=") && arg.length > "--user-data-dir=".length\n      && !/[\\0\\r\\n]/.test(arg)))), "T3 argumento Chrome fuera del contrato de sandbox");';
   const variants=[
-    {id:'wrapper-return',site:wrapperSite,replacement:wrapperSite.replace('throw new Error("T3 CHROME_PATH wrapper no autorizado");','return executable;'),
-      file:unitPath,name:'T3 CHROME_PATH wrapper desconocido debe rechazarse antes de spawn y sin fallback'},
+    {id:'allowlist-return',site:'if (!systemTrusted && !await matchesCiContract(executable)) {',replacement:'if (false) {',
+      file:unitPath,name:'T3 CHROME_PATH ELF privado se rechaza antes de spawn y sin fallback'},
     {id:'explicit-fallback',site:'const explicit = process.env.CHROME_PATH !== undefined;',replacement:'const explicit = false;',name:'T3 M2 no-fallback rechazo previo a spawn'},
-    {id:'format-return',site:'if (!(elf || !vendor && (mach || fatMach))) {',replacement:'if (false) {',name:'T3 M2 format rechazo previo a spawn'},
     {id:'directory-return',site:'if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");',
       replacement:'if (!info.isFile()) return executable;',name:'T3 M2 file rechazo previo a spawn'},
     {id:'argv-allow',site:argvSite,replacement:'assert.ok(true, "T3 argumento Chrome fuera del contrato de sandbox");',name:'T3 M2 argv inseguro rechazo previo a spawn',exception:true},
   ];
   async function control(label) {
     const runs=[];
-    for (const [file,total] of [[unitPath,2],[extraPath,4]]) {
+    for (const [file,total] of [[unitPath,4],[extraPath,3]]) {
       const result=await runTests(root,file,null,records,os,abort); runs.push(result);
       await save(join(evidence,`${label}-${total}.json`),result);
       assert.ok(result.exit.code===0 && !result.timedOut && !result.interrupted && !result.spawnError

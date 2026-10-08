@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdtemp, open, readFile, realpath, rm, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { access, lstat, mkdtemp, readFile, realpath, rm, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -39,6 +40,37 @@ async function chromePath() {
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
   ];
+  // Rutas canónicas de binarios Chrome instalados por el sistema. Las rutas
+  // de /usr/bin son sólo puntos de descubrimiento: jamás son una autorización
+  // por sí mismas después de realpath.
+  const systemExecutables = new Set([
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/opt/google/chrome/chrome",
+    "/usr/lib/chromium/chromium",
+    "/usr/lib/chromium-browser/chromium-browser",
+  ]);
+  const vendorWrapper = "/opt/google/chrome/google-chrome";
+  const ciContract = join(ROOT, ".travel-ci-chrome.json");
+
+  async function matchesCiContract(executable) {
+    // El contrato tiene una ubicación fija, es creado por el workflow y liga
+    // exactamente el output de setup-chrome a su digest. CHROME_PATH nunca
+    // elige ni la ubicación ni el contenido del contrato.
+    if (process.env.GITHUB_ACTIONS !== "true") return false;
+    try {
+      const contractInfo = await lstat(ciContract);
+      if (!contractInfo.isFile() || (contractInfo.mode & 0o077) !== 0) return false;
+      const contract = JSON.parse(await readFile(ciContract, "utf8"));
+      if (Object.keys(contract).sort().join(",") !== "path,platform,sha256,version"
+        || contract.version !== 1 || contract.platform !== process.platform
+        || contract.path !== executable || !/^[a-f0-9]{64}$/.test(contract.sha256)) return false;
+      const digest = createHash("sha256").update(await readFile(executable)).digest("hex");
+      return digest === contract.sha256;
+    } catch {
+      return false;
+    }
+  }
 
   for (const candidate of candidates) {
     let executable;
@@ -49,42 +81,14 @@ async function chromePath() {
       throw new Error("T3 CHROME_PATH no accesible");
     }
     try {
+      if (executable === vendorWrapper) executable = await realpath("/opt/google/chrome/chrome");
       let info = await stat(executable);
       if (!info.isFile()) throw new Error("T3 CHROME_PATH debe ser un archivo ejecutable");
       await access(executable, constants.X_OK);
-      // Único wrapper conocido: nunca ejecutarlo ni interpretar sus argumentos.
-      const vendor = executable === "/opt/google/chrome/google-chrome";
-      if (vendor) {
-        if (info.uid !== 0 || (info.mode & 0o022) !== 0) {
-          throw new Error("T3 CHROME_PATH wrapper no autorizado");
-        }
-        executable = await realpath("/opt/google/chrome/chrome");
-        info = await stat(executable);
-        if (executable !== "/opt/google/chrome/chrome" || !info.isFile()
-          || info.uid !== 0 || (info.mode & 0o022) !== 0) {
-          throw new Error("T3 CHROME_PATH binario vendor no autorizado");
-        }
-        await access(executable, constants.X_OK);
+      const systemTrusted = systemExecutables.has(executable) && (info.mode & 0o022) === 0;
+      if (!systemTrusted && !await matchesCiContract(executable)) {
+        throw new Error("T3 CHROME_PATH fuera de la lista permitida");
       }
-      const file = await open(executable, "r");
-      try {
-        const header = Buffer.alloc(8);
-        const { bytesRead } = await file.read(header, 0, header.length, 0);
-        if (header[0] === 0x23 && header[1] === 0x21) {
-          throw new Error("T3 CHROME_PATH wrapper no autorizado");
-        }
-        const magic = header.subarray(0, 4).toString("hex");
-        const elf = bytesRead === 8 && magic === "7f454c46"
-          && [1, 2].includes(header[4]) && [1, 2].includes(header[5]) && header[6] === 1;
-        const mach = bytesRead === 8 && ["feedface", "cefaedfe", "feedfacf", "cffaedfe"].includes(magic);
-        const fatBE = ["cafebabe", "cafebabf"].includes(magic);
-        const fatLE = ["bebafeca", "bfbafeca"].includes(magic);
-        const architectures = fatBE ? header.readUInt32BE(4) : fatLE ? header.readUInt32LE(4) : 0;
-        const fatMach = bytesRead === 8 && architectures > 0 && architectures <= 64;
-        if (!(elf || !vendor && (mach || fatMach))) {
-          throw new Error("T3 CHROME_PATH formato ejecutable no autorizado");
-        }
-      } finally { await file.close(); }
       return executable;
     } catch (error) {
       // Fallos FS sanitizados; ningún rechazo habilita otro candidato.
@@ -621,7 +625,7 @@ export async function startBrowser() {
     ];
     // Evidencia previa al spawn: no afirma estado de procesos/renderer del SO.
     console.log(`Chrome sandbox: ${JSON.stringify({
-      ...assertSandboxedChromeArgs(chromeArgs), executableFormatVerified: true,
+      ...assertSandboxedChromeArgs(chromeArgs), executableAllowlistVerified: true,
       seccomp: "not-measured", namespaces: "not-measured",
     })}`);
     const chrome = spawnOwned(chromeExecutable, chromeArgs);

@@ -295,7 +295,7 @@ for (const platform of ['linux','darwin','win32']) {
     assert.equal(receiptLines.length,1,'T3 recibo de argv obligatorio en el arranque compartido');
     const receipt=JSON.parse(receiptLines[0].slice('Chrome sandbox: '.length));
     assert.deepEqual(receipt,{sandboxRequested:true,argvValidated:true,flags,
-      executableFormatVerified:true,seccomp:'not-measured',namespaces:'not-measured'},
+      executableAllowlistVerified:true,seccomp:'not-measured',namespaces:'not-measured'},
       'T3 recibo de validación previa, sin afirmar sandbox observado');
     assert.ok(!output.join('\n').includes('sensitive-profile-marker'),'T3 no imprimir valores de argv');
     const assertion=start.search(/assertSandboxedChromeArgs\(\s*chromeArgs\s*\)/);
@@ -402,9 +402,18 @@ for (const script of ['test:browser','test:browser:recovery']) {
     const chromePath=t4Value(env,'CHROME_PATH',10);
     assert.ok(chromePath,`T4 ${script} recibe CHROME_PATH explícito`);
     const {setup,id}=t4Setup(steps);
+    const contracts=steps.filter(step => t4Value(step.replace(/^ {6}- /,'        '),'name',8) === 'Fijar contrato verificable de Chrome');
+    assert.equal(contracts.length,1,'T4 un contrato CI de Chrome con nombre fijo');
+    const contract=contracts[0];
+    const contractRun=contract.match(/^ {8}run: \|\r?\n([\s\S]*)$/m)?.[1] ?? '';
+    assert.match(contractRun,/realpath\(process\.env\.SETUP_CHROME_PATH/,'T4 contrato canónico desde output de setup');
+    assert.match(contractRun,/sha256/,'T4 contrato liga digest del binario');
+    assert.match(contractRun,/\.travel-ci-chrome\.json/,'T4 contrato tiene ubicación fija');
+    assert.match(contractRun,/flag: 'wx'/,'T4 contrato no sobrescribe un archivo preexistente');
     assert.equal(chromePath,'${{ steps.'+id+'.outputs.chrome-path }}',
       `T4 ${script} usa el output chrome-path exacto del setup`);
-    assert.ok(steps.indexOf(setup) < steps.indexOf(browser),'T4 setup precede al browser');
+    assert.ok(steps.indexOf(setup) < steps.indexOf(contract) && steps.indexOf(contract) < steps.indexOf(browser),
+      'T4 setup y contrato preceden al browser');
     t4BrowserTimeout(browser,script);
   });
 }
