@@ -11,6 +11,19 @@ create table if not exists public.trip_proposal_receipts (
   expected_version bigint not null check (expected_version >= 0),
   applied_version bigint not null check (applied_version >= 0),
   proposal_identity jsonb not null check (jsonb_typeof(proposal_identity) = 'object'),
+  applied_trip jsonb not null check (
+    jsonb_typeof(applied_trip) = 'object'
+    and applied_trip ?& array['id', 'version', 'date', 'requested_time', 'baggage', 'notes']
+    and applied_trip - 'id' - 'version' - 'date' - 'requested_time' - 'baggage' - 'notes' = '{}'::jsonb
+    and jsonb_typeof(applied_trip -> 'id') = 'string'
+    and jsonb_typeof(applied_trip -> 'version') = 'number'
+    and applied_trip ->> 'version' ~ '^[0-9]+$'
+    and (applied_trip ->> 'version')::bigint = applied_version
+    and jsonb_typeof(applied_trip -> 'date') = 'string'
+    and jsonb_typeof(applied_trip -> 'requested_time') in ('string', 'null')
+    and jsonb_typeof(applied_trip -> 'baggage') = 'string'
+    and jsonb_typeof(applied_trip -> 'notes') = 'string'
+  ),
   created_at timestamptz not null default clock_timestamp(),
   unique (idempotency_key)
 );
@@ -50,8 +63,7 @@ declare
   v_actor uuid := auth.uid();
   v_trip public.trips%rowtype;
   v_receipt public.trip_proposal_receipts%rowtype;
-  v_key text;
-  v_result jsonb;
+  v_applied_trip jsonb;
 begin
   -- Membership is the workspace ownership model for shared trips. Receipts
   -- additionally belong to their creator and cannot be replayed by a peer.
@@ -115,8 +127,7 @@ begin
     if not found then raise exception 'trip_no_encontrado'; end if;
     return jsonb_build_object(
       'ok', true, 'replayed', true,
-      'trip', jsonb_build_object('id', v_trip.id, 'version', v_trip.version, 'date', v_trip.date,
-        'requested_time', v_trip.requested_time, 'baggage', v_trip.baggage, 'notes', v_trip.notes),
+      'trip', v_receipt.applied_trip,
       'receipt', jsonb_build_object('idempotency_key', v_receipt.idempotency_key,
         'proposal_identity', v_receipt.proposal_identity, 'applied_version', v_receipt.applied_version)
     );
@@ -134,16 +145,24 @@ begin
   where id = v_trip.id
   returning * into v_trip;
 
+  v_applied_trip := jsonb_build_object(
+    'id', v_trip.id,
+    'version', v_trip.version,
+    'date', v_trip.date,
+    'requested_time', v_trip.requested_time,
+    'baggage', v_trip.baggage,
+    'notes', v_trip.notes
+  );
+
   insert into public.trip_proposal_receipts (
-    trip_id, actor, idempotency_key, expected_version, applied_version, proposal_identity
+    trip_id, actor, idempotency_key, expected_version, applied_version, proposal_identity, applied_trip
   ) values (
-    v_trip.id, v_actor, p_idempotency_key, p_expected_version, v_trip.version, p_proposal_identity
+    v_trip.id, v_actor, p_idempotency_key, p_expected_version, v_trip.version, p_proposal_identity, v_applied_trip
   ) returning * into v_receipt;
 
   return jsonb_build_object(
     'ok', true, 'replayed', false,
-    'trip', jsonb_build_object('id', v_trip.id, 'version', v_trip.version, 'date', v_trip.date,
-      'requested_time', v_trip.requested_time, 'baggage', v_trip.baggage, 'notes', v_trip.notes),
+    'trip', v_receipt.applied_trip,
     'receipt', jsonb_build_object('idempotency_key', v_receipt.idempotency_key,
       'proposal_identity', v_receipt.proposal_identity, 'applied_version', v_receipt.applied_version)
   );
