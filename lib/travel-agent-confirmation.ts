@@ -28,6 +28,13 @@ export type ModeloConfirmacionTravel =
 
 export type ConfirmacionLocal = Readonly<{ confirmed: true }>;
 
+export type VinculoConfirmacionTravel = Readonly<{
+  tripId: string;
+  expectedVersion: number;
+  proposalIdentity: string;
+  idempotencyKey: string;
+}>;
+
 const LABELS: Record<CampoProponible, string> = {
   date: "Fecha",
   requested_time: "Hora solicitada",
@@ -112,6 +119,23 @@ export function crearModeloConfirmacionTravel(value: unknown): ModeloConfirmacio
 /** Identidad determinista de la propuesta allowlisted; no incluye datos extra ni sensibles. */
 export function crearIdentidadPropuestaConfirmacion(model: Extract<ModeloConfirmacionTravel, { kind: "ready" }>): string {
   return JSON.stringify(model.canonicalProposal.map((field) => [field.key, field.value]));
+}
+
+/**
+ * Creates the exact B3 binding that B2 sends to the server. A replacement has
+ * a different proposal identity and therefore must receive a new idempotency
+ * key; retaining one would turn the replacement into a replay.
+ */
+export function crearVinculoConfirmacionTravel(
+  model: Extract<ModeloConfirmacionTravel, { kind: "ready" }>,
+  trip: { id: string; version: number },
+  nextIdempotencyKey: () => string,
+  previous?: VinculoConfirmacionTravel,
+): VinculoConfirmacionTravel {
+  const proposalIdentity = crearIdentidadPropuestaConfirmacion(model);
+  const idempotencyKey = previous?.tripId === trip.id && previous.expectedVersion === trip.version &&
+    previous.proposalIdentity === proposalIdentity ? previous.idempotencyKey : nextIdempotencyKey();
+  return Object.freeze({ tripId: trip.id, expectedVersion: trip.version, proposalIdentity, idempotencyKey });
 }
 
 /** Guarda una sola confirmación humana local; no aplica viajes ni transporta propuestas. */
