@@ -34,6 +34,7 @@ async function chromePath() {
   const candidates = explicit ? [process.env.CHROME_PATH] : [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/usr/local/share/chromium/chrome-linux/chrome",
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
     "/usr/bin/chromium",

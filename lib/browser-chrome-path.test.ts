@@ -123,6 +123,40 @@ test('T3 acepta sólo el binario canónico de Chromium preinstalado en GitHub Ub
   assert.equal(closed, 1, 'T3 conserva descriptor, no una ruta alternativa');
 });
 
+test('T3 descubre Chromium preinstalado de GitHub sin CHROME_PATH', async () => {
+  const previousCandidates = [
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+  ];
+  const attempted: string[] = [];
+  let closed = 0;
+  const resolve = runInNewContext(`${resolverSource}\nchromePath`, {
+    process: { env: {}, platform: 'linux' }, constants,
+    realpath: async (path: string) => {
+      attempted.push(path);
+      if (path === githubRunnerChromium) return githubRunnerChromium;
+      const error = Object.assign(new Error('missing'), { code: 'ENOENT' });
+      throw error;
+    },
+    access: async () => {},
+    stat: async () => ({ isFile: () => true, mode: 0o100755, dev: 1, ino: 2 }),
+    open: async () => ({
+      stat: async () => ({ isFile: () => true, dev: 1, ino: 2 }),
+      close: async () => { closed++; },
+    }),
+  }) as () => Promise<{ file: { close(): Promise<void> } }>;
+
+  const accepted = await resolve();
+  await accepted.file.close();
+  assert.deepEqual(attempted, [...previousCandidates.slice(0, 2), githubRunnerChromium],
+    'T3 discovery prioriza la ruta canónica de GitHub antes de wrappers/rutas Google');
+  assert.equal(closed, 1);
+});
+
 test('T3 CHROME_PATH conserva aceptación del Chrome del sistema sin ejecutarlo', async (t) => {
   if (process.platform !== 'linux') {
     t.skip('Integración Linux LOCAL: no prueba aceptación de binarios en este host');
