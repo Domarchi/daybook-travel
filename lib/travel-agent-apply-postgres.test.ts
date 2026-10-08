@@ -23,7 +23,7 @@ function psql(container: string, sql: string): string {
 
 test("B2 conserva el snapshot aplicado al reintentar después de una actualización posterior", async (t) => {
   const available = spawnSync("docker", ["info"], { encoding: "utf8", timeout: 15_000 });
-  if (available.status !== 0) t.skip("Docker no está disponible para la prueba PostgreSQL aislada");
+  if (available.status !== 0) return t.skip("Docker no está disponible para la prueba PostgreSQL aislada");
 
   const container = `travel-apply-${process.pid}-${Date.now()}`;
   t.after(() => { spawnSync("docker", ["rm", "-f", container], { encoding: "utf8", timeout: 30_000 }); });
