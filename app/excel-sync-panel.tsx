@@ -564,6 +564,9 @@ export default function ExcelSyncPanel({
       } catch {
         const matrix = peopleSheet ? peopleMatrix : tripsSheet ? tripsMatrix : await readXlsxFile(file, { sheet: fallbackSheet });
         const fallback = rowsForMapping(matrix as unknown[][]);
+        if (fallback.rows.length > MAX_ROWS_PER_SHEET) {
+          throw new Error(`Cada hoja admite hasta ${MAX_ROWS_PER_SHEET.toLocaleString("es-CL")} filas por carga.`);
+        }
         setMappingEntity(peopleSheet ? "people" : tripsSheet ? "trips" : "people");
         setMappingHeaders(fallback.headers);
         setMappingRows(fallback.rows);
@@ -575,6 +578,9 @@ export default function ExcelSyncPanel({
       if (!peopleSheet && !tripsSheet) {
         const matrix = await readXlsxFile(file, { sheet: fallbackSheet });
         const fallback = rowsForMapping(matrix as unknown[][]);
+        if (fallback.rows.length > MAX_ROWS_PER_SHEET) {
+          throw new Error(`Cada hoja admite hasta ${MAX_ROWS_PER_SHEET.toLocaleString("es-CL")} filas por carga.`);
+        }
         setMappingHeaders(fallback.headers);
         setMappingRows(fallback.rows);
         setMapping(Object.fromEntries(fallback.headers.map((header) => [header, null])));

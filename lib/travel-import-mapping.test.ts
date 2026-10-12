@@ -4,6 +4,7 @@ import test from "node:test";
 const {
   enmascararMuestra,
   construirSolicitudMapeo,
+  solicitarMapeoImportacion,
   validarMapeo,
   aplicarMapeo,
 } = await import("./travel-ai-queue.ts");
@@ -36,6 +37,17 @@ test("construye una solicitud acotada sin nombre de archivo ni hoja", () => {
   });
   assert.doesNotMatch(JSON.stringify(request), /row_number|archivo|hoja|Ana Pérez/i);
   assert.equal(construirSolicitudMapeo({ entity: "people", headers: Array.from({ length: 41 }, (_, index) => `H${index}`), rows: [] }), null);
+});
+
+test("no encola muestras que no tengan forma enmascarada", async () => {
+  let calls = 0;
+  const client = { async rpc() { calls += 1; return { data: null, error: null }; } };
+  const base = { schema: "travel-import-map-v1", entity: "people", headers: ["Nombre"], samples: [["Xxxx"]] };
+  for (const sample of ["Ana Pérez", "12345678-9", "xñx", "999A"]) {
+    const result = await solicitarMapeoImportacion(client, { ...base, samples: [[sample]] });
+    assert.deepEqual(result, { ok: false, reason: "entrada_invalida" });
+  }
+  assert.equal(calls, 0);
 });
 
 test("valida el mapeo con claves exactas, allowlist, unicidad y null", () => {

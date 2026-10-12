@@ -46,6 +46,7 @@ const BAGGAGE = new Set<string>(BAGGAGE_OPTIONS);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const MASKED_SAMPLE = /^(?:[xX9]|[^\p{L}\p{N}])*$/u;
 const STATUSES = new Set<TravelAiQueueStatus>(["pending", "claimed", "done", "failed", "expired"]);
 const DIAGNOSTICS = new Set<Exclude<TravelAiQueueDiagnostic, null>>(["model_unavailable", "timeout", "model_response_invalid", "expired", "worker_error"]);
 
@@ -118,7 +119,7 @@ function validImportRequest(value: unknown): value is TravelImportMapRequest {
     request.headers.length < 1 || request.headers.length > 40 || !Array.isArray(request.samples) || request.samples.length > 3) return false;
   const headers = request.headers;
   if (!headers.every((header) => typeof header === "string" && header.length >= 1 && header.length <= 80) || new Set(headers).size !== headers.length) return false;
-  return request.samples.every((sample) => Array.isArray(sample) && sample.length === headers.length && sample.every((cell) => typeof cell === "string" && cell.length <= 24));
+  return request.samples.every((sample) => Array.isArray(sample) && sample.length === headers.length && sample.every((cell) => typeof cell === "string" && cell.length <= 24 && MASKED_SAMPLE.test(cell)));
 }
 
 /** Converts a sample cell to its shape before it can leave the browser. */

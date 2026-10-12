@@ -3,6 +3,95 @@ begin;
 -- The allowlist is intentionally populated out of band. A queue worker is an
 -- authenticated Supabase user but never a travel member and receives no table
 -- privileges, so it cannot discover trips or requesters.
+create or replace function public.trip_ai_request_is_valid(p_kind text, p_request jsonb)
+returns boolean
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+  select coalesce(case p_kind
+    when 'guided' then
+      jsonb_typeof(p_request) = 'object'
+      and p_request ?& array['schema', 'action', 'value', 'current']
+      and p_request - 'schema' - 'action' - 'value' - 'current' = '{}'::jsonb
+      and (p_request ->> 'schema') = 'travel-guided-v1'
+      and (p_request ->> 'action') in ('requested_time', 'date', 'baggage')
+      and jsonb_typeof(p_request -> 'current') = 'object'
+      and (p_request -> 'current') ?& array['date', 'requested_time', 'baggage']
+      and ((p_request -> 'current') - 'date' - 'requested_time' - 'baggage') = '{}'::jsonb
+      and case
+        when jsonb_typeof((p_request -> 'current') -> 'date') = 'string'
+          and (((p_request -> 'current') ->> 'date') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        then to_char(to_date(((p_request -> 'current') ->> 'date'), 'YYYY-MM-DD'), 'YYYY-MM-DD') = ((p_request -> 'current') ->> 'date')
+        else false
+      end
+      and jsonb_typeof((p_request -> 'current') -> 'requested_time') in ('string', 'null')
+      and (jsonb_typeof((p_request -> 'current') -> 'requested_time') = 'null' or (((p_request -> 'current') ->> 'requested_time') ~ '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$'))
+      and jsonb_typeof((p_request -> 'current') -> 'baggage') = 'string'
+      and ((p_request -> 'current') ->> 'baggage') in ('Por confirmar', 'Mochila', 'Maleta de cabina', 'Maleta en bodega')
+      and case (p_request ->> 'action')
+        when 'date' then case
+          when jsonb_typeof(p_request -> 'value') = 'string'
+            and ((p_request ->> 'value') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          then to_char(to_date((p_request ->> 'value'), 'YYYY-MM-DD'), 'YYYY-MM-DD') = (p_request ->> 'value')
+          else false
+        end
+        when 'requested_time' then jsonb_typeof(p_request -> 'value') = 'string'
+          and ((p_request ->> 'value') ~ '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
+        when 'baggage' then jsonb_typeof(p_request -> 'value') = 'string'
+          and (p_request ->> 'value') in ('Por confirmar', 'Mochila', 'Maleta de cabina', 'Maleta en bodega')
+        else false
+      end
+    when 'import_mapping' then
+      jsonb_typeof(p_request) = 'object'
+      and p_request ?& array['schema', 'entity', 'headers', 'samples']
+      and p_request - 'schema' - 'entity' - 'headers' - 'samples' = '{}'::jsonb
+      and (p_request ->> 'schema') = 'travel-import-map-v1'
+      and (p_request ->> 'entity') in ('people', 'trips')
+      and jsonb_typeof(p_request -> 'headers') = 'array'
+      and jsonb_array_length((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) between 1 and 40
+      and not exists (select 1 from jsonb_array_elements((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) AS h(value) where jsonb_typeof(h.value) <> 'string' or length((h.value #>> '{}')) not between 1 and 80)
+      and (select count(*) = count(distinct (h.value #>> '{}')) from jsonb_array_elements((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) AS h(value))
+      and jsonb_typeof(p_request -> 'samples') = 'array'
+      and jsonb_array_length((case when jsonb_typeof(p_request -> 'samples') = 'array' then p_request -> 'samples' else '[]'::jsonb end)) between 0 and 3
+      and not exists (select 1 from jsonb_array_elements((case when jsonb_typeof(p_request -> 'samples') = 'array' then p_request -> 'samples' else '[]'::jsonb end)) AS s(value) where jsonb_typeof(s.value) <> 'array' or jsonb_array_length((case when jsonb_typeof(s.value) = 'array' then s.value else '[]'::jsonb end)) <> jsonb_array_length((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) or exists (select 1 from jsonb_array_elements((case when jsonb_typeof(s.value) = 'array' then s.value else '[]'::jsonb end)) AS c(value) where jsonb_typeof(c.value) <> 'string' or length((c.value #>> '{}')) > 24 or (c.value #>> '{}') !~ '^(?:[xX9]|[^[:alnum:]])*$'))
+    else false
+  end, false);
+$$;
+
+create or replace function public.trip_ai_proposal_is_valid(p_kind text, p_request jsonb, p_proposal jsonb)
+returns boolean
+language sql
+immutable
+set search_path = public, pg_temp
+as $$
+  select coalesce(case p_kind
+    when 'guided' then case
+      when public.trip_ai_request_is_valid('guided', p_request)
+        and (p_request ->> 'action') is not null
+      then jsonb_typeof(p_proposal) = 'object'
+        and p_proposal = jsonb_build_object((p_request ->> 'action'), p_request -> 'value')
+      else false
+    end
+    when 'import_mapping' then case
+      when public.trip_ai_request_is_valid('import_mapping', p_request)
+      then jsonb_typeof(p_proposal) = 'object'
+        and p_proposal ?& array['mapping']
+        and p_proposal - 'mapping' = '{}'::jsonb
+        and jsonb_typeof(p_proposal -> 'mapping') = 'object'
+        and (select count(*) = jsonb_array_length((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) from jsonb_object_keys((case when jsonb_typeof(p_proposal -> 'mapping') = 'object' then p_proposal -> 'mapping' else '{}'::jsonb end)) AS k(key))
+        and not exists (select 1 from jsonb_object_keys((case when jsonb_typeof(p_proposal -> 'mapping') = 'object' then p_proposal -> 'mapping' else '{}'::jsonb end)) AS k(key) where not exists (select 1 from jsonb_array_elements_text((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) AS h(value) where h.value = k.key))
+        and not exists (select 1 from jsonb_each((case when jsonb_typeof(p_proposal -> 'mapping') = 'object' then p_proposal -> 'mapping' else '{}'::jsonb end)) AS m(key, value) where jsonb_typeof(m.value) not in ('string', 'null') or (jsonb_typeof(m.value) = 'string' and not (((p_request ->> 'entity') = 'people' and (m.value #>> '{}') in ('daybookId','codigoPersona','nombreCompleto','origen','destino','turno','fechaInicio','fechaTermino','equipaje','activa','version')) or ((p_request ->> 'entity') = 'trips' and (m.value #>> '{}') in ('daybookId','personaId','codigoPersona','persona','fechaPlanificada','fechaViaje','sentido','origen','destino','horaRequerida','equipaje','estado','pnr','vuelo','montoClp','observaciones','motivoCambio','version')))))
+        and (select count(*) = count(distinct (m.value #>> '{}')) from jsonb_each((case when jsonb_typeof(p_proposal -> 'mapping') = 'object' then p_proposal -> 'mapping' else '{}'::jsonb end)) AS m(key, value) where jsonb_typeof(m.value) = 'string')
+      else false
+    end
+    else false
+  end, false);
+$$;
+
+revoke all on function public.trip_ai_request_is_valid(text, jsonb) from public;
+revoke all on function public.trip_ai_proposal_is_valid(text, jsonb, jsonb) from public;
+
 create table if not exists public.trip_ai_workers (
   user_id uuid primary key
 );
@@ -12,55 +101,9 @@ create table if not exists public.trip_ai_requests (
   kind text not null default 'guided' check (kind in ('guided', 'import_mapping')),
   trip_id uuid null references public.trips(id),
   actor uuid not null,
-  request jsonb not null check (coalesce(
-    (kind = 'guided' and
-    jsonb_typeof(request) = 'object'
-    and request ?& array['schema', 'action', 'value', 'current']
-    and request - 'schema' - 'action' - 'value' - 'current' = '{}'::jsonb
-    and request ->> 'schema' = 'travel-guided-v1'
-    and request ->> 'action' in ('requested_time', 'date', 'baggage')
-    and jsonb_typeof(request -> 'current') = 'object'
-    and request -> 'current' ?& array['date', 'requested_time', 'baggage']
-    and request -> 'current' - 'date' - 'requested_time' - 'baggage' = '{}'::jsonb
-    and jsonb_typeof(request -> 'current' -> 'date') = 'string'
-    and request -> 'current' ->> 'date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-    and to_char(to_date(request -> 'current' ->> 'date', 'YYYY-MM-DD'), 'YYYY-MM-DD') = request -> 'current' ->> 'date'
-    and jsonb_typeof(request -> 'current' -> 'requested_time') in ('string', 'null')
-    and (jsonb_typeof(request -> 'current' -> 'requested_time') = 'null' or request -> 'current' ->> 'requested_time' ~ '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
-    and jsonb_typeof(request -> 'current' -> 'baggage') = 'string'
-    and request -> 'current' ->> 'baggage' in ('Por confirmar', 'Mochila', 'Maleta de cabina', 'Maleta en bodega')
-    and (
-      (request ->> 'action' = 'date' and jsonb_typeof(request -> 'value') = 'string'
-        and request ->> 'value' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-        and to_char(to_date(request ->> 'value', 'YYYY-MM-DD'), 'YYYY-MM-DD') = request ->> 'value')
-      or (request ->> 'action' = 'requested_time' and jsonb_typeof(request -> 'value') = 'string'
-        and request ->> 'value' ~ '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
-      or (request ->> 'action' = 'baggage' and jsonb_typeof(request -> 'value') = 'string'
-        and request ->> 'value' in ('Por confirmar', 'Mochila', 'Maleta de cabina', 'Maleta en bodega'))
-    )) or (kind = 'import_mapping'
-      and jsonb_typeof(request) = 'object'
-      and request ?& array['schema', 'entity', 'headers', 'samples']
-      and request - 'schema' - 'entity' - 'headers' - 'samples' = '{}'::jsonb
-      and request ->> 'schema' = 'travel-import-map-v1'
-      and request ->> 'entity' in ('people', 'trips')
-      and jsonb_typeof(request -> 'headers') = 'array'
-      and jsonb_array_length(request -> 'headers') between 1 and 40
-      and not exists (select 1 from jsonb_array_elements(request -> 'headers') h where jsonb_typeof(h.value) <> 'string' or length(h.value #>> '{}') not between 1 and 80)
-      and (select count(*) = count(distinct h.value #>> '{}') from jsonb_array_elements(request -> 'headers') h)
-      and jsonb_typeof(request -> 'samples') = 'array'
-      and jsonb_array_length(request -> 'samples') between 0 and 3
-      and not exists (select 1 from jsonb_array_elements(request -> 'samples') s where jsonb_typeof(s.value) <> 'array' or jsonb_array_length(s.value) <> jsonb_array_length(request -> 'headers') or exists (select 1 from jsonb_array_elements(s.value) c where jsonb_typeof(c.value) <> 'string' or length(c.value #>> '{}') > 24))
-    ), false)),
+  request jsonb not null check (public.trip_ai_request_is_valid(kind, request)),
   status text not null default 'pending' check (status in ('pending', 'claimed', 'done', 'failed', 'expired')),
-  proposal jsonb null check (proposal is null or coalesce(
-    (kind = 'guided' and jsonb_typeof(proposal) = 'object' and proposal = jsonb_build_object(request ->> 'action', request -> 'value'))
-    or (kind = 'import_mapping' and jsonb_typeof(proposal) = 'object' and proposal ?& array['mapping'] and proposal - 'mapping' = '{}'::jsonb
-      and jsonb_typeof(proposal -> 'mapping') = 'object'
-      and (select count(*) = jsonb_array_length(request -> 'headers') from jsonb_object_keys(proposal -> 'mapping'))
-      and not exists (select 1 from jsonb_object_keys(proposal -> 'mapping') k where not exists (select 1 from jsonb_array_elements_text(request -> 'headers') h where h.value = k.key))
-      and not exists (select 1 from jsonb_each(proposal -> 'mapping') m where jsonb_typeof(m.value) not in ('string', 'null') or (jsonb_typeof(m.value) = 'string' and not ((request ->> 'entity' = 'people' and (m.value #>> '{}') in ('daybookId','codigoPersona','nombreCompleto','origen','destino','turno','fechaInicio','fechaTermino','equipaje','activa','version')) or (request ->> 'entity' = 'trips' and (m.value #>> '{}') in ('daybookId','personaId','codigoPersona','persona','fechaPlanificada','fechaViaje','sentido','origen','destino','horaRequerida','equipaje','estado','pnr','vuelo','montoClp','observaciones','motivoCambio','version')))))
-      and (select count(*) = count(distinct m.value #>> '{}') from jsonb_each(proposal -> 'mapping') m where jsonb_typeof(m.value) = 'string')
-    ), false)),
+  proposal jsonb null check (proposal is null or public.trip_ai_proposal_is_valid(kind, request, proposal)),
   check ((kind = 'guided' and trip_id is not null) or (kind = 'import_mapping' and trip_id is null)),
   diagnostic text null check (diagnostic is null or diagnostic in ('model_unavailable', 'timeout', 'model_response_invalid', 'expired', 'worker_error')),
   attempts int not null default 0 check (attempts >= 0),
@@ -93,27 +136,7 @@ begin
   if v_actor is null or not public.is_member() then
     raise exception 'no_autorizado';
   end if;
-  if p_trip_id is null or not coalesce(
-    jsonb_typeof(p_request) = 'object'
-    and p_request ?& array['schema', 'action', 'value', 'current']
-    and p_request - 'schema' - 'action' - 'value' - 'current' = '{}'::jsonb
-    and p_request ->> 'schema' = 'travel-guided-v1'
-    and p_request ->> 'action' in ('requested_time', 'date', 'baggage')
-    and jsonb_typeof(p_request -> 'current') = 'object'
-    and p_request -> 'current' ?& array['date', 'requested_time', 'baggage']
-    and p_request -> 'current' - 'date' - 'requested_time' - 'baggage' = '{}'::jsonb
-    and jsonb_typeof(p_request -> 'current' -> 'date') = 'string'
-    and p_request -> 'current' ->> 'date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-    and to_char(to_date(p_request -> 'current' ->> 'date', 'YYYY-MM-DD'), 'YYYY-MM-DD') = p_request -> 'current' ->> 'date'
-    and jsonb_typeof(p_request -> 'current' -> 'requested_time') in ('string', 'null')
-    and (jsonb_typeof(p_request -> 'current' -> 'requested_time') = 'null' or p_request -> 'current' ->> 'requested_time' ~ '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
-    and jsonb_typeof(p_request -> 'current' -> 'baggage') = 'string'
-    and p_request -> 'current' ->> 'baggage' in ('Por confirmar', 'Mochila', 'Maleta de cabina', 'Maleta en bodega')
-    and (
-      (p_request ->> 'action' = 'date' and jsonb_typeof(p_request -> 'value') = 'string' and p_request ->> 'value' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and to_char(to_date(p_request ->> 'value', 'YYYY-MM-DD'), 'YYYY-MM-DD') = p_request ->> 'value')
-      or (p_request ->> 'action' = 'requested_time' and jsonb_typeof(p_request -> 'value') = 'string' and p_request ->> 'value' ~ '^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')
-      or (p_request ->> 'action' = 'baggage' and jsonb_typeof(p_request -> 'value') = 'string' and p_request ->> 'value' in ('Por confirmar', 'Mochila', 'Maleta de cabina', 'Maleta en bodega'))
-    ), false) then
+  if p_trip_id is null or not public.trip_ai_request_is_valid('guided', p_request) then
     raise exception 'solicitud_invalida';
   end if;
   if not exists (select 1 from public.trips where id = p_trip_id) then
@@ -125,7 +148,7 @@ begin
   update public.trip_ai_requests
   set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
   where actor = v_actor and status in ('pending', 'claimed')
-    and created_at < now() - case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end;
+    and created_at < now() - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end);
   if (select count(*) from public.trip_ai_requests where actor = v_actor and status in ('pending', 'claimed')) >= 5 then
     raise exception 'rate_limited';
   end if;
@@ -147,24 +170,14 @@ declare
   v_id uuid;
 begin
   if v_actor is null or not public.is_member() then raise exception 'no_autorizado'; end if;
-  if not coalesce(jsonb_typeof(p_request) = 'object'
-    and p_request ?& array['schema', 'entity', 'headers', 'samples']
-    and p_request - 'schema' - 'entity' - 'headers' - 'samples' = '{}'::jsonb
-    and p_request ->> 'schema' = 'travel-import-map-v1'
-    and p_request ->> 'entity' in ('people', 'trips')
-    and jsonb_typeof(p_request -> 'headers') = 'array'
-    and jsonb_array_length(p_request -> 'headers') between 1 and 40
-    and not exists (select 1 from jsonb_array_elements(p_request -> 'headers') h where jsonb_typeof(h.value) <> 'string' or length(h.value #>> '{}') not between 1 and 80)
-    and (select count(*) = count(distinct h.value #>> '{}') from jsonb_array_elements(p_request -> 'headers') h)
-    and jsonb_typeof(p_request -> 'samples') = 'array' and jsonb_array_length(p_request -> 'samples') between 0 and 3
-    and not exists (select 1 from jsonb_array_elements(p_request -> 'samples') s where jsonb_typeof(s.value) <> 'array' or jsonb_array_length(s.value) <> jsonb_array_length(p_request -> 'headers') or exists (select 1 from jsonb_array_elements(s.value) c where jsonb_typeof(c.value) <> 'string' or length(c.value #>> '{}') > 24)), false) then
+  if not public.trip_ai_request_is_valid('import_mapping', p_request) then
     raise exception 'solicitud_invalida';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(v_actor::text, 0));
   update public.trip_ai_requests
   set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
   where actor = v_actor and status in ('pending', 'claimed')
-    and created_at < now() - case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end;
+    and created_at < now() - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end);
   if (select count(*) from public.trip_ai_requests where actor = v_actor and status in ('pending', 'claimed')) >= 5 then raise exception 'rate_limited'; end if;
   insert into public.trip_ai_requests (kind, trip_id, actor, request) values ('import_mapping', null, v_actor, p_request) returning id into v_id;
   return v_id;
@@ -184,7 +197,7 @@ begin
   if v_actor is null then raise exception 'no_autorizado'; end if;
   select * into v_request from public.trip_ai_requests where id = p_id and actor = v_actor for update;
   if not found then raise exception 'no_autorizado'; end if;
-  if v_request.status in ('pending', 'claimed') and v_request.created_at < now() - case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end then
+  if v_request.status in ('pending', 'claimed') and v_request.created_at < now() - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
     update public.trip_ai_requests
     set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
     where id = v_request.id
@@ -210,7 +223,7 @@ begin
   end if;
   select * into v_request
   from public.trip_ai_requests
-  where created_at >= now() - case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end
+  where created_at >= now() - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end)
     and (status = 'pending' or (status = 'claimed' and claimed_at < now() - interval '30 seconds' and attempts < 3))
   order by created_at
   for update skip locked
@@ -241,20 +254,13 @@ begin
   if not found or v_request.status <> 'claimed' or v_request.claimed_by <> v_actor then
     raise exception 'request_not_claimed';
   end if;
-  if v_request.created_at < now() - case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end then
+  if v_request.created_at < now() - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
     update public.trip_ai_requests
     set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
     where id = v_request.id;
     return;
   end if;
-  if (v_request.kind = 'guided' and (jsonb_typeof(p_proposal) <> 'object' or p_proposal <> jsonb_build_object(v_request.request ->> 'action', v_request.request -> 'value')))
-    or (v_request.kind = 'import_mapping' and not (p_proposal is not null and exists (select 1 from public.trip_ai_requests where id = v_request.id and proposal is null) and coalesce(
-      jsonb_typeof(p_proposal) = 'object' and p_proposal ?& array['mapping'] and p_proposal - 'mapping' = '{}'::jsonb
-      and jsonb_typeof(p_proposal -> 'mapping') = 'object'
-      and (select count(*) = jsonb_array_length(v_request.request -> 'headers') from jsonb_object_keys(p_proposal -> 'mapping'))
-      and not exists (select 1 from jsonb_object_keys(p_proposal -> 'mapping') k where not exists (select 1 from jsonb_array_elements_text(v_request.request -> 'headers') h where h.value = k.key))
-      and not exists (select 1 from jsonb_each(p_proposal -> 'mapping') m where jsonb_typeof(m.value) not in ('string', 'null') or (jsonb_typeof(m.value) = 'string' and not ((v_request.request ->> 'entity' = 'people' and (m.value #>> '{}') in ('daybookId','codigoPersona','nombreCompleto','origen','destino','turno','fechaInicio','fechaTermino','equipaje','activa','version')) or (v_request.request ->> 'entity' = 'trips' and (m.value #>> '{}') in ('daybookId','personaId','codigoPersona','persona','fechaPlanificada','fechaViaje','sentido','origen','destino','horaRequerida','equipaje','estado','pnr','vuelo','montoClp','observaciones','motivoCambio','version')))))
-      and (select count(*) = count(distinct m.value #>> '{}') from jsonb_each(p_proposal -> 'mapping') m where jsonb_typeof(m.value) = 'string'), false))) then
+  if not public.trip_ai_proposal_is_valid(v_request.kind, v_request.request, p_proposal) then
     raise exception 'model_response_invalid';
   end if;
   update public.trip_ai_requests
