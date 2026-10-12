@@ -38,6 +38,7 @@ test("la cola falla cerrada antes del RPC para claves extra, acciones, valores y
     { ...request(), extra: true },
     { ...request(), action: "notes" },
     { ...request(), value: "25:99" },
+    { ...request(), value: "09:30:15" },
     { ...request(), value: "texto libre no permitido" },
     { ...request(), current: { ...request().current, notes: "prohibido" } },
   ];

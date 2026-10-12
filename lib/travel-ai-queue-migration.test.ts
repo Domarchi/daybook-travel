@@ -59,3 +59,26 @@ test("B4 expone una RPC de importación cerrada y el worker recibe kind", () => 
   const complete = sql.match(/create or replace function public\.complete_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
   assert.match(complete, /v_request\.kind = 'import_mapping'[\s\S]*?'mapping'/i);
 });
+
+test("B4 exige encabezados JSON string, expira bajo el lock y no completa solicitudes vencidas", () => {
+  assert.match(sql, /jsonb_array_elements\(request -> 'headers'\) h where jsonb_typeof\(h\.value\) <> 'string'/i);
+  assert.match(sql, /jsonb_array_elements\(p_request -> 'headers'\) h where jsonb_typeof\(h\.value\) <> 'string'/i);
+  assert.doesNotMatch(sql, /jsonb_array_elements_text\((?:p_)?request -> 'headers'\) h where length/i);
+
+  for (const name of ["request_trip_ai_proposal", "request_trip_import_mapping"]) {
+    const body = sql.match(new RegExp(`create or replace function public\\.${name}\\([\\s\\S]*?\\n\\$\\$;`, "i"))?.[0] ?? "";
+    assert.match(body, /pg_advisory_xact_lock[\s\S]*?update public\.trip_ai_requests[\s\S]*?status = 'expired'[\s\S]*?actor = v_actor[\s\S]*?count\(\*\)/i, name);
+  }
+
+  const complete = sql.match(/create or replace function public\.complete_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
+  assert.match(complete, /created_at < now\(\) - case when v_request\.kind = 'import_mapping' then interval '90 seconds'[\s\S]*?status = 'expired'[\s\S]*?return;/i);
+});
+
+test("B4 y el adaptador aceptan exactamente HH:MM, nunca segundos", async () => {
+  assert.doesNotMatch(sql, /\(\?::\[0-5\]\[0-9\]\)\?\$/);
+  const client = await import("./travel-ai-queue.ts");
+  assert.equal(client.validarSolicitudIA({
+    schema: "travel-guided-v1", action: "requested_time", value: "09:30:15",
+    current: { date: "2026-11-12", requested_time: "08:00", baggage: "Mochila" },
+  }), false);
+});
