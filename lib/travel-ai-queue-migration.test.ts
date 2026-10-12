@@ -36,3 +36,26 @@ test("B4 reclama con SKIP LOCKED y no filtra trip_id ni actor al worker", () => 
   assert.match(claim, /'id', v_request\.id[\s\S]*?'request', v_request\.request/i);
   assert.doesNotMatch(claim, /['"]trip_id['"]|['"]actor['"]|v_request\.trip_id|v_request\.actor/i);
 });
+
+test("B4 soporta import_mapping sin viaje, con solicitud cerrada y expiración de 90 segundos", () => {
+  assert.match(sql, /kind text not null default 'guided' check \(kind in \('guided', 'import_mapping'\)\)/i);
+  assert.match(sql, /trip_id uuid null references public\.trips/i);
+  assert.match(sql, /kind = 'guided' and trip_id is not null[\s\S]*?kind = 'import_mapping' and trip_id is null/i);
+  assert.match(sql, /travel-import-map-v1[\s\S]*?headers[\s\S]*?samples/i);
+  assert.match(sql, /jsonb_array_length\(request -> 'headers'\) between 1 and 40/i);
+  assert.match(sql, /created_at < now\(\) - case when v_request\.kind = 'import_mapping' then interval '90 seconds'/i);
+});
+
+test("B4 expone una RPC de importación cerrada y el worker recibe kind", () => {
+  const request = sql.match(/create or replace function public\.request_trip_import_mapping\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
+  assert.match(request, /security definer/i);
+  assert.match(request, /set search_path = public, pg_temp/i);
+  assert.match(request, /auth\.uid\(\)[\s\S]*?public\.is_member\(\)/i);
+  assert.match(request, /pg_advisory_xact_lock/i);
+  assert.match(sql, /revoke all on function public\.request_trip_import_mapping\(jsonb\) from public/i);
+  assert.match(sql, /grant execute on function public\.request_trip_import_mapping\(jsonb\) to authenticated/i);
+  const claim = sql.match(/create or replace function public\.claim_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
+  assert.match(claim, /'id', v_request\.id, 'kind', v_request\.kind, 'request', v_request\.request/i);
+  const complete = sql.match(/create or replace function public\.complete_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
+  assert.match(complete, /v_request\.kind = 'import_mapping'[\s\S]*?'mapping'/i);
+});

@@ -23,7 +23,16 @@ import {
   type ExcelSyncPayload,
   type ExcelSyncResult,
   type ExcelSyncValidationError,
+  type ExcelSyncEntity,
 } from "../lib/excel-sync";
+import {
+  aplicarMapeo,
+  construirSolicitudMapeo,
+  esperarMapeoImportacion,
+  solicitarMapeoImportacion,
+  validarMapeo,
+  type TravelImportMapping,
+} from "../lib/travel-ai-queue";
 import type { Person, Trip } from "../lib/types";
 import { Button } from "@/components/ui/button";
 import { SectionKicker } from "@/components/ui/section-kicker";
@@ -86,7 +95,7 @@ type Props = {
 };
 
 type ImportRow = ExcelRow & { row_number: number };
-type Phase = "idle" | "reading" | "preview" | "applying" | "done";
+type Phase = "idle" | "reading" | "mapping" | "preview" | "applying" | "done";
 type PreviewAction = "new" | "change" | "unchanged" | "conflict";
 
 type PreviewLine = {
@@ -201,6 +210,21 @@ function rowsToRecords(
   return records;
 }
 
+function rowsForMapping(rows: unknown[][]) {
+  const headerIndex = rows.findIndex((row) => row.some((cell) => String(displayValue(cell)).trim()));
+  if (headerIndex < 0) throw new Error("No encontramos columnas para interpretar en el archivo.");
+  const headers = rows[headerIndex].map((cell) => String(displayValue(cell)).trim());
+  if (!headers.length || headers.some((header) => !header) || new Set(headers).size !== headers.length) {
+    throw new Error("Las columnas del archivo deben tener nombres únicos para poder revisarlas.");
+  }
+  return {
+    headers,
+    rows: rows.slice(headerIndex + 1).flatMap((cells, index) => cells.some((cell) => String(displayValue(cell)).trim())
+      ? [{ row_number: headerIndex + index + 2, ...Object.fromEntries(headers.map((header, column) => [header, displayValue(cells[column])])) }]
+      : []),
+  };
+}
+
 function resultCount(value: number | unknown[] | null | undefined) {
   if (Array.isArray(value)) return value.length;
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -275,6 +299,11 @@ export default function ExcelSyncPanel({
     "template" | "current" | null
   >(null);
   const [result, setResult] = useState<ExcelSyncResult | null>(null);
+  const [mappingEntity, setMappingEntity] = useState<ExcelSyncEntity>("people");
+  const [mappingHeaders, setMappingHeaders] = useState<string[]>([]);
+  const [mappingRows, setMappingRows] = useState<ExcelRow[]>([]);
+  const [mapping, setMapping] = useState<TravelImportMapping>({});
+  const [mappingBusy, setMappingBusy] = useState(false);
 
   const counts = useMemo(
     () => ({
@@ -316,6 +345,10 @@ export default function ExcelSyncPanel({
     setIssues([]);
     setMessage("");
     setResult(null);
+    setMappingHeaders([]);
+    setMappingRows([]);
+    setMapping({});
+    setMappingBusy(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -517,25 +550,37 @@ export default function ExcelSyncPanel({
         (name) => normalizeName(name) === "personas",
       );
       const tripsSheet = names.find((name) => normalizeName(name) === "viajes");
-      if (!peopleSheet && !tripsSheet) {
-        throw new Error(
-          "No encontramos las hojas Personas o Viajes. Usa la plantilla de Daybook Travel.",
-        );
-      }
+      const fallbackSheet = peopleSheet ?? tripsSheet ?? names[0];
+      if (!fallbackSheet) throw new Error("El libro no contiene hojas para revisar.");
       const [peopleMatrix, tripsMatrix] = await Promise.all([
         peopleSheet ? readXlsxFile(file, { sheet: peopleSheet }) : [],
         tripsSheet ? readXlsxFile(file, { sheet: tripsSheet }) : [],
       ]);
-      const peopleRows = rowsToRecords(
-        peopleMatrix as unknown[][],
-        peopleSheet ?? "Personas",
-        peopleHeaders,
-      );
-      const tripsRows = rowsToRecords(
-        tripsMatrix as unknown[][],
-        tripsSheet ?? "Viajes",
-        tripHeaders,
-      );
+      let peopleRows: ImportRow[];
+      let tripsRows: ImportRow[];
+      try {
+        peopleRows = peopleSheet ? rowsToRecords(peopleMatrix as unknown[][], peopleSheet, peopleHeaders) : [];
+        tripsRows = tripsSheet ? rowsToRecords(tripsMatrix as unknown[][], tripsSheet, tripHeaders) : [];
+      } catch {
+        const matrix = peopleSheet ? peopleMatrix : tripsSheet ? tripsMatrix : await readXlsxFile(file, { sheet: fallbackSheet });
+        const fallback = rowsForMapping(matrix as unknown[][]);
+        setMappingEntity(peopleSheet ? "people" : tripsSheet ? "trips" : "people");
+        setMappingHeaders(fallback.headers);
+        setMappingRows(fallback.rows);
+        setMapping(Object.fromEntries(fallback.headers.map((header) => [header, null])));
+        setMessage("No reconocimos las columnas de Daybook. Elige cómo interpretarlas antes de revisar el archivo.");
+        setPhase("mapping");
+        return;
+      }
+      if (!peopleSheet && !tripsSheet) {
+        const matrix = await readXlsxFile(file, { sheet: fallbackSheet });
+        const fallback = rowsForMapping(matrix as unknown[][]);
+        setMappingHeaders(fallback.headers);
+        setMappingRows(fallback.rows);
+        setMapping(Object.fromEntries(fallback.headers.map((header) => [header, null])));
+        setPhase("mapping");
+        return;
+      }
       if (
         peopleRows.length > MAX_ROWS_PER_SHEET ||
         tripsRows.length > MAX_ROWS_PER_SHEET
@@ -562,6 +607,37 @@ export default function ExcelSyncPanel({
       setIssues([issuePublicoAlLeerExcel(error)]);
       setPhase("preview");
     }
+  }
+
+  function revisarMapeo(nextMapping: TravelImportMapping = mapping) {
+    if (!validarMapeo({ entity: mappingEntity, headers: mappingHeaders }, { mapping: nextMapping })) {
+      setMessage("Revisa que cada campo de Daybook se use una sola vez.");
+      return;
+    }
+    const rows = aplicarMapeo(mappingRows, nextMapping);
+    const built = buildExcelSyncPayload({ peopleRows: mappingEntity === "people" ? rows : [], tripRows: mappingEntity === "trips" ? rows : [] });
+    setPayload(built.payload);
+    setPreview(buildPreviewLines(built.payload, people, trips));
+    setIssues(built.errors.map(issueToLocal));
+    setSyncId(crypto.randomUUID());
+    setPhase("preview");
+  }
+
+  async function interpretarConIA() {
+    const request = construirSolicitudMapeo({ entity: mappingEntity, headers: mappingHeaders, rows: mappingRows });
+    if (!request) { setMessage("No pudimos preparar las columnas del archivo para interpretarlas."); return; }
+    setMappingBusy(true);
+    try {
+      const client = browserRpcClient();
+      const queued = await solicitarMapeoImportacion(client, request);
+      if (!queued.ok) throw new Error("queue");
+      const result = await esperarMapeoImportacion(client, queued.id, request);
+      if (!result.ok || !result.request.proposal) throw new Error("unavailable");
+      setMapping(result.request.proposal.mapping);
+      setMessage("Interpretación lista. Revísala y corrígela si hace falta antes de continuar.");
+    } catch {
+      setMessage("La IA no está disponible. Puedes asignar las columnas manualmente.");
+    } finally { setMappingBusy(false); }
   }
 
   async function applyChanges() {
@@ -673,7 +749,7 @@ export default function ExcelSyncPanel({
         </Paso>
         <Paso
           estado={
-            phase === "reading" || phase === "preview"
+            phase === "reading" || phase === "mapping" || phase === "preview"
               ? "actual"
               : phase === "applying"
                 ? "hecho"
@@ -783,6 +859,46 @@ export default function ExcelSyncPanel({
           />
           <h3 className={TITULO}>Revisando {fileName}</h3>
           <p>Estamos comprobando hojas, columnas, fechas y referencias.</p>
+        </div>
+      ) : phase === "mapping" ? (
+        <div className={ZONA}>
+          <header className="grid gap-1 rounded-md border border-line bg-surface-soft px-4 py-3">
+            <h3 className={TITULO}>Relaciona las columnas del archivo</h3>
+            <p className="text-[12px] text-muted">Nada se aplicará todavía: primero verás la misma vista previa de siempre.</p>
+          </header>
+          <label className="grid gap-1 text-[13px] text-foreground-soft">
+            Tipo de información
+            <select className="min-h-11 rounded-sm border border-line bg-surface px-3 text-foreground" value={mappingEntity} disabled={mappingBusy} onChange={(event) => setMappingEntity(event.currentTarget.value as ExcelSyncEntity)}>
+              <option value="people">Personas</option>
+              <option value="trips">Viajes</option>
+            </select>
+          </label>
+          <TableWrap className="rounded-md" role="region" aria-label="Mapeo de columnas">
+            <Table>
+              <THead><tr><Th>Columna del archivo</Th><Th>Campo en Daybook</Th></tr></THead>
+              <TBody>{mappingHeaders.map((header) => (
+                <Tr key={header} className="max-[760px]:grid-cols-1">
+                  <Td data-label="Columna del archivo" className={CELDA_LIBRO}>{header}</Td>
+                  <Td data-label="Campo en Daybook" className={CELDA_LIBRO}>
+                    <select className="min-h-10 w-full rounded-sm border border-line bg-surface px-2 text-foreground" value={mapping[header] ?? ""} onChange={(event) => setMapping((current) => ({ ...current, [header]: event.currentTarget.value || null }))}>
+                      <option value="">Ignorar</option>
+                      {(mappingEntity === "people" ? peopleHeaders : tripHeaders).filter((field) => !["accion", "errorSincronizacion", "actualizadoEn"].includes(field)).map((field) => <option key={field} value={field}>{field}</option>)}
+                    </select>
+                  </Td>
+                </Tr>
+              ))}</TBody>
+            </Table>
+          </TableWrap>
+          {message ? <p role="status" className={cn(AVISO, "px-[13px] py-[11px]")}>{message}</p> : null}
+          <div className={BARRA_ABAJO}>
+            <Button type="button" onClick={reset} disabled={mappingBusy}>Cambiar archivo</Button>
+            <Button type="button" disabled={mappingBusy} onClick={() => void interpretarConIA()}>
+              {mappingBusy ? <><LoaderCircle className="animate-[spin_700ms_linear_infinite]" size={17} /> Interpretando…</> : "Interpretar columnas con IA"}
+            </Button>
+            <Button type="button" variant="primary" disabled={mappingBusy} onClick={() => revisarMapeo()}>
+              Revisar con este mapeo
+            </Button>
+          </div>
         </div>
       ) : (
         <div className={ZONA}>
@@ -985,6 +1101,16 @@ export default function ExcelSyncPanel({
       )}
     </div>
   );
+}
+
+function browserRpcClient() {
+  const client = db();
+  return {
+    async rpc(name: string, args: Record<string, unknown>) {
+      const { data, error } = await client.rpc(name, args);
+      return { data, error: error ? { message: error.message } : null };
+    },
+  };
 }
 
 function buildPreviewLines(
