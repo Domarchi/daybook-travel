@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
 import { ChevronRight, Clock } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { avisoDePrecio, formatoCLP } from "../lib/costs";
 import { useApp } from "../app/store";
+import { db } from "@/lib/supabase";
+import { aplicarPropuestaTravelRemota } from "@/lib/travel-agent-apply";
+import {
+  esperarPropuestaIA,
+  solicitarPropuestaIA,
+  type AccionIaGuiada,
+  type TravelAiQueueProposal,
+} from "@/lib/travel-ai-queue";
+import { TravelAgentConfirmation } from "@/components/travel-agent-confirmation";
 
 export default function TripDialog() {
   const {
@@ -23,7 +32,9 @@ export default function TripDialog() {
     peopleById,
     reservationOpen,
     reservationRequired,
+    reload,
     saveTrip,
+    setNotice,
     setReservationOpen,
     setTripStatus,
     showHistory,
@@ -43,6 +54,89 @@ export default function TripDialog() {
         : null,
     };
   });
+  const formRef = useRef<HTMLFormElement>(null);
+  const mounted = useRef(true);
+  const [estadoIA, setEstadoIA] = useState<"idle" | "thinking" | "ready" | "unavailable">("idle");
+  const [propuestaIA, setPropuestaIA] = useState<TravelAiQueueProposal | null>(null);
+  const [actualIA, setActualIA] = useState<{ date: string; requested_time: string | null; baggage: string; notes: string } | null>(null);
+
+  useEffect(() => () => { mounted.current = false; }, []);
+
+  function leerCamposGuiados() {
+    const form = formRef.current;
+    if (!form) return null;
+    const value = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null)?.value ?? "";
+    const date = value("date");
+    const requestedTime = value("requested_time") || null;
+    const baggage = value("baggage");
+    if (!date || !baggage) return null;
+    return { date, requested_time: requestedTime, baggage };
+  }
+
+  async function sugerirConIA(action: AccionIaGuiada) {
+    const current = leerCamposGuiados();
+    const version = editTrip?.version;
+    if (!editTrip || !current || !Number.isSafeInteger(version) || version < 0) {
+      setEstadoIA("unavailable");
+      return;
+    }
+    const value = action === "date" ? current.date : action === "requested_time" ? current.requested_time : current.baggage;
+    // A guided request never carries prose. A missing time remains manually editable.
+    if (value === null) {
+      setEstadoIA("unavailable");
+      return;
+    }
+    setEstadoIA("thinking");
+    setPropuestaIA(null);
+    setActualIA(null);
+    try {
+      const client = browserRpcClient();
+      const queued = await solicitarPropuestaIA(client, {
+        tripId: editTrip.id,
+        request: {
+          schema: "travel-guided-v1",
+          action,
+          value,
+          current,
+        },
+      });
+      if (!queued.ok) throw new Error("queue_unavailable");
+      const result = await esperarPropuestaIA(client, queued.id);
+      if (!mounted.current) return;
+      if (!result.ok || result.request.status !== "done" || !result.request.proposal) {
+        setEstadoIA("unavailable");
+        return;
+      }
+      setActualIA({ ...current, notes: editTrip.notes });
+      setPropuestaIA(result.request.proposal);
+      setEstadoIA("ready");
+    } catch {
+      if (mounted.current) setEstadoIA("unavailable");
+    }
+  }
+
+  async function aplicarPropuestaIA() {
+    const version = editTrip?.version;
+    if (!editTrip || !propuestaIA || !Number.isSafeInteger(version) || version < 0) {
+      setEstadoIA("unavailable");
+      return;
+    }
+    const result = await aplicarPropuestaTravelRemota(browserRpcClient(), {
+      tripId: editTrip.id,
+      expectedVersion: version,
+      proposal: propuestaIA,
+      proposalIdentity: propuestaIA,
+      idempotencyKey: `ai_${crypto.randomUUID().replaceAll("-", "")}`,
+      confirmed: true,
+    });
+    if (!result.ok) {
+      setEstadoIA("unavailable");
+      return;
+    }
+    await reload();
+    closeModal();
+    setNotice("Propuesta de IA aplicada tras confirmación humana.");
+  }
 
   function revisarMonto(campo: HTMLInputElement) {
     const form = campo.form;
@@ -64,7 +158,7 @@ export default function TripDialog() {
   }
 
   return (
-    <form onSubmit={saveTrip} aria-busy={busy}
+    <form ref={formRef} onSubmit={saveTrip} aria-busy={busy}
       className="flex min-h-0 flex-1 flex-col"
     >
       <DialogBody>
@@ -130,6 +224,7 @@ export default function TripDialog() {
                 required
                 defaultValue={editTrip?.date ?? newDate}
               />
+              {editTrip && <SuggestionButton disabled={estadoIA === "thinking"} onClick={() => void sugerirConIA("date")} />}
             </Label>
             <Label>
               Movimiento
@@ -190,6 +285,7 @@ export default function TripDialog() {
                 type="time"
                 defaultValue={editTrip?.requested_time?.slice(0, 5)}
               />
+              {editTrip && <SuggestionButton disabled={estadoIA === "thinking"} onClick={() => void sugerirConIA("requested_time")} />}
             </Label>
             <Label>
               Equipaje
@@ -205,9 +301,27 @@ export default function TripDialog() {
                   <option key={option}>{option}</option>
                 ))}
               </Select>
+              {editTrip && <SuggestionButton disabled={estadoIA === "thinking"} onClick={() => void sugerirConIA("baggage")} />}
             </Label>
           </FormGrid>
         </FormSection>
+
+        {estadoIA === "thinking" && (
+          <p role="status" aria-live="polite" className="text-[13px] text-muted">IA pensando…</p>
+        )}
+        {estadoIA === "unavailable" && (
+          <p role="status" aria-live="polite" className="text-[13px] text-muted">IA no disponible. Puedes continuar editando manualmente.</p>
+        )}
+        {estadoIA === "ready" && propuestaIA && actualIA && (
+          <section className="grid gap-3" aria-live="polite">
+            <p className="text-[13px] text-muted">Propuesta lista</p>
+            <TravelAgentConfirmation
+              current={actualIA}
+              result={{ status: "pending_confirmation", requiresHumanConfirmation: true, proposal: propuestaIA }}
+              onConfirm={() => void aplicarPropuestaIA()}
+            />
+          </section>
+        )}
 
         <FormSection aria-labelledby="trip-status">
           <h3 id="trip-status" className="text-foreground">Estado</h3>
@@ -367,4 +481,22 @@ export default function TripDialog() {
     (form.elements.namedItem("baggage") as HTMLSelectElement).value =
       person.baggage;
   }
+}
+
+function SuggestionButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <Button type="button" variant="default" disabled={disabled} className="mt-2 w-fit" onClick={onClick}>
+      Sugerir con IA
+    </Button>
+  );
+}
+
+function browserRpcClient() {
+  const client = db();
+  return {
+    async rpc(name: string, args: Record<string, unknown>) {
+      const { data, error } = await client.rpc(name, args);
+      return { data, error: error ? { message: error.message } : null };
+    },
+  };
 }
