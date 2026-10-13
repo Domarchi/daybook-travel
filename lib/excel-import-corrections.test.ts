@@ -224,3 +224,49 @@ test("RPC byte/count/width boundaries use the exact closed contract", async () =
   }
   assert.deepEqual(calls,[]);
 });
+
+// F4: independent tests retain every malformed case and positive byte-boundary control.
+const unicodeHeaders = [
+  { name: "high", header: "\ud800", valid: false },
+  { name: "low", header: "\udc00", valid: false },
+  { name: "mixed-high", header: "Columna\ud800texto", valid: false },
+  { name: "mixed-low", header: "Columna\udc00texto", valid: false },
+  { name: "reversed", header: "\udc00\ud800", valid: false },
+  { name: "emoji-pair", header: "\ud83d\ude00", valid: true },
+  { name: "emoji-20-80bytes", header: "😀".repeat(20), valid: true },
+  { name: "emoji-21-overflow", header: "😀".repeat(21), valid: false },
+];
+for (const { name, header, valid } of unicodeHeaders) {
+  test(`F4 Unicode builder ${name}`, () => {
+    const built = construirSolicitudMapeo({ entity: "people", headers: [header], rows: [] });
+    if (!valid) assert.equal(built, null);
+    else assert.deepEqual(built, { schema: "travel-import-map-v1", entity: "people", headers: [header], samples: [] });
+  });
+  test(`F4 Unicode enqueue ${name}`, async () => {
+    const calls: unknown[] = [];
+    const candidate = { schema: "travel-import-map-v1", entity: "people", headers: [header], samples: [] };
+    const result = await solicitarMapeoImportacion({ async rpc(name, args) { calls.push({ name, args }); return { data: id, error: null }; } }, candidate);
+    assert.deepEqual({ result, calls }, { result: valid ? { ok: true, id } : { ok: false, reason: "entrada_invalida" }, calls: valid ? [{ name: "request_trip_import_mapping", args: { p_request: candidate } }] : [] });
+  });
+  test(`F4 Unicode real panel ${name}`, async () => {
+    const { createImportFake, PREAMBLE_MATRIX } = await import("../scripts/fixtures/travel-import-fake.ts");
+    const fake = createImportFake(); const driver = await panelDriver(fake.client);
+    await driver.upload(await workbook([PREAMBLE_MATRIX], ["Personas"]));
+    driver.change("Etiqueta 1", header);
+    driver.change("Fila de encabezados", "2");
+    // Selecting a row restores source labels; explicitly review the renamed label again.
+    driver.change("Etiqueta 1", header);
+    assert.equal(driver.find("Etiqueta 1").props.value, header);
+    assert.deepEqual(fake.calls, []);
+    if (!driver.find("Confirmar encabezados").props.disabled) driver.change("Confirmar encabezados", true);
+    const disabled = driver.find("Interpretar columnas con IA").props.disabled;
+    await driver.click("Interpretar columnas con IA");
+    if (!valid) assert.deepEqual({ disabled, calls: fake.calls }, { disabled: true, calls: [] });
+    else {
+      assert.equal(disabled, false);
+      assert.equal(fake.calls.length, 2);
+      assert.equal(fake.calls[0].name, "request_trip_import_mapping");
+      assert.deepEqual((fake.calls[0].args.p_request as { headers: string[] }).headers, [header, "Trabajador", "Desde", "Hasta", "Inicio"]);
+    }
+  });
+}

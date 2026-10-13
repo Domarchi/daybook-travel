@@ -34,7 +34,7 @@ function documentFixture(ready) {
 }
 
 test("the regression audits every waitUntil predicate", () => {
-  assert.equal(predicates.length, 6);
+  assert.equal(predicates.length, 9);
   assert.equal(calls.length, [...source.matchAll(/await waitUntil\(/g)].length);
 });
 

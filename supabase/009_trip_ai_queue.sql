@@ -136,6 +136,7 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_id uuid;
+  v_now timestamptz;
 begin
   if v_actor is null or not public.is_member() then
     raise exception 'no_autorizado';
@@ -149,10 +150,11 @@ begin
   -- Serializes this member's queue depth so concurrent browser clicks cannot
   -- both observe four pending requests and exceed the five-request ceiling.
   perform pg_advisory_xact_lock(hashtextextended(v_actor::text, 0));
+  v_now := clock_timestamp();
   update public.trip_ai_requests
-  set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
+  set status = 'expired', proposal = null, diagnostic = 'expired', completed_at = v_now
   where actor = v_actor and status in ('pending', 'claimed')
-    and created_at < now() - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end);
+    and created_at < v_now - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end);
   if (select count(*) from public.trip_ai_requests where actor = v_actor and status in ('pending', 'claimed')) >= 5 then
     raise exception 'rate_limited';
   end if;
@@ -172,16 +174,18 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_id uuid;
+  v_now timestamptz;
 begin
   if v_actor is null or not public.is_member() then raise exception 'no_autorizado'; end if;
   if not public.trip_ai_request_is_valid('import_mapping', p_request) then
     raise exception 'solicitud_invalida';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(v_actor::text, 0));
+  v_now := clock_timestamp();
   update public.trip_ai_requests
-  set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
+  set status = 'expired', proposal = null, diagnostic = 'expired', completed_at = v_now
   where actor = v_actor and status in ('pending', 'claimed')
-    and created_at < now() - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end);
+    and created_at < v_now - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end);
   if (select count(*) from public.trip_ai_requests where actor = v_actor and status in ('pending', 'claimed')) >= 5 then raise exception 'rate_limited'; end if;
   insert into public.trip_ai_requests (kind, trip_id, actor, request) values ('import_mapping', null, v_actor, p_request) returning id into v_id;
   return v_id;
@@ -197,13 +201,15 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_request public.trip_ai_requests%rowtype;
+  v_now timestamptz;
 begin
   if v_actor is null then raise exception 'no_autorizado'; end if;
   select * into v_request from public.trip_ai_requests where id = p_id and actor = v_actor for update;
   if not found then raise exception 'no_autorizado'; end if;
-  if v_request.status in ('pending', 'claimed') and v_request.created_at < now() - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
+  v_now := clock_timestamp();
+  if v_request.status in ('pending', 'claimed') and v_request.created_at < v_now - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
     update public.trip_ai_requests
-    set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
+    set status = 'expired', proposal = null, diagnostic = 'expired', completed_at = v_now
     where id = v_request.id
     returning * into v_request;
   end if;
@@ -221,20 +227,28 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_request public.trip_ai_requests%rowtype;
+  v_now timestamptz;
 begin
   if v_actor is null or not exists (select 1 from public.trip_ai_workers where user_id = v_actor) then
     raise exception 'no_autorizado';
   end if;
   select * into v_request
   from public.trip_ai_requests
-  where created_at >= now() - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end)
-    and (status = 'pending' or (status = 'claimed' and claimed_at < now() - interval '30 seconds' and attempts < 3))
+  where created_at >= clock_timestamp() - (case when kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end)
+    and (status = 'pending' or (status = 'claimed' and claimed_at < clock_timestamp() - interval '30 seconds' and attempts < 3))
   order by created_at
   for update skip locked
   limit 1;
   if not found then return null; end if;
+  v_now := clock_timestamp();
+  if v_request.created_at < v_now - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
+    update public.trip_ai_requests
+    set status = 'expired', proposal = null, diagnostic = 'expired', completed_at = v_now
+    where id = v_request.id;
+    return null;
+  end if;
   update public.trip_ai_requests
-  set status = 'claimed', attempts = v_request.attempts + 1, claimed_by = v_actor, claimed_at = clock_timestamp()
+  set status = 'claimed', attempts = v_request.attempts + 1, claimed_by = v_actor, claimed_at = v_now
   where id = v_request.id
   returning * into v_request;
   return jsonb_build_object('id', v_request.id, 'kind', v_request.kind, 'request', v_request.request);
@@ -250,6 +264,7 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_request public.trip_ai_requests%rowtype;
+  v_now timestamptz;
 begin
   if v_actor is null or not exists (select 1 from public.trip_ai_workers where user_id = v_actor) then
     raise exception 'no_autorizado';
@@ -258,9 +273,10 @@ begin
   if not found or v_request.status <> 'claimed' or v_request.claimed_by <> v_actor then
     raise exception 'request_not_claimed';
   end if;
-  if v_request.created_at < now() - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
+  v_now := clock_timestamp();
+  if v_request.created_at < v_now - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
     update public.trip_ai_requests
-    set status = 'expired', diagnostic = 'expired', completed_at = clock_timestamp()
+    set status = 'expired', proposal = null, diagnostic = 'expired', completed_at = v_now
     where id = v_request.id;
     return;
   end if;
@@ -268,7 +284,7 @@ begin
     raise exception 'model_response_invalid';
   end if;
   update public.trip_ai_requests
-  set status = 'done', proposal = p_proposal, diagnostic = null, completed_at = clock_timestamp()
+  set status = 'done', proposal = p_proposal, diagnostic = null, completed_at = v_now
   where id = v_request.id;
 end;
 $$;
@@ -282,6 +298,7 @@ as $$
 declare
   v_actor uuid := auth.uid();
   v_request public.trip_ai_requests%rowtype;
+  v_now timestamptz;
 begin
   if v_actor is null or not exists (select 1 from public.trip_ai_workers where user_id = v_actor) then
     raise exception 'no_autorizado';
@@ -293,8 +310,15 @@ begin
   if not found or v_request.status <> 'claimed' or v_request.claimed_by <> v_actor then
     raise exception 'request_not_claimed';
   end if;
+  v_now := clock_timestamp();
+  if v_request.created_at < v_now - (case when v_request.kind = 'import_mapping' then interval '90 seconds' else interval '60 seconds' end) then
+    update public.trip_ai_requests
+    set status = 'expired', proposal = null, diagnostic = 'expired', completed_at = v_now
+    where id = v_request.id;
+    return;
+  end if;
   update public.trip_ai_requests
-  set status = 'failed', diagnostic = p_code, completed_at = clock_timestamp()
+  set status = 'failed', diagnostic = p_code, completed_at = v_now
   where id = v_request.id;
 end;
 $$;

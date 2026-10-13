@@ -32,6 +32,10 @@ test("B4 reclama con SKIP LOCKED y no filtra trip_id ni actor al worker", () => 
   const claim = sql.match(/create or replace function public\.claim_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
   assert.match(claim, /public\.trip_ai_workers/i);
   assert.match(claim, /for update skip locked/i);
+  assert.match(claim, /created_at\s*>=\s*clock_timestamp\(\)\s*-/i);
+  assert.match(claim, /claimed_at\s*<\s*clock_timestamp\(\)\s*-\s*interval '30 seconds'\s+and attempts < 3/i);
+  assert.match(claim, /for update skip locked[\s\S]*?v_now\s*:=\s*clock_timestamp\(\)[\s\S]*?v_request\.created_at\s*<\s*v_now[\s\S]*?status = 'expired'[\s\S]*?return null;/i);
+  assert.doesNotMatch(claim, /\bnow\s*\(/i);
   assert.match(claim, /attempts = v_request\.attempts \+ 1/i);
   assert.match(claim, /'id', v_request\.id[\s\S]*?'request', v_request\.request/i);
   assert.doesNotMatch(claim, /['"]trip_id['"]|['"]actor['"]|v_request\.trip_id|v_request\.actor/i);
@@ -43,7 +47,7 @@ test("B4 soporta import_mapping sin viaje, con solicitud cerrada y expiración d
   assert.match(sql, /kind = 'guided' and trip_id is not null[\s\S]*?kind = 'import_mapping' and trip_id is null/i);
   assert.match(sql, /travel-import-map-v1[\s\S]*?headers[\s\S]*?samples/i);
   assert.match(sql, /jsonb_array_length\(\(?case when jsonb_typeof\(p_request -> 'headers'\) = 'array'/i);
-  assert.match(sql, /created_at < now\(\) - \(?case when v_request\.kind = 'import_mapping' then interval '90 seconds'/i);
+  assert.match(sql, /created_at < (?:v_now|clock_timestamp\(\)) - \(?case when v_request\.kind = 'import_mapping' then interval '90 seconds'/i);
 });
 
 test("B4 expone una RPC de importación cerrada y el worker recibe kind", () => {
@@ -68,10 +72,15 @@ test("B4 exige encabezados JSON string, expira bajo el lock y no completa solici
   for (const name of ["request_trip_ai_proposal", "request_trip_import_mapping"]) {
     const body = sql.match(new RegExp(`create or replace function public\\.${name}\\([\\s\\S]*?\\n\\$\\$;`, "i"))?.[0] ?? "";
     assert.match(body, /pg_advisory_xact_lock[\s\S]*?update public\.trip_ai_requests[\s\S]*?status = 'expired'[\s\S]*?actor = v_actor[\s\S]*?count\(\*\)/i, name);
+    assert.match(body, /pg_advisory_xact_lock[\s\S]*?v_now\s*:=\s*clock_timestamp\(\)[\s\S]*?created_at\s*<\s*v_now[\s\S]*?count\(\*\)/i, name);
+    assert.doesNotMatch(body, /\bnow\s*\(/i, name);
   }
 
+  const get = sql.match(/create or replace function public\.get_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
+  assert.match(get, /for update;[\s\S]*?v_now\s*:=\s*clock_timestamp\(\)[\s\S]*?v_request\.created_at\s*<\s*v_now/i);
+  assert.doesNotMatch(get, /\bnow\s*\(/i);
   const complete = sql.match(/create or replace function public\.complete_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
-  assert.match(complete, /created_at < now\(\) - \(?case when v_request\.kind = 'import_mapping' then interval '90 seconds'[\s\S]*?status = 'expired'[\s\S]*?return;/i);
+  assert.match(complete, /created_at < (?:v_now|clock_timestamp\(\)) - \(?case when v_request\.kind = 'import_mapping' then interval '90 seconds'[\s\S]*?status = 'expired'[\s\S]*?return;/i);
 });
 
 test("B4 y el adaptador aceptan exactamente HH:MM, nunca segundos", async () => {
@@ -118,3 +127,24 @@ test("B4 delega la validación JSON a funciones puras antes de crear la tabla", 
   const complete = sql.match(/create or replace function public\.complete_trip_ai_request\([\s\S]*?\n\$\$;/i)?.[0] ?? "";
   assert.match(complete, /public\.trip_ai_proposal_is_valid\(/i);
 });
+
+// F2: static guards complement the supervisor's real PostgreSQL lock/TTL RED.
+for (const operation of ["complete", "fail"]) {
+  test(`F2 post-lock wall clock and coherent TTL ${operation}`, () => {
+    const body = sql.match(new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${operation}_trip_ai_request\\([\\s\\S]*?\\n\\$\\$;`, "i"))?.[0] ?? "";
+    const postLock = body.split(/for\s+update\s*;/i)[1] ?? "";
+    assert.ok(postLock, "row lock must precede expiry policy");
+    const deadline = postLock.match(/v_request\.created_at\s*<\s*(clock_timestamp\s*\(\s*\)|[a-z_]\w*)\s*-\s*\(?\s*case\s+when\s+v_request\.kind\s*=\s*'import_mapping'\s+then\s+interval\s+'90 seconds'\s+else\s+interval\s+'60 seconds'/i);
+    assert.ok(deadline, "TTL must use post-lock wall time and the 90/60-second boundary");
+    if (!/^clock_timestamp/i.test(deadline[1])) {
+      const beforeDeadline = postLock.slice(0, deadline.index);
+      assert.match(beforeDeadline, new RegExp(`\\b${deadline[1]}\\s*:=\\s*clock_timestamp\\s*\\(\\s*\\)`, "i"), "capture time after lock, before TTL comparison");
+    }
+    const expiryBranch = postLock.slice(deadline.index).split(/end\s+if\s*;/i)[0];
+    assert.match(expiryBranch, /status\s*=\s*'expired'/i);
+    assert.match(expiryBranch, /diagnostic\s*=\s*'expired'/i);
+    assert.match(expiryBranch, /completed_at\s*=/i);
+    assert.match(expiryBranch, /return\s*;/i);
+    assert.doesNotMatch(postLock, /\bnow\s*\(/i, "transaction-stale time must not reappear after the lock");
+  });
+}

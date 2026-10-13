@@ -340,6 +340,75 @@ async function runScenario({ cdpPort, appUrl, book, mixed, ai, width, height }) 
   } finally { try { await cdp.send("Page.close"); } catch {} cdp.close(); }
 }
 
+const UNICODE_CASES = [
+  { name: "high", header: "\ud800", valid: false },
+  { name: "low", header: "\udc00", valid: false },
+  { name: "mixed-high", header: "Columna\ud800texto", valid: false },
+  { name: "mixed-low", header: "Columna\udc00texto", valid: false },
+  { name: "reversed", header: "\udc00\ud800", valid: false },
+  { name: "emoji-pair", header: "\ud83d\ude00", valid: true },
+  { name: "emoji-20-80bytes", header: "😀".repeat(20), valid: true },
+  { name: "emoji-21-overflow", header: "😀".repeat(21), valid: false },
+];
+
+async function runUnicodeCase({ cdpPort, appUrl, book, width, height, name, header, valid }) {
+  const label = `unicode-${name}-${width}`;
+  const result = { label, name, width, header, valid, pass: false, stage: "bootstrap", forbidden: [] };
+  let cdp;
+  try {
+    const target = await openTarget(cdpPort);
+    cdp = await Cdp.connect(target.webSocketDebuggerUrl);
+    await cdp.send("Page.enable"); await cdp.send("Runtime.enable");
+    cdp.onEvent = message => {
+      if (message.method !== "Fetch.requestPaused") return;
+      const { requestId, request } = message.params;
+      if (new URL(request.url).origin === new URL(appUrl).origin) void cdp.send("Fetch.continueRequest", { requestId });
+      else { result.forbidden.push(request.url); void cdp.send("Fetch.failRequest", { requestId, errorReason: "BlockedByClient" }); }
+    };
+    await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] });
+    await cdp.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 500 });
+    await cdp.send("Page.navigate", { url: appUrl });
+    await waitUntil(cdp, 'Boolean(document.querySelector("[data-import-ready=true] input[type=file]"))', "panel Unicode hidratado");
+    const dom = await cdp.send("DOM.getDocument");
+    const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: dom.root.nodeId, selector: 'input[type="file"]' });
+    await cdp.send("DOM.setFileInputFiles", { nodeId, files: [book] });
+    await waitUntil(cdp, `Boolean(document.querySelector('[aria-label="Fila de encabezados"]'))`, "hojas Unicode del Excel real");
+    result.before = await calls(cdp);
+    result.stage = "events";
+    await change(cdp, "Etiqueta 1", header);
+    await change(cdp, "Fila de encabezados", "2");
+    // Row selection restores source labels. Review the same renamed label again.
+    await change(cdp, "Etiqueta 1", header);
+    result.input = await cdp.evaluate(`document.querySelector('[aria-label="Etiqueta 1"]').value`);
+    await cdp.evaluate(`document.querySelector('[aria-label="Confirmar encabezados"]').click()`);
+    result.controls = await cdp.evaluate(`(() => { const checkbox=document.querySelector('[aria-label="Confirmar encabezados"]'); const button=[...document.querySelectorAll('button')].find(el=>el.textContent.trim()==='Interpretar columnas con IA'); return { confirmationDisabled:checkbox.disabled, checked:checkbox.checked, aiDisabled:button.disabled }; })()`);
+    await click(cdp, "Interpretar columnas con IA");
+    if (valid) await waitUntil(cdp, 'document.body.textContent.includes("Interpretación lista")', "respuesta Unicode IA falsa");
+    result.calls = await calls(cdp);
+    const screenshot = await cdp.send("Page.captureScreenshot", { format: "png" });
+    await writeFile(join(ownedRoot, `${label}.png`), Buffer.from(screenshot.data, "base64"));
+    assert.equal(result.input, header, "input must retain exact UTF-16 code units");
+    assert.deepEqual(result.before, []);
+    assert.deepEqual(result.forbidden, [], "unexpected external network");
+    result.stage = "behavioral assertions";
+    if (!valid) {
+      assert.deepEqual({ controls: result.controls, calls: result.calls }, { controls: { confirmationDisabled: true, checked: false, aiDisabled: true }, calls: [] });
+    } else {
+      assert.deepEqual(result.controls, { confirmationDisabled: false, checked: true, aiDisabled: false });
+      const expected = { schema: "travel-import-map-v1", entity: "people", headers: [header, "Trabajador", "Desde", "Hasta", "Inicio"], samples: [["XXX-9", "Xxxxxxx Xxxxxxxxx", "Xxxxxxxx", "Xxxxxx", "9999-99-99"]] };
+      assert.deepEqual(result.calls, [{ name: "request_trip_import_mapping", args: { p_request: expected } }, { name: "get_trip_ai_request", args: { p_id: FAKE_REQUEST_ID } }], "valid pairs must reach the fake unchanged, without replacement");
+    }
+    result.pass = true;
+  } catch (error) {
+    result.failureKind = result.stage === "behavioral assertions" && error.name === "AssertionError" ? "behavioral" : "harness";
+    result.error = { name: error.name, message: error.message, stack: error.stack };
+  } finally {
+    if (cdp) { try { await cdp.send("Page.close"); } catch {} cdp.close(); }
+    await writeFile(join(ownedRoot, `${label}.json`), JSON.stringify(result, null, 2));
+  }
+  return result;
+}
+
 async function prepareFixture() {
   const project = join(ownedRoot,"project");
   const sources = ["app/excel-sync-panel.tsx","app/globals.css","postcss.config.mjs",
@@ -384,9 +453,22 @@ async function main() {
   const profile = join(ownedRoot,"chrome-profile");
   chromeProcess = spawnOwned(chromePath,["--headless=new","--remote-debugging-address=127.0.0.1","--remote-debugging-port=0",`--user-data-dir=${profile}`,"--no-first-run","--no-default-browser-check","--disable-background-networking","about:blank"],{env:safeEnv},"Chrome");
   const cdpPort = await waitForDevTools(profile,chromeProcess);
+  const unicodeResults = [];
+  // Collect every malformed case and every control before raising a product failure.
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
+    for (const vector of UNICODE_CASES) {
+      const result = await runUnicodeCase({ cdpPort, appUrl, book: join(ownedRoot, "preamble.xlsx"), ...viewport, ...vector });
+      unicodeResults.push(result);
+      console.log(`${result.pass ? "✓" : "✗"} ${result.label}`);
+    }
+  }
+  await writeFile(join(ownedRoot, "unicode-results.json"), JSON.stringify({ cases: unicodeResults.length, pass: unicodeResults.filter(result => result.pass).length, fail: unicodeResults.filter(result => !result.pass).length, results: unicodeResults }, null, 2));
+  if (!process.argv.includes("--unicode-only")) {
   for(const viewport of [{width:390,height:844},{width:1440,height:900}]) {
     for(const mixed of [false,true]) for(const ai of [false,true]) console.log(`✓ ${await runScenario({cdpPort,appUrl,book:join(ownedRoot,`${mixed ? "mixed":"preamble"}.xlsx`),mixed,ai,...viewport})}`);
   }
+  }
+  assert.equal(unicodeResults.filter(result => !result.pass).length, 0, "Unicode browser cases failed; all controls and cases saved in unicode-results.json");
 }
 
 try {

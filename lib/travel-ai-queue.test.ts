@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const {
+  validarSolicitudIA,
   solicitarPropuestaIA,
   consultarPropuestaIA,
   esperarPropuestaIA,
@@ -121,3 +122,27 @@ test("el sondeo termina al recibir una propuesta o un fallo seguro", async () =>
   }, tripId, { clock: { now: () => 0, sleep: async () => {} } });
   assert.deepEqual(ready, { ok: true, request: { id: tripId, status: "done", proposal: { baggage: "Mochila" }, diagnostic: null } });
 });
+
+// F3: byte-identical shared A/B contract; never trim or normalize test input.
+const { readFile } = await import("node:fs/promises");
+const guidedDates: { valid: string[]; invalid: unknown[] } = JSON.parse(await readFile(new URL("../fixtures/travel-guided-date-contract.json", import.meta.url), "utf8"));
+assert.equal(guidedDates.valid.length, 7);
+assert.equal(guidedDates.invalid.length, 37);
+for (const [valid, dates] of [[true, guidedDates.valid], [false, guidedDates.invalid]] as const) {
+  for (const date of dates) {
+    for (const position of ["value", "current.date:date", "current.date:requested_time", "current.date:baggage"]) {
+      test(`F3 shared guided dates ${position} ${valid ? "accept" : "reject"} ${JSON.stringify(date)}`, async () => {
+        const action = position === "value" ? "date" : position.split(":")[1];
+        const input = { ...request(), action, value: action === "date" ? "2026-12-16" : action === "baggage" ? "Mochila" : "09:30" };
+        const candidate = position === "value" ? { ...input, value: date } : { ...input, current: { ...input.current, date } };
+        const calls: unknown[] = [];
+        const result = await solicitarPropuestaIA({ async rpc(name, args) { calls.push({ name, args }); return { data: tripId, error: null }; } }, { tripId, request: candidate });
+        assert.deepEqual({ valid: validarSolicitudIA(candidate), result, calls }, {
+          valid,
+          result: valid ? { ok: true, id: tripId } : { ok: false, reason: "entrada_invalida" },
+          calls: valid ? [{ name: "request_trip_ai_proposal", args: { p_trip_id: tripId, p_request: candidate } }] : [],
+        });
+      });
+    }
+  }
+}

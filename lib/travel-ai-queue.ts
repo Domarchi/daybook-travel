@@ -72,8 +72,9 @@ function exactKeys(value: RecordValue, keys: readonly string[]): boolean {
 function validDate(value: unknown): value is string {
   if (typeof value !== "string") return false;
   const match = DATE.exec(value);
-  if (!match) return false;
-  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (!match || Number(match[1]) === 0) return false;
+  const date = new Date(0);
+  date.setUTCFullYear(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   return date.getUTCFullYear() === Number(match[1]) && date.getUTCMonth() === Number(match[2]) - 1 && date.getUTCDate() === Number(match[3]);
 }
 
@@ -126,7 +127,7 @@ function validImportRequest(value: unknown): value is TravelImportMapRequest {
     (request.entity !== "people" && request.entity !== "trips") || !Array.isArray(request.headers) ||
     request.headers.length < 1 || request.headers.length > 40 || !Array.isArray(request.samples) || request.samples.length > 3) return false;
   const headers = request.headers;
-  if (!headers.every((header) => typeof header === "string" && bytesUtf8(header) >= 1 && bytesUtf8(header) <= 80 && !encabezadoConDatoPersonal(header)) || new Set(headers).size !== headers.length) return false;
+  if (!headers.every((header) => typeof header === "string" && header.isWellFormed() && bytesUtf8(header) >= 1 && bytesUtf8(header) <= 80 && !encabezadoConDatoPersonal(header)) || new Set(headers).size !== headers.length) return false;
   return request.samples.every((sample) => Array.isArray(sample) && sample.length === headers.length && sample.every((cell) => typeof cell === "string" && bytesUtf8(cell) <= 24 && MASKED_SAMPLE.test(cell) && !UNMASKED_ALNUM.test(cell)));
 }
 
