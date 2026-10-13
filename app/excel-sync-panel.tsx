@@ -32,6 +32,9 @@ import {
   solicitarMapeoImportacion,
   validarMapeo,
   type TravelImportMapping,
+  type TravelAiQueueRpcClient,
+  encabezadoConDatoPersonal,
+  bytesUtf8,
 } from "../lib/travel-ai-queue";
 import type { Person, Trip } from "../lib/types";
 import { Button } from "@/components/ui/button";
@@ -89,6 +92,7 @@ type Props = {
   people: Person[];
   trips: Trip[];
   demo: boolean;
+  rpcClient?: TravelAiQueueRpcClient;
   onClose: () => void;
   onBusyChange?: (busy: boolean) => void;
   onApplied: (message: string) => Promise<void> | void;
@@ -165,8 +169,8 @@ function rowsToRecords(
   rows: unknown[][],
   sheet: string,
   expectedHeaders: readonly string[],
-): ImportRow[] {
-  if (!rows.length) return [];
+): { headerIndex: number; records: ImportRow[] } {
+  if (!rows.length) return { headerIndex: 0, records: [] as ImportRow[] };
   const expected = new Set(expectedHeaders.map(normalizeName));
   const candidates = rows.slice(0, 10).map((candidate, index) => ({
     index,
@@ -207,22 +211,43 @@ function rowsToRecords(
     });
     records.push(record);
   });
-  return records;
+  return { headerIndex: headerRow.index, records };
 }
 
-function rowsForMapping(rows: unknown[][]) {
-  const headerIndex = rows.findIndex((row) => row.some((cell) => String(displayValue(cell)).trim()));
-  if (headerIndex < 0) throw new Error("No encontramos columnas para interpretar en el archivo.");
-  const headers = rows[headerIndex].map((cell) => String(displayValue(cell)).trim());
-  if (!headers.length || headers.some((header) => !header) || new Set(headers).size !== headers.length) {
-    throw new Error("Las columnas del archivo deben tener nombres únicos para poder revisarlas.");
-  }
-  return {
-    headers,
-    rows: rows.slice(headerIndex + 1).flatMap((cells, index) => cells.some((cell) => String(displayValue(cell)).trim())
-      ? [{ row_number: headerIndex + index + 2, ...Object.fromEntries(headers.map((header, column) => [header, displayValue(cells[column])])) }]
-      : []),
-  };
+function rowsForMapping(matrix: unknown[][], headerIndex: number, renamed?: string[]) {
+  const headers = renamed ?? (matrix[headerIndex] ?? []).map((cell, index) => String(displayValue(cell)).trim() || `Columna ${index + 1}`);
+  const rows: ImportRow[] = matrix.slice(headerIndex + 1).flatMap((cells, index) => cells.some(cell => String(displayValue(cell)).trim())
+    ? [{ ...Object.fromEntries(headers.map((header, column) => [header, displayValue(cells[column])])), row_number: headerIndex + index + 2 }]
+    : []);
+  if (rows.length > MAX_ROWS_PER_SHEET) throw new Error(`Cada hoja admite hasta 5000 filas por carga.`);
+  return { headers, rows };
+}
+
+type ImportSheet = {
+  name: string;
+  entity: ExcelSyncEntity;
+  matrix: unknown[][];
+  headerIndex: number;
+  selected: boolean;
+  headers: string[];
+  mapping: TravelImportMapping;
+  accepted: ImportRow[] | null;
+};
+
+function initialSheet(name: string, entity: ExcelSyncEntity, matrix: unknown[][]): ImportSheet {
+  let accepted: ImportRow[] | null = null;
+  let headerIndex = matrix.findIndex(row => row.some(cell => String(displayValue(cell)).trim()));
+  if (headerIndex < 0) headerIndex = 0;
+  const fields = entity === "people" ? peopleHeaders : tripHeaders;
+  try {
+    const recognized = rowsToRecords(matrix, name, fields);
+    accepted = recognized.records;
+    headerIndex = recognized.headerIndex;
+  } catch { /* Unknown columns require manual mapping. */ }
+  const { headers, rows } = rowsForMapping(matrix, headerIndex);
+  if (accepted && accepted.length > MAX_ROWS_PER_SHEET || rows.length > MAX_ROWS_PER_SHEET) throw new Error("Cada hoja admite hasta 5000 filas por carga.");
+  const mapping = Object.fromEntries(headers.map(header => [header, fields.find(field => normalizeName(field) === normalizeName(header) && !["accion", "errorSincronizacion", "actualizadoEn"].includes(field)) ?? null]));
+  return { name, entity, matrix, headerIndex, selected: false, headers, mapping, accepted };
 }
 
 function resultCount(value: number | unknown[] | null | undefined) {
@@ -283,6 +308,7 @@ export default function ExcelSyncPanel({
   people,
   trips,
   demo,
+  rpcClient,
   onClose,
   onBusyChange,
   onApplied,
@@ -302,6 +328,10 @@ export default function ExcelSyncPanel({
   const [mappingEntity, setMappingEntity] = useState<ExcelSyncEntity>("people");
   const [mappingHeaders, setMappingHeaders] = useState<string[]>([]);
   const [mappingRows, setMappingRows] = useState<ExcelRow[]>([]);
+  const [sheets, setSheets] = useState<ImportSheet[]>([]);
+  const [sheetIndex, setSheetIndex] = useState(0);
+  const [headersConfirmed, setHeadersConfirmed] = useState(false);
+  const revision = useRef(0);
   const [mapping, setMapping] = useState<TravelImportMapping>({});
   const [mappingBusy, setMappingBusy] = useState(false);
 
@@ -349,6 +379,9 @@ export default function ExcelSyncPanel({
     setMappingRows([]);
     setMapping({});
     setMappingBusy(false);
+    setSheets([]);
+    setHeadersConfirmed(false);
+    revision.current += 1;
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -546,67 +579,15 @@ export default function ExcelSyncPanel({
       const { default: readXlsxFile, readSheetNames } =
         await import("read-excel-file");
       const names = await readSheetNames(file);
-      const peopleSheet = names.find(
-        (name) => normalizeName(name) === "personas",
-      );
-      const tripsSheet = names.find((name) => normalizeName(name) === "viajes");
-      const fallbackSheet = peopleSheet ?? tripsSheet ?? names[0];
-      if (!fallbackSheet) throw new Error("El libro no contiene hojas para revisar.");
-      const [peopleMatrix, tripsMatrix] = await Promise.all([
-        peopleSheet ? readXlsxFile(file, { sheet: peopleSheet }) : [],
-        tripsSheet ? readXlsxFile(file, { sheet: tripsSheet }) : [],
-      ]);
-      let peopleRows: ImportRow[];
-      let tripsRows: ImportRow[];
-      try {
-        peopleRows = peopleSheet ? rowsToRecords(peopleMatrix as unknown[][], peopleSheet, peopleHeaders) : [];
-        tripsRows = tripsSheet ? rowsToRecords(tripsMatrix as unknown[][], tripsSheet, tripHeaders) : [];
-      } catch {
-        const matrix = peopleSheet ? peopleMatrix : tripsSheet ? tripsMatrix : await readXlsxFile(file, { sheet: fallbackSheet });
-        const fallback = rowsForMapping(matrix as unknown[][]);
-        if (fallback.rows.length > MAX_ROWS_PER_SHEET) {
-          throw new Error(`Cada hoja admite hasta ${MAX_ROWS_PER_SHEET.toLocaleString("es-CL")} filas por carga.`);
-        }
-        setMappingEntity(peopleSheet ? "people" : tripsSheet ? "trips" : "people");
-        setMappingHeaders(fallback.headers);
-        setMappingRows(fallback.rows);
-        setMapping(Object.fromEntries(fallback.headers.map((header) => [header, null])));
-        setMessage("No reconocimos las columnas de Daybook. Elige cómo interpretarlas antes de revisar el archivo.");
-        setPhase("mapping");
-        return;
-      }
-      if (!peopleSheet && !tripsSheet) {
-        const matrix = await readXlsxFile(file, { sheet: fallbackSheet });
-        const fallback = rowsForMapping(matrix as unknown[][]);
-        if (fallback.rows.length > MAX_ROWS_PER_SHEET) {
-          throw new Error(`Cada hoja admite hasta ${MAX_ROWS_PER_SHEET.toLocaleString("es-CL")} filas por carga.`);
-        }
-        setMappingHeaders(fallback.headers);
-        setMappingRows(fallback.rows);
-        setMapping(Object.fromEntries(fallback.headers.map((header) => [header, null])));
-        setPhase("mapping");
-        return;
-      }
-      if (
-        peopleRows.length > MAX_ROWS_PER_SHEET ||
-        tripsRows.length > MAX_ROWS_PER_SHEET
-      ) {
-        throw new Error(
-          `Cada hoja admite hasta ${MAX_ROWS_PER_SHEET.toLocaleString("es-CL")} filas por carga.`,
-        );
-      }
-      if (!peopleRows.length && !tripsRows.length) {
-        throw new Error("El libro no contiene filas para revisar.");
-      }
-
-      const built = buildExcelSyncPayload({ peopleRows, tripRows: tripsRows });
-      const localIssues = built.errors.map(issueToLocal);
-      const lines = buildPreviewLines(built.payload, people, trips);
-      setPayload(built.payload);
-      setPreview(lines);
-      setIssues(localIssues);
-      setSyncId(crypto.randomUUID());
-      setPhase("preview");
+      const relevantNames = names.filter(name => normalizeName(name) !== "instrucciones");
+      if (!relevantNames.length) throw new Error("El libro no contiene hojas para revisar.");
+      const loaded = await Promise.all(relevantNames.map(async (name) => initialSheet(name,
+        normalizeName(name) === "viajes" ? "trips" : "people", await readXlsxFile(file, { sheet: name }) as unknown[][])));
+      setSheets(loaded);
+      const failedIndex = loaded.findIndex(sheet => sheet.accepted === null);
+      openSheet(loaded, failedIndex < 0 ? 0 : failedIndex);
+      setMessage("Selecciona la fila de encabezados de cada hoja que necesite mapeo. Revisa sus etiquetas antes de usar IA.");
+      setPhase("mapping");
     } catch (error) {
       setPayload(null);
       setPreview([]);
@@ -615,13 +596,60 @@ export default function ExcelSyncPanel({
     }
   }
 
+  function openSheet(nextSheets: ImportSheet[], index: number) {
+    const sheet = nextSheets[index];
+    const prepared = rowsForMapping(sheet.matrix, sheet.headerIndex, sheet.headers);
+    revision.current += 1;
+    setHeadersConfirmed(false);
+    setMappingBusy(false);
+    setSheetIndex(index);
+    setMappingEntity(sheet.entity);
+    setMappingHeaders(prepared.headers);
+    setMappingRows(prepared.rows);
+    setMapping(sheet.mapping);
+    setPayload(null);
+    setPreview([]);
+  }
+
+  function changeSheet(index: number) {
+    openSheet(sheets, index);
+    setMessage("");
+  }
+
+  function changeEntity(entity: ExcelSyncEntity) {
+    const existing = sheets.findIndex(sheet => sheet.entity === entity);
+    if (existing >= 0 && existing !== sheetIndex) { changeSheet(existing); return; }
+    const next = sheets.map((sheet, index) => index === sheetIndex ? { ...sheet, entity, mapping: {}, accepted: null } : sheet);
+    setSheets(next);
+    openSheet(next, sheetIndex);
+  }
+
+  function changeHeaders(headerIndex: number, renamed?: string[]) {
+    try {
+      const prepared = rowsForMapping(sheets[sheetIndex].matrix, headerIndex, renamed);
+      const next = sheets.map((sheet, index) => index === sheetIndex ? {
+        ...sheet, headerIndex, selected: renamed ? sheet.selected : true, headers: prepared.headers,
+        mapping: Object.fromEntries(prepared.headers.map(header => [header, null])), accepted: null,
+      } : sheet);
+      setSheets(next);
+      openSheet(next, sheetIndex);
+      setMessage("");
+    } catch (error) { setMessage(issuePublicoAlLeerExcel(error).message); }
+  }
+
   function revisarMapeo(nextMapping: TravelImportMapping = mapping) {
-    if (!validarMapeo({ entity: mappingEntity, headers: mappingHeaders }, { mapping: nextMapping })) {
-      setMessage("Revisa que cada campo de Daybook se use una sola vez.");
-      return;
+    if (!headersValid || !validarMapeo({ entity: mappingEntity, headers: mappingHeaders }, { mapping: nextMapping })) {
+      setMessage("Revisa que cada campo de Daybook se use una sola vez."); return;
     }
-    const rows = aplicarMapeo(mappingRows, nextMapping);
-    const built = buildExcelSyncPayload({ peopleRows: mappingEntity === "people" ? rows : [], tripRows: mappingEntity === "trips" ? rows : [] });
+    if (mappingRows.length > MAX_ROWS_PER_SHEET) { setMessage("Cada hoja admite hasta 5000 filas por carga."); return; }
+    const nextSheets = sheets.map((sheet, index) => index === sheetIndex ? { ...sheet, mapping: nextMapping, accepted: aplicarMapeo(mappingRows, nextMapping) as ImportRow[] } : sheet);
+    setSheets(nextSheets);
+    const pending = nextSheets.findIndex(sheet => sheet.accepted === null);
+    if (pending >= 0) { openSheet(nextSheets, pending); setMessage("Relaciona también las columnas de esta hoja para reunir el libro."); return; }
+    const peopleRows = nextSheets.filter(sheet => sheet.entity === "people").flatMap(sheet => sheet.accepted ?? []);
+    const tripRows = nextSheets.filter(sheet => sheet.entity === "trips").flatMap(sheet => sheet.accepted ?? []);
+    if (peopleRows.length > MAX_ROWS_PER_SHEET || tripRows.length > MAX_ROWS_PER_SHEET) { setMessage("Cada entidad admite hasta 5000 filas por carga."); return; }
+    const built = buildExcelSyncPayload({ peopleRows, tripRows });
     setPayload(built.payload);
     setPreview(buildPreviewLines(built.payload, people, trips));
     setIssues(built.errors.map(issueToLocal));
@@ -629,21 +657,28 @@ export default function ExcelSyncPanel({
     setPhase("preview");
   }
 
+  const headersValid = mappingHeaders.length > 0 && mappingHeaders.every(header => !!header && header !== "row_number") && new Set(mappingHeaders).size === mappingHeaders.length;
+  const headerPrivacyBlocked = mappingHeaders.some(encabezadoConDatoPersonal);
+  const aiRequest = construirSolicitudMapeo({ entity: mappingEntity, headers: mappingHeaders, rows: mappingRows });
+  const canUseAi = headersValid && headersConfirmed && sheets[sheetIndex]?.selected && !headerPrivacyBlocked && !!aiRequest;
+
   async function interpretarConIA() {
-    const request = construirSolicitudMapeo({ entity: mappingEntity, headers: mappingHeaders, rows: mappingRows });
-    if (!request) { setMessage("No pudimos preparar las columnas del archivo para interpretarlas."); return; }
+    if (!canUseAi || !aiRequest) return;
+    const generation = revision.current;
     setMappingBusy(true);
     try {
-      const client = browserRpcClient();
-      const queued = await solicitarMapeoImportacion(client, request);
+      const client = rpcClient ?? browserRpcClient();
+      const queued = await solicitarMapeoImportacion(client, aiRequest);
+      if (generation !== revision.current) return;
       if (!queued.ok) throw new Error("queue");
-      const result = await esperarMapeoImportacion(client, queued.id, request);
+      const result = await esperarMapeoImportacion(client, queued.id, aiRequest);
+      if (generation !== revision.current) return;
       if (!result.ok || !result.request.proposal) throw new Error("unavailable");
       setMapping(result.request.proposal.mapping);
       setMessage("Interpretación lista. Revísala y corrígela si hace falta antes de continuar.");
     } catch {
-      setMessage("La IA no está disponible. Puedes asignar las columnas manualmente.");
-    } finally { setMappingBusy(false); }
+      if (generation === revision.current) setMessage("La IA no está disponible. Puedes asignar las columnas manualmente.");
+    } finally { if (generation === revision.current) setMappingBusy(false); }
   }
 
   async function applyChanges() {
@@ -653,7 +688,7 @@ export default function ExcelSyncPanel({
     setMessage("");
     onBusyChange?.(true);
     try {
-      const { data, error } = await db().rpc("sync_excel_batch", {
+      const { data, error } = await (rpcClient ?? db()).rpc("sync_excel_batch", {
         p_sync_id: syncId,
         p_payload: actionablePayload,
       });
@@ -872,9 +907,22 @@ export default function ExcelSyncPanel({
             <h3 className={TITULO}>Relaciona las columnas del archivo</h3>
             <p className="text-[12px] text-muted">Nada se aplicará todavía: primero verás la misma vista previa de siempre.</p>
           </header>
+          <p className="text-[12px] text-muted">El archivo se lee sólo en este navegador. IA recibe únicamente las etiquetas revisadas y hasta 3 muestras enmascaradas. Máximo 40 encabezados de 1 a 80 bytes UTF-8 y muestras de 0 a 24 bytes; 5000 filas por hoja y entidad.</p>
+          <label>Hoja
+            <select aria-label="Hoja" value={sheetIndex} onChange={event => changeSheet(Number(event.currentTarget.value))}>
+              {sheets.map((sheet, index) => <option key={sheet.name} value={index}>{sheet.name}</option>)}
+            </select>
+          </label>
+          <label>Fila de encabezados
+            <select aria-label="Fila de encabezados" value={sheets[sheetIndex]?.selected ? sheets[sheetIndex].headerIndex + 1 : ""} onChange={event => changeHeaders(Number(event.currentTarget.value) - 1)}>
+              <option value="" disabled>Selecciona explícitamente la fila</option>
+              {sheets[sheetIndex]?.matrix.map((row, index) => <option key={index} value={index + 1}>Fila {index + 1}: {row.map(cell => String(displayValue(cell))).join(" | ")}</option>)}
+            </select>
+          </label>
+          <p>Estas son exactamente las etiquetas que se enviarán si confirmas y solicitas IA. La versión entre comillas hace visibles espacios y saltos de línea. Puedes renombrarlas. Los filtros locales bloquean email y RUT evidentes; otras etiquetas personales requieren tu revisión.</p>
           <label className="grid gap-1 text-[13px] text-foreground-soft">
             Tipo de información
-            <select className="min-h-11 rounded-sm border border-line bg-surface px-3 text-foreground" value={mappingEntity} disabled={mappingBusy} onChange={(event) => setMappingEntity(event.currentTarget.value as ExcelSyncEntity)}>
+            <select className="min-h-11 rounded-sm border border-line bg-surface px-3 text-foreground" value={mappingEntity} aria-label="Tipo de información" onChange={(event) => changeEntity(event.currentTarget.value as ExcelSyncEntity)}>
               <option value="people">Personas</option>
               <option value="trips">Viajes</option>
             </select>
@@ -882,11 +930,18 @@ export default function ExcelSyncPanel({
           <TableWrap className="rounded-md" role="region" aria-label="Mapeo de columnas">
             <Table>
               <THead><tr><Th>Columna del archivo</Th><Th>Campo en Daybook</Th></tr></THead>
-              <TBody>{mappingHeaders.map((header) => (
-                <Tr key={header} className="max-[760px]:grid-cols-1">
-                  <Td data-label="Columna del archivo" className={CELDA_LIBRO}>{header}</Td>
+              <TBody>{mappingHeaders.map((header, column) => (
+                <Tr key={column} className="max-[760px]:grid-cols-1">
+                  <Td data-label="Columna del archivo" className={CELDA_LIBRO}>
+                    <input aria-label={`Etiqueta ${column + 1}`} value={header} onChange={event => changeHeaders(sheets[sheetIndex].headerIndex, mappingHeaders.map((value, index) => index === column ? event.currentTarget.value : value))} />
+                    <code aria-label={`Etiqueta enviada ${column + 1}`}>{JSON.stringify(header)}</code>
+                    <small>{bytesUtf8(header)} bytes UTF-8</small>
+                  </Td>
                   <Td data-label="Campo en Daybook" className={CELDA_LIBRO}>
-                    <select className="min-h-10 w-full rounded-sm border border-line bg-surface px-2 text-foreground" value={mapping[header] ?? ""} onChange={(event) => setMapping((current) => ({ ...current, [header]: event.currentTarget.value || null }))}>
+                    <select aria-label={`Mapeo ${header}`} className="min-h-10 w-full rounded-sm border border-line bg-surface px-2 text-foreground" value={mapping[header] ?? ""} onChange={(event) => {
+                      const value = event.currentTarget.value || null;
+                      setMapping((current) => ({ ...current, [header]: value }));
+                    }}>
                       <option value="">Ignorar</option>
                       {(mappingEntity === "people" ? peopleHeaders : tripHeaders).filter((field) => !["accion", "errorSincronizacion", "actualizadoEn"].includes(field)).map((field) => <option key={field} value={field}>{field}</option>)}
                     </select>
@@ -895,10 +950,12 @@ export default function ExcelSyncPanel({
               ))}</TBody>
             </Table>
           </TableWrap>
+          <label><input type="checkbox" aria-label="Confirmar encabezados" checked={headersConfirmed} disabled={!headersValid || !sheets[sheetIndex]?.selected || headerPrivacyBlocked || !aiRequest} onChange={event => { revision.current += 1; setHeadersConfirmed(event.currentTarget.checked); setMappingBusy(false); setMapping(sheets[sheetIndex].mapping); }} /> Confirmo que estas etiquetas son nombres de columnas y no datos personales.</label>
+          {headerPrivacyBlocked ? <p role="alert">Renombra los encabezados que contienen email o RUT antes de solicitar IA. El mapeo manual sigue disponible.</p> : null}
           {message ? <p role="status" className={cn(AVISO, "px-[13px] py-[11px]")}>{message}</p> : null}
           <div className={BARRA_ABAJO}>
             <Button type="button" onClick={reset} disabled={mappingBusy}>Cambiar archivo</Button>
-            <Button type="button" disabled={mappingBusy} onClick={() => void interpretarConIA()}>
+            <Button type="button" disabled={mappingBusy || !canUseAi} onClick={() => void interpretarConIA()}>
               {mappingBusy ? <><LoaderCircle className="animate-[spin_700ms_linear_infinite]" size={17} /> Interpretando…</> : "Interpretar columnas con IA"}
             </Button>
             <Button type="button" variant="primary" disabled={mappingBusy} onClick={() => revisarMapeo()}>

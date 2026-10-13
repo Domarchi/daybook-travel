@@ -46,7 +46,15 @@ const BAGGAGE = new Set<string>(BAGGAGE_OPTIONS);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const MASKED_SAMPLE = /^(?:[xX9]|[^\p{L}\p{N}])*$/u;
+const UTF8 = new TextEncoder();
+const MASKED_SAMPLE = /^[\x20-\x7e]*$/;
+const UNMASKED_ALNUM = /[a-wyzA-WYZ0-8]/;
+export const bytesUtf8 = (value: string) => UTF8.encode(value).length;
+/** Only evident patterns; arbitrary personal labels require human review. */
+export function encabezadoConDatoPersonal(value: string): boolean {
+  return /[^\s@]+@[^\s@]+\.[^\s@]+/u.test(value) ||
+    /(?:^|[^0-9])(?:[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}|[0-9]{7,8})\s*-\s*[0-9kK](?:$|[^0-9])/u.test(value);
+}
 const STATUSES = new Set<TravelAiQueueStatus>(["pending", "claimed", "done", "failed", "expired"]);
 const DIAGNOSTICS = new Set<Exclude<TravelAiQueueDiagnostic, null>>(["model_unavailable", "timeout", "model_response_invalid", "expired", "worker_error"]);
 
@@ -118,8 +126,8 @@ function validImportRequest(value: unknown): value is TravelImportMapRequest {
     (request.entity !== "people" && request.entity !== "trips") || !Array.isArray(request.headers) ||
     request.headers.length < 1 || request.headers.length > 40 || !Array.isArray(request.samples) || request.samples.length > 3) return false;
   const headers = request.headers;
-  if (!headers.every((header) => typeof header === "string" && header.length >= 1 && header.length <= 80) || new Set(headers).size !== headers.length) return false;
-  return request.samples.every((sample) => Array.isArray(sample) && sample.length === headers.length && sample.every((cell) => typeof cell === "string" && cell.length <= 24 && MASKED_SAMPLE.test(cell)));
+  if (!headers.every((header) => typeof header === "string" && bytesUtf8(header) >= 1 && bytesUtf8(header) <= 80 && !encabezadoConDatoPersonal(header)) || new Set(headers).size !== headers.length) return false;
+  return request.samples.every((sample) => Array.isArray(sample) && sample.length === headers.length && sample.every((cell) => typeof cell === "string" && bytesUtf8(cell) <= 24 && MASKED_SAMPLE.test(cell) && !UNMASKED_ALNUM.test(cell)));
 }
 
 /** Converts a sample cell to its shape before it can leave the browser. */
@@ -127,9 +135,12 @@ export function enmascararMuestra(value: unknown): string {
   const text = value instanceof Date && !Number.isNaN(value.getTime())
     ? `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}-${String(value.getUTCDate()).padStart(2, "0")}`
     : String(value ?? "");
-  return Array.from(text).map((char) => {
+  return Array.from(text.normalize("NFC")).flatMap((char) => {
     if (/\p{L}/u.test(char)) return char === char.toLocaleUpperCase("es-CL") && char !== char.toLocaleLowerCase("es-CL") ? "X" : "x";
-    return /\p{N}/u.test(char) ? "9" : char;
+    if (/\p{N}/u.test(char)) return "9";
+    if (/\p{M}/u.test(char)) return [];
+    if (/\s/u.test(char)) return " ";
+    return /^[\x20-\x7e]$/.test(char) ? char : "?";
   }).join("").slice(0, 24);
 }
 

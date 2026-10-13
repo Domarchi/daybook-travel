@@ -1,5 +1,9 @@
 begin;
 
+-- import_mapping: UTF-8 octet lengths, headers 1..80, <=40 headers;
+-- <=3 samples, each 0..24 bytes, printable ASCII only. Letters x/X, digits 9.
+-- Headers remain Unicode labels reviewed and confirmed locally by the user.
+
 -- The allowlist is intentionally populated out of band. A queue worker is an
 -- authenticated Supabase user but never a travel member and receives no table
 -- privileges, so it cannot discover trips or requesters.
@@ -50,11 +54,11 @@ as $$
       and (p_request ->> 'entity') in ('people', 'trips')
       and jsonb_typeof(p_request -> 'headers') = 'array'
       and jsonb_array_length((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) between 1 and 40
-      and not exists (select 1 from jsonb_array_elements((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) AS h(value) where jsonb_typeof(h.value) <> 'string' or length((h.value #>> '{}')) not between 1 and 80)
+      and not exists (select 1 from jsonb_array_elements((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) AS h(value) where jsonb_typeof(h.value) <> 'string' or octet_length((h.value #>> '{}')) not between 1 and 80)
       and (select count(*) = count(distinct (h.value #>> '{}')) from jsonb_array_elements((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) AS h(value))
       and jsonb_typeof(p_request -> 'samples') = 'array'
       and jsonb_array_length((case when jsonb_typeof(p_request -> 'samples') = 'array' then p_request -> 'samples' else '[]'::jsonb end)) between 0 and 3
-      and not exists (select 1 from jsonb_array_elements((case when jsonb_typeof(p_request -> 'samples') = 'array' then p_request -> 'samples' else '[]'::jsonb end)) AS s(value) where jsonb_typeof(s.value) <> 'array' or jsonb_array_length((case when jsonb_typeof(s.value) = 'array' then s.value else '[]'::jsonb end)) <> jsonb_array_length((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) or exists (select 1 from jsonb_array_elements((case when jsonb_typeof(s.value) = 'array' then s.value else '[]'::jsonb end)) AS c(value) where jsonb_typeof(c.value) <> 'string' or length((c.value #>> '{}')) > 24 or (c.value #>> '{}') !~ '^(?:[xX9]|[^[:alnum:]])*$'))
+      and not exists (select 1 from jsonb_array_elements((case when jsonb_typeof(p_request -> 'samples') = 'array' then p_request -> 'samples' else '[]'::jsonb end)) AS s(value) where jsonb_typeof(s.value) <> 'array' or jsonb_array_length((case when jsonb_typeof(s.value) = 'array' then s.value else '[]'::jsonb end)) <> jsonb_array_length((case when jsonb_typeof(p_request -> 'headers') = 'array' then p_request -> 'headers' else '[]'::jsonb end)) or exists (select 1 from jsonb_array_elements((case when jsonb_typeof(s.value) = 'array' then s.value else '[]'::jsonb end)) AS c(value) where jsonb_typeof(c.value) <> 'string' or octet_length((c.value #>> '{}')) > 24 or (c.value #>> '{}') COLLATE "C" !~ '^[ -~]*$' or (c.value #>> '{}') COLLATE "C" ~ '[a-wyzA-WYZ0-8]'))
     else false
   end, false);
 $$;

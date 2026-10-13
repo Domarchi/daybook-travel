@@ -89,9 +89,12 @@ test("B4 declara columnas para cada función JSON que devuelve conjuntos", () =>
   assert.match(sql, /jsonb_object_keys\(\(?case when jsonb_typeof\(p_proposal -> 'mapping'\) = 'object'[\s\S]*?as k\(key\)/i);
 });
 
-test("B4 exige que cada muestra de importación tenga sólo su forma enmascarada", () => {
-  const maskedCells = sql.match(/\(c\.value #>> '\{\}'\) !~ '\^\(\?:\[xX9\]\|\[\^\[:alnum:\]\]\)\*\$'/gi) ?? [];
-  assert.equal(maskedCells.length, 1);
+test("B4 exige octetos UTF8 y muestras ASCII cerradas sin POSIX Unicode (inspección)", () => {
+  assert.match(sql, /octet_length\(\(h\.value #>> '\{\}'\)\) not between 1 and 80/);
+  assert.match(sql, /octet_length\(\(c\.value #>> '\{\}'\)\) > 24/);
+  assert.ok(sql.includes(`COLLATE "C" !~ '^[ -~]*$'`));
+  assert.ok(sql.includes(`COLLATE "C" ~ '[a-wyzA-WYZ0-8]'`));
+  assert.doesNotMatch(sql, /\[:(?:alnum|alpha|digit):\]/);
 });
 
 test("B4 delega la validación JSON a funciones puras antes de crear la tabla", () => {

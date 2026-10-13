@@ -1,0 +1,21 @@
+{
+  "contract": "travel-import-map-v1",
+  "length_unit": "UTF-8 bytes",
+  "header_min_bytes": 1,
+  "header_max_bytes": 80,
+  "sample_max_bytes": 24,
+  "max_headers": 40,
+  "max_samples": 3,
+  "mask_vectors": [
+    {"input": "😀", "masked": "?"},
+    {"input": "é", "masked": "x"},
+    {"input": "ÁéñÑ", "masked": "XxxX"},
+    {"input": "²١٢", "masked": "999"},
+    {"input": "\t\n ", "masked": "   "},
+    {"input": "́", "masked": ""},
+    {"input": "€\u0000", "masked": "??"},
+    {"input": "!@#$%&*()-_+=[]{}:;,.?/\\\"'~`|<>^", "masked": "!@#$%&*()-_+=[]{}:;,.?/\\"}
+  ],
+  "invalid_samples": ["²", "١", "😀", "\t", "\n", " ", "́", "0", "8", "a", "y", "Z", "\u007f", "\u0000"],
+  "valid_samples": ["", "xX9 ?", "!@#$%&*()-_+=[]{}:;,.?/", "\\\"'~`|<>^", "9999-99-99"]
+}
