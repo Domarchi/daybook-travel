@@ -124,6 +124,30 @@ test("emission and SQL receipts distinguish 36 validator cases plus one decode r
   assert.match(emitted.stdout, /SQL EXECUTION NOT RUN/);
 });
 
+test("queue ACL emission embeds unchanged 009 in one rollback fixture without subprocesses or sockets (not SQL execution)", async () => {
+  const queueArtifacts = await mkdtemp(join(artifacts, "queue-acl-"));
+  const queue = spawnSync(process.execPath, [
+    "--import", `data:text/javascript,${encodeURIComponent(guard)}`, script.pathname, "--emit-only", "--queue-acl",
+  ], {
+    cwd: process.cwd(), env: { PATH: "", TRAVEL_IMPORT_ARTIFACTS: queueArtifacts },
+    encoding: "utf8", timeout: 10_000, maxBuffer: 1024 * 1024,
+  });
+  assert.ifError(queue.error);
+  assert.equal(queue.status, 0, queue.stderr);
+  const queueSql = await readFile(join(queueArtifacts, "travel-queue-acl.sql"), "utf8");
+  const migration = await readFile(new URL("../supabase/009_trip_ai_queue.sql", import.meta.url), "utf8");
+  const fixture = await readFile(new URL("../fixtures/travel-queue-acl.sql", import.meta.url), "utf8");
+  assert.equal(queueSql, fixture.replace("-- MIGRATION_009", () => migration.replace(/^begin;\s*/, "").replace(/\s*commit;\s*$/, "")));
+  assert.equal((queueSql.match(/^begin;$/gm) ?? []).length, 1);
+  assert.equal((queueSql.match(/^rollback;$/gm) ?? []).length, 1);
+  assert.doesNotMatch(queueSql, /^commit;$/m);
+  assert.match(queueSql, /alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;/);
+  assert.match(queueSql, /has_function_privilege\('anon', 'public\.acl_default_control\(\)', 'EXECUTE'\)/);
+  assert.match(queueSql, /EXCEPTION WHEN insufficient_privilege THEN NULL/);
+  assert.match(queueSql, /IF SQLERRM <> 'no_autorizado' THEN RAISE/);
+  assert.match(queue.stdout, /SQL EXECUTION NOT RUN/);
+});
+
 async function simulateDocker({ version = "18.1\n", sqlStatus = 0, launchStatus = 0 } = {}) {
   const commands = [];
   const entry = source.replace(/^import .*;\n/gm, "");

@@ -1,5 +1,6 @@
-// Pure validators only. --emit-only opens no database/socket. The optional
-// supervisor run creates an owned PostgreSQL18 container without network/ports.
+// Pure validators by default; --queue-acl adds synthetic roles and migration 009.
+// --emit-only opens no database/socket. The optional supervisor run creates an
+// owned PostgreSQL18 container without network/ports, never an existing database.
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { join, isAbsolute } from "node:path";
@@ -32,8 +33,8 @@ const vectors = [
 ];
 const decodeCases = vectors.filter(vector=>vector.jsonbDecodeSqlstate).length;
 const validatorCases = vectors.length - decodeCases;
-const summary = `${validatorCases} validator cases + ${decodeCases} JSONB decode rejection = ${vectors.length} cases`;
-const sql = `\\set ON_ERROR_STOP on\nbegin;\nDO $$ BEGIN IF current_setting('server_encoding') <> 'UTF8' THEN RAISE EXCEPTION 'UTF8 required'; END IF; END $$;\n${validator}\n` + vectors.map((vector,index)=> {
+let summary = `${validatorCases} validator cases + ${decodeCases} JSONB decode rejection = ${vectors.length} cases`;
+let sql = `\\set ON_ERROR_STOP on\nbegin;\nDO $$ BEGIN IF current_setting('server_encoding') <> 'UTF8' THEN RAISE EXCEPTION 'UTF8 required'; END IF; END $$;\n${validator}\n` + vectors.map((vector,index)=> {
   if (vector.jsonbDecodeSqlstate) return `DO $case_${index}$
 DECLARE decode_rejected boolean := false;
 BEGIN
@@ -48,7 +49,14 @@ BEGIN
 END $case_${index}$;`;
   return `DO $case_${index}$ BEGIN IF public.trip_ai_request_is_valid('import_mapping', $json_${index}$${JSON.stringify(vector.value)}$json_${index}$::jsonb) IS DISTINCT FROM ${vector.expected} THEN RAISE EXCEPTION 'fixture ${index} failed'; END IF; END $case_${index}$;`;
 }).join("\n") + `\nrollback;\n\\echo '${summary} passed'\n`;
-const path = join(artifacts,"travel-import-validator.sql"); await writeFile(path,sql);
+if (process.argv.includes("--queue-acl")) {
+  const fixtureSql = await readFile(join(root,"fixtures/travel-queue-acl.sql"),"utf8");
+  assert.equal((fixtureSql.match(/-- MIGRATION_009/g) ?? []).length, 1);
+  assert.match(migration, /^begin;[\s\S]*commit;\s*$/);
+  sql = fixtureSql.replace("-- MIGRATION_009", () => migration.replace(/^begin;\s*/, "").replace(/\s*commit;\s*$/, ""));
+  summary = "6 queue RPC ACL and nonmember/worker guards";
+}
+const path = join(artifacts,process.argv.includes("--queue-acl") ? "travel-queue-acl.sql" : "travel-import-validator.sql"); await writeFile(path,sql);
 await writeFile(join(artifacts,"travel-import-sql-vectors.json"),JSON.stringify(vectors,null,2));
 console.log(`EMITTED ${summary}: ${path}`);
 if(process.argv.includes("--docker-pg18")) {

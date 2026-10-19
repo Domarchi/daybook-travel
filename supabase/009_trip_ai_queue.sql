@@ -323,12 +323,12 @@ begin
 end;
 $$;
 
-revoke all on function public.request_trip_ai_proposal(uuid, jsonb) from public;
-revoke all on function public.request_trip_import_mapping(jsonb) from public;
-revoke all on function public.get_trip_ai_request(uuid) from public;
-revoke all on function public.claim_trip_ai_request() from public;
-revoke all on function public.complete_trip_ai_request(uuid, jsonb) from public;
-revoke all on function public.fail_trip_ai_request(uuid, text) from public;
+revoke all on function public.request_trip_ai_proposal(uuid, jsonb) from public, anon;
+revoke all on function public.request_trip_import_mapping(jsonb) from public, anon;
+revoke all on function public.get_trip_ai_request(uuid) from public, anon;
+revoke all on function public.claim_trip_ai_request() from public, anon;
+revoke all on function public.complete_trip_ai_request(uuid, jsonb) from public, anon;
+revoke all on function public.fail_trip_ai_request(uuid, text) from public, anon;
 grant execute on function public.request_trip_ai_proposal(uuid, jsonb) to authenticated;
 grant execute on function public.request_trip_import_mapping(jsonb) to authenticated;
 grant execute on function public.get_trip_ai_request(uuid) to authenticated;
