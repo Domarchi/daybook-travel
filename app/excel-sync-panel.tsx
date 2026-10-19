@@ -938,7 +938,7 @@ export default function ExcelSyncPanel({
                     <small>{bytesUtf8(header)} bytes UTF-8</small>
                   </Td>
                   <Td data-label="Campo en Daybook" className={CELDA_LIBRO}>
-                    <select aria-label={`Mapeo ${header}`} className="min-h-10 w-full rounded-sm border border-line bg-surface px-2 text-foreground" value={mapping[header] ?? ""} onChange={(event) => {
+                    <select aria-label={`Mapeo ${header}`} disabled={mappingBusy} className="min-h-10 w-full rounded-sm border border-line bg-surface px-2 text-foreground" value={mapping[header] ?? ""} onChange={(event) => {
                       const value = event.currentTarget.value || null;
                       setMapping((current) => ({ ...current, [header]: value }));
                     }}>

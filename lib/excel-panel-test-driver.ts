@@ -87,6 +87,8 @@ export async function panelDriver(client: TravelAiQueueRpcClient, options: { def
     flushChanges() { while (pendingChanges.length) pendingChanges.shift()!(); },
     change(label: string, value: string | boolean) {
       const el = this.find(label);
+      // Native disabled controls do not dispatch user change events.
+      if (el.props.disabled) return;
       const event: { currentTarget: { value: string | boolean; checked: string | boolean } | null } = { currentTarget: { value, checked: value } };
       dispatchingChange = options.deferChangeUpdates === true;
       try { (el.props.onChange as (e: unknown) => void)(event); }
