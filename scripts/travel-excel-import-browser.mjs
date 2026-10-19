@@ -340,6 +340,100 @@ async function runScenario({ cdpPort, appUrl, book, mixed, ai, width, height }) 
   } finally { try { await cdp.send("Page.close"); } catch {} cdp.close(); }
 }
 
+async function runPaginationScenario({ cdpPort, appUrl, width, height }) {
+  const target = await openTarget(cdpPort);
+  const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
+  const label = `pagination-${width}`;
+  const forbidden = [];
+  try {
+    await cdp.send("Page.enable"); await cdp.send("Runtime.enable");
+    cdp.onEvent = message => {
+      if (message.method !== "Fetch.requestPaused") return;
+      const { requestId, request } = message.params;
+      if (new URL(request.url).origin === new URL(appUrl).origin) void cdp.send("Fetch.continueRequest", { requestId });
+      else { forbidden.push(request.url); void cdp.send("Fetch.failRequest", { requestId, errorReason: "BlockedByClient" }); }
+    };
+    await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] });
+    await cdp.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 500 });
+    await cdp.send("Page.navigate", { url: appUrl });
+    await waitUntil(cdp, 'Boolean(document.querySelector("[data-import-ready=true] input[type=file]"))', "pagination fixture hydrated");
+    async function load(book) {
+      const dom = await cdp.send("DOM.getDocument");
+      const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: dom.root.nodeId, selector: 'input[type="file"]' });
+      await cdp.send("DOM.setFileInputFiles", { nodeId, files: [join(ownedRoot, book)] });
+      await waitUntil(cdp, `Boolean(document.querySelector('[aria-label="Fila de encabezados"]'))`, "pagination workbook loaded");
+      await click(cdp, "Revisar con este mapeo");
+      await waitUntil(cdp, 'document.body.textContent.includes("Revisión local completada")', "pagination preview ready");
+    }
+    const regionText = id => cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).textContent`);
+    const countChildren = id => cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).children.length`);
+    const disabled = name => cdp.evaluate(`document.querySelector(${JSON.stringify(ui(name))}).disabled`);
+    async function nextByKeyboard(name) {
+      await cdp.evaluate(`document.querySelector(${JSON.stringify(ui(name))}).focus()`);
+      assert.equal(await cdp.evaluate(`document.activeElement === document.querySelector(${JSON.stringify(ui(name))})`), true, "pager must receive keyboard focus");
+      // Match the native Enter sequence used by browser-login.mjs, including keypress.
+      const key = { key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 };
+      await cdp.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...key });
+      await cdp.send("Input.dispatchKeyEvent", { type: "char", text: "\r", unmodifiedText: "\r", ...key });
+      await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", ...key });
+      await delay(80);
+    }
+    async function assertResultVisible(id) {
+      assert.deepEqual(await cdp.evaluate(`(() => { const region=document.getElementById(${JSON.stringify(id)}); const box=region.firstElementChild.getBoundingClientRect(); return {focused:document.activeElement===region,visible:box.top>=0 && box.top<innerHeight && box.bottom>0}; })()`),
+        { focused: true, visible: true }, "page result must receive focus and be visible");
+    }
+    await load("pagination-valid.xlsx");
+    assert.equal(await countChildren("excel-preview-rows"), 50);
+    assert.equal((await regionText("excel-preview-rows")).includes("SYN-PAGE-051"), false);
+    assert.equal(await disabled("Filas anteriores"), true);
+    await nextByKeyboard("Filas siguientes");
+    assert.equal(await countChildren("excel-preview-rows"), 1);
+    assert.equal((await regionText("excel-preview-rows")).includes("SYN-PAGE-051"), true);
+    await assertResultVisible("excel-preview-rows");
+    assert.equal(await disabled("Filas siguientes"), true);
+    assert.deepEqual(await cdp.evaluate(`(() => { const button=document.querySelector('[aria-label="Filas anteriores"]'); const status=document.getElementById('excel-preview-page-status'); return {controls:button.getAttribute('aria-controls'),role:status.getAttribute('role'),live:status.getAttribute('aria-live')}; })()`),
+      { controls: "excel-preview-rows", role: "status", live: "polite" });
+    assert.deepEqual(await calls(cdp), []);
+    const rowsImage = await cdp.send("Page.captureScreenshot", { format: "png" });
+    await writeFile(join(ownedRoot, `${label}-last-row.png`), Buffer.from(rowsImage.data, "base64"));
+    await click(cdp, "Cambiar archivo");
+    await load("pagination-valid.xlsx");
+    assert.equal(await disabled("Filas anteriores"), true);
+    assert.equal(await countChildren("excel-preview-rows"), 50);
+    assert.equal((await regionText("excel-preview-rows")).includes("SYN-PAGE-001"), true);
+    await nextByKeyboard("Filas siguientes");
+    await click(cdp, "Aplicar 51 cambios");
+    await waitUntil(cdp, 'document.querySelector("#fake-applied").textContent === "1"', "pagination fake applied once");
+    const applied = await calls(cdp);
+    assert.equal(applied.length, 1);
+    assert.equal(applied[0].name, "sync_excel_batch");
+    assert.equal(applied[0].args.p_payload.people.length, 51);
+    assert.deepEqual(applied[0].args.p_payload.people.map(row => row.employee_code), Array.from({ length: 51 }, (_, index) => `SYN-PAGE-${String(index + 1).padStart(3, "0")}`));
+    await click(cdp, "Revisar otro libro");
+    await load("pagination-issues.xlsx");
+    assert.equal(await countChildren("excel-issues-list"), 12);
+    assert.equal((await regionText("excel-issues-list")).includes("fila 14"), false);
+    await nextByKeyboard("Observaciones siguientes");
+    assert.equal(await countChildren("excel-issues-list"), 1);
+    assert.equal((await regionText("excel-issues-list")).includes("fila 14"), true);
+    await assertResultVisible("excel-issues-list");
+    assert.equal(await disabled("Observaciones siguientes"), true);
+    assert.equal(await cdp.evaluate(`[...document.querySelectorAll('button')].find(button=>button.textContent.trim()==='Corrige el archivo para continuar').disabled`), true);
+    await click(cdp, "Corrige el archivo para continuar");
+    const issuesImage = await cdp.send("Page.captureScreenshot", { format: "png" });
+    await writeFile(join(ownedRoot, `${label}-last-observation.png`), Buffer.from(issuesImage.data, "base64"));
+    await click(cdp, "Cambiar archivo");
+    await load("pagination-issues.xlsx");
+    assert.equal(await disabled("Observaciones anteriores"), true);
+    assert.equal(await countChildren("excel-issues-list"), 12);
+    assert.equal((await regionText("excel-issues-list")).includes("fila 14"), false);
+    assert.deepEqual(await calls(cdp), applied, "paging/reset/error must not request AI or retry apply");
+    assert.deepEqual(forbidden, []);
+    await writeFile(join(ownedRoot, `${label}.json`), JSON.stringify({ label, rows: 51, observations: 13, keyboard: true, reset: true, calls: applied, forbidden }, null, 2));
+    return `${label}: 51 rows / 13 observations → keyboard → last items → reset → full payload / explicit apply fake`;
+  } finally { try { await cdp.send("Page.close"); } catch {} cdp.close(); }
+}
+
 const UNICODE_CASES = [
   { name: "high", header: "\ud800", valid: false },
   { name: "low", header: "\udc00", valid: false },
@@ -432,7 +526,12 @@ async function prepareFixture() {
   await writeFile(join(project,"next-env.d.ts"),'/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n');
   await symlink(join(ROOT,"node_modules"),join(project,"node_modules"),"dir");
   await writeFile(join(ownedRoot,"sources.json"),JSON.stringify(manifest,null,2));
-  for(const [name,matrices,names] of [["preamble",[PREAMBLE_MATRIX],["Personas"]],["mixed",[PERSON_MATRIX,TRIP_MATRIX],["Personas","Viajes"]]]) {
+  const paginationRows = Array.from({ length: 51 }, (_, index) => [
+    `SYN-PAGE-${String(index + 1).padStart(3, "0")}`, `Persona sintética SYN-PAGE-${String(index + 1).padStart(3, "0")}`, ...PERSON_MATRIX[1].slice(2),
+  ]);
+  const paginationIssues = paginationRows.slice(0, 13).map(row => [row[0], "", ...row.slice(2)]);
+  for(const [name,matrices,names] of [["preamble",[PREAMBLE_MATRIX],["Personas"]],["mixed",[PERSON_MATRIX,TRIP_MATRIX],["Personas","Viajes"]],
+    ["pagination-valid",[[PERSON_MATRIX[0], ...paginationRows]],["Personas"]], ["pagination-issues",[[PERSON_MATRIX[0], ...paginationIssues]],["Personas"]]]) {
     await writeXlsxFile(matrices.map(matrix=>matrix.map(row=>row.map(value=>({value,type:String})))),{sheets:names,filePath:join(ownedRoot,`${name}.xlsx`)});
   }
   return project;
@@ -453,6 +552,12 @@ async function main() {
   const profile = join(ownedRoot,"chrome-profile");
   chromeProcess = spawnOwned(chromePath,["--headless=new","--remote-debugging-address=127.0.0.1","--remote-debugging-port=0",`--user-data-dir=${profile}`,"--no-first-run","--no-default-browser-check","--disable-background-networking","about:blank"],{env:safeEnv},"Chrome");
   const cdpPort = await waitForDevTools(profile,chromeProcess);
+  if (process.argv.includes("--pagination-only")) {
+    for (const viewport of [{width:390,height:844},{width:1440,height:900}]) {
+      console.log(`✓ ${await runPaginationScenario({cdpPort,appUrl,...viewport})}`);
+    }
+    return;
+  }
   const unicodeResults = [];
   // Collect every malformed case and every control before raising a product failure.
   for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
@@ -466,6 +571,7 @@ async function main() {
   if (!process.argv.includes("--unicode-only")) {
   for(const viewport of [{width:390,height:844},{width:1440,height:900}]) {
     for(const mixed of [false,true]) for(const ai of [false,true]) console.log(`✓ ${await runScenario({cdpPort,appUrl,book:join(ownedRoot,`${mixed ? "mixed":"preamble"}.xlsx`),mixed,ai,...viewport})}`);
+    console.log(`✓ ${await runPaginationScenario({cdpPort,appUrl,...viewport})}`);
   }
   }
   assert.equal(unicodeResults.filter(result => !result.pass).length, 0, "Unicode browser cases failed; all controls and cases saved in unicode-results.json");
