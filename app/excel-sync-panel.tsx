@@ -105,6 +105,8 @@ type LocalIssue = {
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_ROWS_PER_SHEET = 5_000;
+const PREVIEW_PAGE_SIZE = 50;
+const ISSUES_PAGE_SIZE = 12;
 
 const peopleHeaders = [...PERSON_EXCEL_FIELDS];
 const tripHeaders = [...TRIP_EXCEL_FIELDS];
@@ -245,6 +247,15 @@ function actionLabel(action: PreviewAction) {
   return "Sin cambios";
 }
 
+function revealPage(element: HTMLElement | null) {
+  if (!element) return;
+  requestAnimationFrame(() => {
+    if (!element.isConnected) return;
+    element.focus({ preventScroll: true });
+    element.scrollIntoView({ block: "start" });
+  });
+}
+
 function getServerIssues(result: ExcelSyncResult | null) {
   if (!result) return [];
   return [
@@ -264,12 +275,16 @@ export default function ExcelSyncPanel({
   onApplied,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const previewRowsRef = useRef<HTMLTableSectionElement>(null);
+  const issuesListRef = useRef<HTMLUListElement>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [fileName, setFileName] = useState("");
   const [syncId, setSyncId] = useState("");
   const [payload, setPayload] = useState<ExcelSyncPayload | null>(null);
   const [preview, setPreview] = useState<PreviewLine[]>([]);
   const [issues, setIssues] = useState<LocalIssue[]>([]);
+  const [previewPage, setPreviewPage] = useState(0);
+  const [issuesPage, setIssuesPage] = useState(0);
   const [message, setMessage] = useState("");
   const [downloadBusy, setDownloadBusy] = useState<
     "template" | "current" | null
@@ -314,6 +329,8 @@ export default function ExcelSyncPanel({
     setPayload(null);
     setPreview([]);
     setIssues([]);
+    setPreviewPage(0);
+    setIssuesPage(0);
     setMessage("");
     setResult(null);
     if (inputRef.current) inputRef.current.value = "";
@@ -554,6 +571,8 @@ export default function ExcelSyncPanel({
       setPayload(built.payload);
       setPreview(lines);
       setIssues(localIssues);
+      setPreviewPage(0);
+      setIssuesPage(0);
       setSyncId(crypto.randomUUID());
       setPhase("preview");
     } catch (error) {
@@ -581,6 +600,7 @@ export default function ExcelSyncPanel({
       const serverIssues = getServerIssues(nextResult);
       if (!nextResult.applied || serverIssues.length) {
         setIssues(serverIssues);
+        setIssuesPage(0);
         setMessage(
           serverIssues.length
             ? "El archivo cambió desde la revisión o contiene datos que requieren corrección. No se aplicó ningún cambio."
@@ -857,10 +877,10 @@ export default function ExcelSyncPanel({
                   </small>
                 </span>
               </div>
-              <ul className="m-0 grid list-none gap-0 p-0">
-                {issues.slice(0, 12).map((issue, index) => (
+              <ul id="excel-issues-list" ref={issuesListRef} tabIndex={-1} aria-label="Observaciones de esta página" className="m-0 grid scroll-mt-20 list-none gap-0 p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                {issues.slice(issuesPage * ISSUES_PAGE_SIZE, (issuesPage + 1) * ISSUES_PAGE_SIZE).map((issue, index) => (
                   <li
-                    key={`${issue.entity}-${issue.row ?? 0}-${index}`}
+                    key={`${issue.entity}-${issue.row ?? 0}-${issuesPage * ISSUES_PAGE_SIZE + index}`}
                     className="grid grid-cols-[130px_minmax(0,1fr)] gap-[14px] border-b border-line px-[14px] py-[10px] text-[12px] text-foreground-soft last:border-b-0 max-[760px]:grid-cols-1 max-[760px]:gap-[3px]"
                   >
                     <strong>
@@ -871,10 +891,18 @@ export default function ExcelSyncPanel({
                   </li>
                 ))}
               </ul>
-              {issues.length > 12 ? (
-                <small className="block border-t border-line px-[14px] py-[10px]">
-                  Hay {issues.length - 12} observaciones adicionales.
-                </small>
+              {issues.length > ISSUES_PAGE_SIZE ? (
+                <nav aria-label="Páginas de observaciones" className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-3 text-[12px]">
+                  <Button type="button" aria-label="Observaciones anteriores" aria-controls="excel-issues-list" className="max-[430px]:flex-1" disabled={issuesPage === 0} onClick={() => { setIssuesPage(page => Math.max(0, page - 1)); revealPage(issuesListRef.current); }}>
+                    Anterior
+                  </Button>
+                  <span id="excel-issues-page-status" role="status" aria-live="polite" aria-atomic={true} className="min-w-0 flex-1 text-center max-[430px]:order-first max-[430px]:basis-full">
+                    Observaciones {issuesPage * ISSUES_PAGE_SIZE + 1}–{Math.min((issuesPage + 1) * ISSUES_PAGE_SIZE, issues.length)} de {issues.length}. Página {issuesPage + 1} de {Math.ceil(issues.length / ISSUES_PAGE_SIZE)}.
+                  </span>
+                  <Button type="button" aria-label="Observaciones siguientes" aria-controls="excel-issues-list" className="max-[430px]:flex-1" disabled={(issuesPage + 1) * ISSUES_PAGE_SIZE >= issues.length} onClick={() => { setIssuesPage(page => Math.min(Math.ceil(issues.length / ISSUES_PAGE_SIZE) - 1, page + 1)); revealPage(issuesListRef.current); }}>
+                    Siguiente
+                  </Button>
+                </nav>
               ) : null}
             </section>
           ) : null}
@@ -894,8 +922,8 @@ export default function ExcelSyncPanel({
                     <Th className="w-[140px]">Resultado</Th>
                   </tr>
                 </THead>
-                <TBody>
-                  {preview.slice(0, 50).map((line) => (
+                <TBody id="excel-preview-rows" ref={previewRowsRef} tabIndex={-1} aria-label="Filas de esta página" className="scroll-mt-20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+                  {preview.slice(previewPage * PREVIEW_PAGE_SIZE, (previewPage + 1) * PREVIEW_PAGE_SIZE).map((line) => (
                     <Tr
                       key={`${line.entity}-${line.row}`}
                       className="max-[760px]:grid-cols-1"
@@ -929,11 +957,18 @@ export default function ExcelSyncPanel({
                   ))}
                 </TBody>
               </Table>
-              {preview.length > 50 ? (
-                <p className="border-t border-line px-[13px] py-[11px] text-center max-[760px]:mt-2 max-[760px]:rounded-sm max-[760px]:border max-[760px]:border-line max-[760px]:bg-surface">
-                  Mostramos 50 de {preview.length} filas revisadas. El resumen
-                  incluye todas.
-                </p>
+              {preview.length > PREVIEW_PAGE_SIZE ? (
+                <nav aria-label="Páginas de filas" className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-3 text-[12px] max-[760px]:mt-2 max-[760px]:rounded-sm max-[760px]:border max-[760px]:border-line max-[760px]:bg-surface">
+                  <Button type="button" aria-label="Filas anteriores" aria-controls="excel-preview-rows" className="max-[430px]:flex-1" disabled={previewPage === 0} onClick={() => { setPreviewPage(page => Math.max(0, page - 1)); revealPage(previewRowsRef.current); }}>
+                    Anterior
+                  </Button>
+                  <span id="excel-preview-page-status" role="status" aria-live="polite" aria-atomic={true} className="min-w-0 flex-1 text-center max-[430px]:order-first max-[430px]:basis-full">
+                    Filas {previewPage * PREVIEW_PAGE_SIZE + 1}–{Math.min((previewPage + 1) * PREVIEW_PAGE_SIZE, preview.length)} de {preview.length}. Página {previewPage + 1} de {Math.ceil(preview.length / PREVIEW_PAGE_SIZE)}.
+                  </span>
+                  <Button type="button" aria-label="Filas siguientes" aria-controls="excel-preview-rows" className="max-[430px]:flex-1" disabled={(previewPage + 1) * PREVIEW_PAGE_SIZE >= preview.length} onClick={() => { setPreviewPage(page => Math.min(Math.ceil(preview.length / PREVIEW_PAGE_SIZE) - 1, page + 1)); revealPage(previewRowsRef.current); }}>
+                    Siguiente
+                  </Button>
+                </nav>
               ) : null}
             </TableWrap>
           ) : null}

@@ -8,6 +8,15 @@ import {
 
 const personId = "d9c06cad-e6bf-47ba-8754-81f7cc68dd80";
 const tripId = "30d1ccdb-4c03-4124-b992-80a0648b888c";
+const persona4x3 = {
+  nombreCompleto: "Persona de prueba",
+  origen: "Santiago",
+  destino: "Copiapó",
+  turno: "4×3",
+  fechaInicio: "2026-09-07",
+  equipaje: "Mochila",
+  activa: true,
+};
 
 test("mapea los encabezados operativos a un payload normalizado", () => {
   const excelDate =
@@ -194,17 +203,11 @@ test("acepta Sin turno y sus alias para viajes manuales", () => {
   }
 });
 
-test("rechaza fechas imposibles y un inicio 4x3 que no sea lunes", () => {
+test("rechaza una fecha de término imposible", () => {
   const result = normalizeExcelPersonRow(
     {
-      nombreCompleto: "Diego Rojas",
-      origen: "Santiago",
-      destino: "Copiapó",
-      turno: "4×3",
-      fechaInicio: "2026-09-08",
+      ...persona4x3,
       fechaTermino: "2026-02-30",
-      equipaje: "Mochila",
-      activa: true,
     },
     6,
   );
@@ -212,8 +215,106 @@ test("rechaza fechas imposibles y un inicio 4x3 que no sea lunes", () => {
   assert.equal(result.value, null);
   assert.deepEqual(
     result.errors.map((error) => error.field).sort(),
-    ["fechaInicio", "fechaTermino"],
+    ["fechaTermino"],
   );
+});
+
+test("acepta un inicio 4×3 el martes 2026-09-08 y conserva la fecha exacta", () => {
+  const result = normalizeExcelPersonRow(
+    { ...persona4x3, fechaInicio: "2026-09-08" },
+    6,
+  );
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.value?.start_date, "2026-09-08");
+});
+
+test("4×3 conserva el inicio en lunes, los demás días y un día bisiesto", () => {
+  for (const fechaInicio of [
+    "2026-09-07",
+    "2026-09-09",
+    "2026-09-10",
+    "2026-09-11",
+    "2026-09-12",
+    "2026-09-13",
+    "2028-02-29",
+  ]) {
+    const result = normalizeExcelPersonRow({ ...persona4x3, fechaInicio }, 6);
+
+    assert.deepEqual(result.errors, [], fechaInicio);
+    assert.equal(result.value?.start_date, fechaInicio);
+    assert.equal(result.value?.shift, "4×3");
+    assert.equal(result.value?.end_date, null);
+  }
+});
+
+test("4×3 conserva el martes desde los formatos de fecha admitidos", () => {
+  const excelDate =
+    (Date.UTC(2026, 8, 8) - Date.UTC(1899, 11, 30)) / 86_400_000;
+  for (const fechaInicio of [
+    "08/09/2026",
+    new Date("2026-09-08T12:00:00Z"),
+    excelDate,
+  ]) {
+    const result = normalizeExcelPersonRow({ ...persona4x3, fechaInicio }, 6);
+
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.value?.start_date, "2026-09-08");
+  }
+});
+
+test("4×3 rechaza fechas de inicio imposibles o vacías", () => {
+  for (const fechaInicio of ["2026-02-30", "2026-02-29", "2026-09-31", ""]) {
+    const result = normalizeExcelPersonRow({ ...persona4x3, fechaInicio }, 6);
+
+    assert.equal(result.value, null);
+    assert.deepEqual(result.errors.map((error) => error.field), ["fechaInicio"]);
+  }
+});
+
+test("4×3 rechaza un término anterior al martes de inicio", () => {
+  const result = normalizeExcelPersonRow(
+    { ...persona4x3, fechaInicio: "2026-09-08", fechaTermino: "2026-09-07" },
+    6,
+  );
+
+  assert.equal(result.value, null);
+  assert.deepEqual(result.errors.map((error) => error.field), ["fechaTermino"]);
+});
+
+test("4×3 acepta un término igual o posterior al martes de inicio", () => {
+  for (const fechaTermino of ["2026-09-08", "2026-09-30"]) {
+    const result = normalizeExcelPersonRow(
+      { ...persona4x3, fechaInicio: "2026-09-08", fechaTermino },
+      6,
+    );
+
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.value?.start_date, "2026-09-08");
+    assert.equal(result.value?.end_date, fechaTermino);
+  }
+});
+
+test("un inicio válido en martes conserva las demás validaciones de persona", () => {
+  const casos = [
+    { cambios: { fccId: "id-inválido", version: 1 }, campo: "daybookId" },
+    { cambios: { fccId: personId }, campo: "version" },
+    { cambios: { fccId: personId, version: 0 }, campo: "version" },
+    { cambios: { fccId: personId, version: 1.5 }, campo: "version" },
+    { cambios: { version: 1 }, campo: "version" },
+    { cambios: { turno: "7×7" }, campo: "turno" },
+    { cambios: { equipaje: "Equipaje desconocido" }, campo: "equipaje" },
+  ];
+  for (const { cambios, campo } of casos) {
+    const result = normalizeExcelPersonRow(
+      { ...persona4x3, fechaInicio: "2026-09-08", ...cambios },
+      6,
+    );
+
+    assert.equal(result.value, null, JSON.stringify(cambios));
+    assert(result.errors.length > 0);
+    assert(result.errors.every((error) => error.field === campo));
+  }
 });
 
 test("exige versión para registros existentes y PNR en estados emitidos", () => {
