@@ -450,10 +450,6 @@ function parseBaggage(value: ExcelCell): Baggage | null {
   return aliases[candidate] ?? null;
 }
 
-function monday(date: string) {
-  return new Date(`${date}T12:00:00Z`).getUTCDay() === 1;
-}
-
 function pushError(
   errors: ExcelSyncValidationError[],
   entity: ExcelSyncEntity,
@@ -506,7 +502,6 @@ export function normalizeExcelPerson(
   if (!startDate.valid || !startDate.value) pushError(errors, "people", rowNumber, "fechaInicio", "Usa una fecha válida.");
   if (!endDate.valid) pushError(errors, "people", rowNumber, "fechaTermino", "Usa una fecha válida.");
   if (startDate.value && endDate.value && endDate.value < startDate.value) pushError(errors, "people", rowNumber, "fechaTermino", "La fecha de término no puede ser anterior al inicio.");
-  if (shift === "4×3" && startDate.value && !monday(startDate.value)) pushError(errors, "people", rowNumber, "fechaInicio", "La primera subida 4×3 debe ser lunes.");
   if (!baggage) pushError(errors, "people", rowNumber, "equipaje", "El equipaje no es válido.");
   if (!active.valid) pushError(errors, "people", rowNumber, "activa", "Usa Sí o No.");
 
