@@ -17,6 +17,7 @@ import {
   PERSON_EXCEL_FIELDS,
   TRIP_EXCEL_FIELDS,
   buildExcelSyncPayload,
+  tripToExcelRow,
   issuePublicoAlLeerExcel,
   mensajePublicoExcel,
   type ExcelRow,
@@ -25,6 +26,11 @@ import {
   type ExcelSyncValidationError,
 } from "../lib/excel-sync";
 import type { Person, Trip } from "../lib/types";
+import {
+  buildPreviewLines,
+  type PreviewAction,
+  type PreviewLine,
+} from "../lib/excel-sync-preview";
 import { Button } from "@/components/ui/button";
 import { SectionKicker } from "@/components/ui/section-kicker";
 import { TableWrap } from "@/components/ui/table-wrap";
@@ -87,15 +93,6 @@ type Props = {
 
 type ImportRow = ExcelRow & { row_number: number };
 type Phase = "idle" | "reading" | "preview" | "applying" | "done";
-type PreviewAction = "new" | "change" | "unchanged" | "conflict";
-
-type PreviewLine = {
-  entity: "Persona" | "Viaje";
-  row: number;
-  action: PreviewAction;
-  title: string;
-  detail: string;
-};
 
 type LocalIssue = {
   entity: "Persona" | "Viaje" | "Archivo";
@@ -108,31 +105,6 @@ const MAX_ROWS_PER_SHEET = 5_000;
 
 const peopleHeaders = [...PERSON_EXCEL_FIELDS];
 const tripHeaders = [...TRIP_EXCEL_FIELDS];
-
-const personCompareKeys = [
-  "employee_code",
-  "name",
-  "origin",
-  "destination",
-  "shift",
-  "start_date",
-  "end_date",
-  "baggage",
-  "active",
-];
-
-const tripCompareKeys = [
-  "date",
-  "origin",
-  "destination",
-  "requested_time",
-  "baggage",
-  "status",
-  "pnr",
-  "flight",
-  "amount",
-  "notes",
-];
 
 const normalizeName = (value: string) =>
   value
@@ -204,25 +176,6 @@ function rowsToRecords(
 function resultCount(value: number | unknown[] | null | undefined) {
   if (Array.isArray(value)) return value.length;
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function comparable(value: unknown) {
-  if (value === null || value === undefined || value === "") return "";
-  if (typeof value === "boolean") return value ? "true" : "false";
-  const text = String(value).trim();
-  const time = /^(\d{1,2}):(\d{2})(?::00)?$/.exec(text);
-  return time ? `${time[1].padStart(2, "0")}:${time[2]}` : text;
-}
-
-function hasChanges(
-  imported: Record<string, unknown>,
-  current: Record<string, unknown>,
-  keys: string[],
-) {
-  return keys.some(
-    (key) =>
-      key in imported && comparable(imported[key]) !== comparable(current[key]),
-  );
 }
 
 function issueToLocal(issue: ExcelSyncValidationError): LocalIssue {
@@ -376,29 +329,8 @@ export default function ExcelSyncPanel({
         tripHeaders.map(header),
         ...currentTrips.map((trip) => {
           const person = personById.get(trip.person_id);
-          return [
-            trip.id,
-            trip.person_id,
-            person?.employee_code ?? "",
-            person?.name ?? "",
-            trip.planned_date ?? "",
-            trip.date,
-            trip.direction === "SUBIDA" ? "Subida" : "Bajada",
-            trip.origin,
-            trip.destination,
-            trip.requested_time?.slice(0, 5) ?? "",
-            trip.baggage,
-            trip.status,
-            trip.pnr,
-            trip.flight,
-            trip.amount ?? "",
-            trip.notes,
-            "",
-            trip.version ?? "",
-            trip.updated_at ?? "",
-            "",
-            "",
-          ].map(cell);
+          const row = tripToExcelRow(trip, person);
+          return tripHeaders.map((key) => cell(row[key]));
         }),
       ];
       const instructionRows = [
@@ -985,166 +917,6 @@ export default function ExcelSyncPanel({
       )}
     </div>
   );
-}
-
-function buildPreviewLines(
-  payload: ExcelSyncPayload,
-  people: Person[],
-  trips: Trip[],
-) {
-  const lines: PreviewLine[] = [];
-  const currentPeople = new Map(people.map((person) => [person.id, person]));
-  const currentTrips = new Map(trips.map((trip) => [trip.id, trip]));
-  const seenPersonIds = new Set<string>();
-  const seenTripIds = new Set<string>();
-  const peopleByCode = new Map(
-    people
-      .filter((person) => person.employee_code)
-      .map((person) => [normalizeName(person.employee_code!), person]),
-  );
-  const importedPeopleByCode = new Map(
-    payload.people
-      .filter((person) => person.employee_code)
-      .map((person) => [normalizeName(person.employee_code!), person]),
-  );
-  const importedCodes = new Set<string>();
-  const newTripKeys = new Set<string>();
-
-  for (const record of payload.people) {
-    const id = String(record.id ?? "").trim();
-    const code = String(record.employee_code ?? "").trim();
-    const row = record.row_number;
-    const title = String(record.name || `Persona en fila ${row}`);
-    let action: PreviewAction = "new";
-    let detail = `${record.origin ?? "Origen pendiente"} → ${record.destination ?? "Destino pendiente"}`;
-    if (id) {
-      if (seenPersonIds.has(id)) {
-        action = "conflict";
-        detail = "El mismo ID Daybook aparece más de una vez en el libro.";
-      } else {
-        const current = currentPeople.get(id);
-        if (!current) {
-          action = "conflict";
-          detail = "El ID Daybook no existe en los datos actuales.";
-        } else if (
-          record.version !== undefined &&
-          current.version !== undefined &&
-          Number(record.version) !== Number(current.version)
-        ) {
-          action = "conflict";
-          detail = "La versión del registro ya cambió en Daybook Travel.";
-        } else {
-          action = hasChanges(
-            record as Record<string, unknown>,
-            current as unknown as Record<string, unknown>,
-            personCompareKeys,
-          )
-            ? "change"
-            : "unchanged";
-        }
-      }
-      seenPersonIds.add(id);
-    } else if (code) {
-      const normalizedCode = normalizeName(code);
-      if (
-        peopleByCode.has(normalizedCode) ||
-        importedCodes.has(normalizedCode)
-      ) {
-        action = "conflict";
-        detail =
-          "El Código trabajador ya está en uso. Descarga el libro actual para editar esa persona.";
-      }
-      importedCodes.add(normalizedCode);
-    }
-    lines.push({ entity: "Persona", row, action, title, detail });
-  }
-
-  for (const record of payload.trips) {
-    const id = String(record.id ?? "").trim();
-    const row = record.row_number;
-    const personCode = String(record.person_employee_code ?? "").trim();
-    const normalizedPersonCode = normalizeName(personCode);
-    const relatedPerson = record.person_id
-      ? currentPeople.get(record.person_id)
-      : peopleByCode.get(normalizedPersonCode) ??
-        importedPeopleByCode.get(normalizedPersonCode);
-    const title = relatedPerson
-      ? `${relatedPerson.name} · ${record.date ?? "fecha pendiente"}`
-      : personCode
-        ? `${personCode} · ${record.date ?? "fecha pendiente"}`
-        : `Viaje del ${record.date ?? `fila ${row}`}`;
-    let action: PreviewAction = "new";
-    let detail = `${record.origin ?? "Origen pendiente"} → ${record.destination ?? "Destino pendiente"}`;
-    if (id) {
-      if (seenTripIds.has(id)) {
-        action = "conflict";
-        detail = "El mismo ID Daybook aparece más de una vez en el libro.";
-      } else {
-        const current = currentTrips.get(id);
-        if (!current) {
-          action = "conflict";
-          detail = "El ID Daybook no existe en los datos actuales.";
-        } else if (
-          record.version !== undefined &&
-          current.version !== undefined &&
-          Number(record.version) !== Number(current.version)
-        ) {
-          action = "conflict";
-          detail = "La versión del viaje ya cambió en Daybook Travel.";
-        } else {
-          const importedPersonId =
-            String(record.person_id ?? "").trim() ||
-            peopleByCode.get(normalizeName(personCode))?.id ||
-            "";
-          const changedImmutableField =
-            (importedPersonId !== "" && importedPersonId !== current.person_id) ||
-            comparable(record.direction) !== comparable(current.direction) ||
-            comparable(record.planned_date) !==
-              comparable(current.planned_date ?? current.date);
-          const mutableChanges = hasChanges(
-            record as Record<string, unknown>,
-            current as unknown as Record<string, unknown>,
-            tripCompareKeys,
-          );
-          if (changedImmutableField) {
-            action = "conflict";
-            detail =
-              "La persona, fecha planificada y sentido no se pueden cambiar desde Excel.";
-          } else if (mutableChanges && !comparable(record.change_reason)) {
-            action = "conflict";
-            detail =
-              "Agrega un motivoCambio para actualizar este viaje desde Excel.";
-          } else {
-            action = mutableChanges ? "change" : "unchanged";
-          }
-        }
-      }
-      seenTripIds.add(id);
-    } else {
-      const referenceKey = record.person_id
-        ? `id:${record.person_id}`
-        : `code:${normalizedPersonCode}`;
-      const tripKey = `${referenceKey}:${record.date}:${record.direction}`;
-      if (
-        !record.person_id &&
-        (!personCode ||
-          (!peopleByCode.has(normalizedPersonCode) &&
-            !importedPeopleByCode.has(normalizedPersonCode)))
-      ) {
-        action = "conflict";
-        detail =
-          "El código no corresponde a una persona actual ni a una persona nueva de este libro.";
-      } else if (newTripKeys.has(tripKey)) {
-        action = "conflict";
-        detail =
-          "El mismo movimiento aparece más de una vez para esta persona y fecha.";
-      }
-      newTripKeys.add(tripKey);
-    }
-    lines.push({ entity: "Viaje", row, action, title, detail });
-  }
-
-  return lines;
 }
 
 // Un paso de la barra de arriba. El número va en un círculo que cambia de color

@@ -19,7 +19,8 @@ import {
 } from "react";
 import { db } from "../lib/supabase";
 import { addDays } from "../lib/calendar";
-import { movimientos } from "../lib/cycles";
+import { missingPlannedMovements } from "../lib/trip-planning";
+import { PersonEditConflict, updatePersonWithVersion } from "../lib/people-write";
 import {
   cobertura,
   porMes,
@@ -56,6 +57,10 @@ function useStoreValue() {
   const [accessStatus, setAccessStatus] = useState<AccessStatus>("checking");
   const [people, setPeople] = useState<Person[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
+  // La identidad histórica se usa solo para planificar. Excel conserva el valor
+  // real de planned_date, incluido null, para no cambiar campos inmutables.
+  const [planningDates, setPlanningDates] = useState<Record<string, string | null>>({});
+  const [planningError, setPlanningError] = useState("");
   const [view, setView] = useState("Agenda");
   const [query, setQuery] = useState("");
   const [peopleQuery, setPeopleQuery] = useState("");
@@ -164,6 +169,23 @@ function useStoreValue() {
         allRows("people"),
         allRows("trips"),
       ]);
+      const identities: Record<string, string | null> = {};
+      let identityError = "";
+      if (tripRows.some((trip) => !trip.planned_date)) {
+        for (let offset = 0; ; offset += 1000) {
+          const result = await db().rpc("trip_planning_dates")
+            .order("trip_id").range(offset, offset + 999);
+          if (result.error) {
+            identityError = "No pudimos comprobar las fechas originales de los viajes. Actualiza la página antes de planificar.";
+            break;
+          }
+          const rows = result.data as { trip_id: string; planned_date: string | null }[];
+          for (const row of rows) identities[row.trip_id] = row.planned_date;
+          if (rows.length < 1000) break;
+        }
+      }
+      setPlanningDates(identities);
+      setPlanningError(identityError);
       setPeople(
         (peopleRows as unknown as Person[]).sort((a, b) =>
           a.name.localeCompare(b.name, "es"),
@@ -380,30 +402,33 @@ function useStoreValue() {
   // Lo que el motor generaria para una persona y que todavia no existe. Es la
   // unica cuenta que se hace: la vista previa y la generacion usan esta misma
   // funcion, asi que no pueden decir cosas distintas.
-  const porGenerar = (persona: Person, hasta: string) =>
-    movimientos(persona, hasta).filter(
-      (paso) =>
-        !trips.some(
-          (trip) =>
-            trip.person_id === persona.id &&
-            trip.date === paso.date &&
-            trip.direction === paso.direction,
-        ),
-    );
+  const porGenerar = (persona: Person, hasta: string) => {
+    if (!demo && planningError) throw new Error(planningError);
+    const existing = trips.filter((trip) => trip.person_id === persona.id).map((trip) => {
+      if (demo || trip.planned_date) return trip;
+      const originalDate = planningDates[trip.id];
+      if (!originalDate) {
+        throw new Error(`No se puede planificar a ${persona.name}: hay un viaje antiguo sin fecha original comprobable. Revisa su historial antes de generar nuevos viajes.`);
+      }
+      return { ...trip, planned_date: originalDate };
+    });
+    return missingPlannedMovements(persona, hasta, existing);
+  };
 
-  const generationPreview = useMemo(() => {
+  const generationState = useMemo(() => {
     try {
-      return generationPeople.reduce(
+      const count = generationPeople.reduce(
         (total, person) => total + porGenerar(person, generateUntil).length,
         0,
       );
-    } catch {
-      // Un periodo imposible o unos dias mal puestos: el mensaje sale al
-      // intentar generar, no en la vista previa.
-      return 0;
+      return { count, error: "" };
+    } catch (error) {
+      return { count: 0, error: error instanceof Error ? error.message : "No se pudo preparar la planificación." };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [generationPeople, generateUntil, trips]);
+  }, [generationPeople, generateUntil, trips, planningDates, planningError, demo]);
+  const generationPreview = generationState.count;
+  const generationError = generationState.error;
 
   const reservationRequired = ["Emitido", "Completado", "No presentado"].includes(
     tripStatus,
@@ -635,21 +660,31 @@ function useStoreValue() {
       let savedId = editPerson?.id ?? "";
       if (demo) {
         savedId ||= crypto.randomUUID();
+        if (editPerson && peopleById.get(editPerson.id)?.version !== editPerson.version) {
+          throw new PersonEditConflict();
+        }
         setPeople((current) =>
           editPerson
             ? current.map((row) =>
-                row.id === editPerson.id ? { ...person, id: row.id } : row,
+                row.id === editPerson.id ? { ...row, ...person, version: (row.version ?? 1) + 1 } : row,
               )
-            : [...current, { ...person, id: savedId }].sort((a, b) =>
+            : [...current, { ...person, id: savedId, version: 1 }].sort((a, b) =>
                 a.name.localeCompare(b.name, "es"),
               ),
         );
       } else {
-        const result = editPerson
-          ? await db().from("people").update(person).eq("id", editPerson.id)
-          : await db().from("people").insert(person).select("id").single();
-        if (result.error) throw result.error;
-        if (!editPerson) savedId = String(result.data?.id ?? "");
+        if (editPerson) {
+          try {
+            await updatePersonWithVersion(db(), editPerson, person);
+          } catch (error) {
+            if (error instanceof PersonEditConflict) await reload();
+            throw error;
+          }
+        } else {
+          const result = await db().from("people").insert(person).select("id").single();
+          if (result.error) throw result.error;
+          savedId = String(result.data?.id ?? "");
+        }
         await reload();
       }
       const resumeDate = pendingTripDate;
@@ -735,9 +770,9 @@ function useStoreValue() {
         setTrips((current) =>
           (editTrip
             ? current.map((row) =>
-                row.id === editTrip.id ? { ...trip, id: row.id } : row,
+                row.id === editTrip.id ? { ...row, ...trip, version: (row.version ?? 1) + 1 } : row,
               )
-            : [...current, { ...trip, id: crypto.randomUUID() }]
+            : [...current, { ...trip, id: crypto.randomUUID(), planned_date: trip.date, version: 1 }]
           ).sort((a, b) => a.date.localeCompare(b.date)),
         );
       } else if (editTrip) {
@@ -755,7 +790,7 @@ function useStoreValue() {
         }
         await reload();
       } else {
-        const result = await db().from("trips").insert(trip);
+        const result = await db().from("trips").insert({ ...trip, planned_date: trip.date });
         if (result.error) throw result.error;
         await reload();
       }
@@ -787,6 +822,7 @@ function useStoreValue() {
         porGenerar(person, generateUntil).map((paso) => ({
           person_id: person.id,
           date: paso.date,
+          planned_date: paso.date,
           direction: paso.direction,
           origin:
             paso.direction === "SUBIDA" ? person.origin : person.destination,
@@ -807,6 +843,7 @@ function useStoreValue() {
         const generated = nuevos.map((fila) => ({
           id: crypto.randomUUID(),
           ...fila,
+          version: 1,
         }));
         setTrips((current) =>
           [...current, ...generated].sort((a, b) =>
@@ -814,20 +851,13 @@ function useStoreValue() {
           ),
         );
       } else if (nuevos.length) {
-        count = 0;
-        for (let index = 0; index < nuevos.length; index += 200) {
-          // ignoreDuplicates deja pasar lo que otra persona haya creado entre
-          // medio: nunca se pisa un viaje que ya existe.
-          const { data, error } = await db()
-            .from("trips")
-            .upsert(nuevos.slice(index, index + 200), {
-              onConflict: "person_id,date,direction",
-              ignoreDuplicates: true,
-            })
-            .select("id");
-          if (error) throw error;
-          count += data?.length ?? 0;
-        }
+        // Una transacción comprueba de nuevo las fechas y resuelve los choques
+        // con otra coordinadora sin pisar reservas ni guardar un lote parcial.
+        const { data, error } = await db().rpc("generate_trip_movements", {
+          p_rows: nuevos.map(({ person_id, date, direction }) => ({ person_id, date, direction })),
+        });
+        if (error) throw error;
+        count = Number(data);
         await reload();
       }
 
@@ -1193,6 +1223,7 @@ function useStoreValue() {
     nextTrip,
     generationPeople,
     generationPreview,
+    generationError,
     reservationRequired,
     toggleTheme,
     clearMessages,
