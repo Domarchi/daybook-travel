@@ -1,7 +1,7 @@
 // El vocabulario del dominio vive en ./types.ts; se reexporta para no cambiar
 // la interfaz pública de este módulo.
 import { TRIP_STATUSES } from "./types.ts";
-import type { Baggage, Shift, TripDirection, TripStatus } from "./types.ts";
+import type { Baggage, Person, Shift, Trip, TripDirection, TripStatus } from "./types.ts";
 export {
   SHIFTS,
   TRIP_DIRECTIONS,
@@ -48,6 +48,33 @@ export const TRIP_EXCEL_FIELDS = [
   "accion",
   "errorSincronizacion",
 ] as const;
+
+/** Conserva la identidad del movimiento al descargarlo, incluso si no tiene fecha planificada. */
+export function tripToExcelRow(trip: Trip, person?: Person) {
+  return {
+    daybookId: trip.id,
+    personaId: trip.person_id,
+    codigoPersona: person?.employee_code ?? "",
+    persona: person?.name ?? "",
+    fechaPlanificada: trip.planned_date ?? "",
+    fechaViaje: trip.date,
+    sentido: trip.direction === "SUBIDA" ? "Subida" : "Bajada",
+    origen: trip.origin,
+    destino: trip.destination,
+    horaRequerida: trip.requested_time?.slice(0, 5) ?? "",
+    equipaje: trip.baggage,
+    estado: trip.status,
+    pnr: trip.pnr,
+    vuelo: trip.flight,
+    montoClp: trip.amount ?? "",
+    observaciones: trip.notes,
+    motivoCambio: "",
+    version: trip.version ?? "",
+    actualizadoEn: trip.updated_at ?? "",
+    accion: "",
+    errorSincronizacion: "",
+  } satisfies Record<(typeof TRIP_EXCEL_FIELDS)[number], string | number>;
+}
 
 export type { Shift, TripDirection, TripStatus, Baggage } from "./types.ts";
 export type ExcelCell = unknown;

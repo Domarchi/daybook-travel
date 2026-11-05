@@ -19,6 +19,7 @@ export default function GenerateDialog() {
     generateUntil,
     generationPeople,
     generationPreview,
+    generationError,
     planificables,
     setGenerateSelection,
     setGenerateUntil,
@@ -79,17 +80,21 @@ export default function GenerateDialog() {
             className="grid gap-[2px] rounded-md border border-line bg-surface-soft p-[17px]"
             aria-live="polite"
           >
-            <span className="text-foreground-soft">
-              Se agregarán
-            </span>
-            <strong className="text-[27px] tracking-[-0.035em] text-foreground tabular-nums">
-              {generationPreview} viajes
-            </strong>
-            <small className="text-muted">
-              para {generationPeople.length}{" "}
-              {generationPeople.length === 1 ? "persona" : "personas"}. Los
-              viajes existentes no se duplican.
-            </small>
+            {generationError ? (
+              <p role="alert">{generationError}</p>
+            ) : (
+              <>
+                <span className="text-foreground-soft">Se agregarán</span>
+                <strong className="text-[27px] tracking-[-0.035em] text-foreground tabular-nums">
+                  {generationPreview} viajes
+                </strong>
+                <small className="text-muted">
+                  para {generationPeople.length}{" "}
+                  {generationPeople.length === 1 ? "persona" : "personas"}. Los
+                  viajes existentes no se duplican.
+                </small>
+              </>
+            )}
             <small>Se generan desde el inicio de cada persona hasta la fecha indicada, dentro de su vigencia. Los movimientos y reservas existentes no se reemplazan.</small>
             <small>Las personas sin turno se gestionan con Nuevo viaje y no se incluyen en esta planificación.</small>
           </div>
