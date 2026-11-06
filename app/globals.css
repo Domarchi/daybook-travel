@@ -158,25 +158,27 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f3efe4;
+  /* Fondo, superficies y bordes del tema claro de Daybook Ticket y Parte
+     Diario: lienzo gris frío y tarjetas blancas, en lugar del marfil de antes. */
+  --bg: #f7f8f9;
   --brand-ink-wash: #dad6c9;
   --brand-gold-wash: #efdcae;
   --brand-line-ink: #aaa79a;
   --brand-line-gold: #c69942;
   --dot: 17, 18, 15;
   --dot-alpha: 1;
-  --surface: #fffdf8;
-  --surface-raised: #fffdf8;
-  --surface-soft: #ebe6d9;
-  --surface-hover: #e3dece;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-soft: #eef0f1;
+  --surface-hover: #e9ebec;
   --text: #11120f;
-  --fg-soft: #4f5048;
+  --fg-soft: #34352d;
   /* Oscurecido desde #687482, que daba 4.36 sobre el fondo de pagina y no
      alcanzaba el minimo AA de 4.5. Este da 5.0 sobre el fondo y 5.4 sobre las
      tarjetas blancas. El tema oscuro ya iba holgado y no se toca. */
   --muted: #5f6058;
-  --border: #d7d1c2;
-  --border-strong: #c1baaa;
+  --border: #d9dbdc;
+  --border-strong: #bfc2c4;
   --action: #11120f;
   --action-hover: #292a25;
   --action-text: #f3efe4;
@@ -392,6 +394,166 @@ small {
 .shell > .app-content {
   position: relative;
   z-index: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Barra lateral, el mismo patrón que Daybook Ticket y Daybook Parte Diario:
+   un riel oscuro fijo de 232px con la marca arriba, la navegación en medio y
+   el usuario abajo. Es oscuro en los dos temas, igual que allá, así que los
+   colores van fijos y no siguen --text ni --surface.
+   --------------------------------------------------------------------------- */
+.shell > .app-content { margin-left: 232px; }
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: 232px;
+  background: #11120f;
+  color: #f3efe4;
+  border-right: 1px solid #45443b;
+}
+
+.sidebar-brand {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 108px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #45443b;
+}
+
+.sidebar-brand .daybook-logo { width: 168px; }
+.sidebar-brand .daybook-mark { display: none; }
+
+/* El riel es oscuro aunque el tema sea claro: siempre la variante para fondo oscuro. */
+:root[data-theme="light"] .sidebar .daybook-logo-on-dark,
+:root[data-theme="light"] .sidebar .daybook-mark-on-dark { display: block !important; }
+:root[data-theme="light"] .sidebar .daybook-logo-on-light,
+:root[data-theme="light"] .sidebar .daybook-mark-on-light { display: none !important; }
+
+.sidebar-caption {
+  margin-left: 5px;
+  color: #c2bdae;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.side-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px 0;
+  overflow: auto;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #aeb5af;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out);
+}
+
+.nav-link span { flex: 1; font-size: 13px; font-weight: 500; line-height: 1.4; }
+.nav-link:hover { background: rgba(255, 255, 255, 0.06); color: #f6f8f6; transform: translateX(2px); }
+.nav-link:active { transform: scale(0.98); }
+.nav-link.active { background: rgba(243, 239, 228, 0.14); color: #f3efe4; }
+.nav-link:focus-visible,
+.rail-button:focus-visible { outline: 2px solid #efc56e; outline-offset: 3px; }
+
+.sidebar-footer { flex: none; padding: 16px 12px; }
+
+.user-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.user-rail .avatar {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  background: #34352d;
+  color: #ded9cb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.user-rail-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.user-rail-text strong { overflow: hidden; color: #d8d7cf; font-size: 12px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
+.user-rail-text small { margin-top: 2px; color: #a9aaa0; font-size: 12px; line-height: 1.4; }
+
+.rail-button {
+  display: grid;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #aeb5af;
+  cursor: pointer;
+}
+
+.rail-button:hover { background: rgba(255, 255, 255, 0.06); color: #f6f8f6; }
+
+/* En pantallas angostas el riel pasa a ser una barra superior, como en Daybook. */
+@media (max-width: 820px) {
+  .shell > .app-content { margin-left: 0; }
+
+  .sidebar {
+    position: sticky;
+    inset: 0 0 auto 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    width: auto;
+    padding: 10px 14px;
+    border-right: 0;
+    border-bottom: 1px solid #45443b;
+  }
+
+  .sidebar-brand { min-height: 0; padding: 0; border-bottom: 0; }
+  .sidebar-brand .daybook-logo,
+  .sidebar-caption { display: none; }
+  .sidebar-brand .daybook-mark { display: block; width: 40px; }
+  .sidebar-footer { margin-left: auto; padding: 0; }
+  .user-rail { padding-top: 0; border-top: 0; }
+  .user-rail-text { display: none; }
+  .side-nav { order: 3; flex: 1 0 100%; flex-direction: row; gap: 4px; padding: 8px 0 0; overflow: visible; }
+  .nav-link { flex: 1; justify-content: center; gap: 6px; padding: 0 6px; }
+  .nav-link:hover { transform: none; }
+}
+
+@media (max-width: 430px) {
+  .nav-link svg { display: none; }
+  .nav-link span { text-align: center; font-size: 12px; }
 }
 
 @keyframes spin {

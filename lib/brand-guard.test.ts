@@ -50,7 +50,7 @@ const PUBLIC_SURFACE_FILES = [
   "components/login-view.tsx",
   "components/access-state.tsx",
   "components/workspace.tsx",
-  "components/top-bar.tsx",
+  "components/side-nav.tsx",
   "components/manifest-dialog.tsx",
   "lib/brand.ts",
   "lib/manifest-pdf.ts",

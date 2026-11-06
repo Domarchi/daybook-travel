@@ -9,7 +9,7 @@ import { LoadingView, LoginView } from "@/components/login-view";
 import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";
 import PeopleView from "@/components/people-view";
-import TopBar from "@/components/top-bar";
+import SideNav from "@/components/side-nav";
 import BrandBackground from "@/components/brand-background";
 import TripsView from "@/components/trips-view";
 import { useApp } from "../app/store";
@@ -61,9 +61,9 @@ export default function Workspace() {
         inert={modal ? true : undefined}
         aria-hidden={modal ? true : undefined}
       >
-        <TopBar />
+        <SideNav />
 
-        <main className="mx-auto min-h-[calc(100vh-70px)] w-[min(100%,1480px)] px-[clamp(18px,3vw,44px)] pt-7 pb-6 max-[820px]:pt-[22px] max-[760px]:px-[14px]">
+        <main className="mx-auto min-h-screen w-[min(100%,1480px)] px-[clamp(18px,3vw,44px)] pt-7 pb-6 max-[820px]:pt-[22px] max-[760px]:px-[14px]">
           {demo && (
             <div className="mb-4 border-l-2 border-line-strong pl-3 text-[13px] text-foreground-soft">
               <span>
