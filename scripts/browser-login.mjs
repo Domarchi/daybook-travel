@@ -488,7 +488,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     assertNear(metrics.mark.height, 56, 0.5, `alto de isotipo ${label}`);
     assertNear(metrics.card.width, mobile ? 354 : 430, 0.5, `tarjeta ${label}`);
     // Enlace de 44 px; sustituye el margen anterior de 16 px: incremento neto de 28 px.
-    assertNear(metrics.card.height, mobile ? 563.27 : 575.77, 1, `alto de tarjeta ${label}`);
+    assertNear(metrics.card.height, mobile ? 569.27 : 581.77, 1, `alto de tarjeta ${label}`);
     assert.equal(metrics.titleText, "Bienvenido a Daybook Travel");
     assert.equal(metrics.title.fontSize, "28px");
     assert.equal(metrics.copy, "Usa el mismo correo y contraseña de Daybook Asistencia.");

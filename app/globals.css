@@ -329,7 +329,7 @@ small {
 
 .brand-identity .daybook-logo { width: 100%; }
 
-.login-header-identity { width: 168px; }
+.login-header-identity { width: 168px; justify-items: start; }
 
 .login-card-mark {
   display: inline-block;
