@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from 'react';
-import BrandBackground from '@/components/brand-background';
 import BrandIdentity from '@/components/ui/brand-identity';
 import BrandMark from '@/components/ui/brand-mark';
 import ThemeToggle from '@/components/ui/theme-toggle';
@@ -19,7 +18,6 @@ export default function PasswordFrame({ title, children }: { title: string; chil
   }
   return (
     <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">
-      <BrandBackground />
       <header className="relative z-[1] flex min-h-[92px] items-center justify-between gap-5 border-b border-line py-3">
         <BrandIdentity className="login-header-identity" />
         <ThemeToggle theme={theme} onToggle={toggleTheme} compact />

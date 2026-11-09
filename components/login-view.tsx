@@ -2,7 +2,6 @@
 
 import { FormEvent } from "react";
 import { ArrowUpRight } from "lucide-react";
-import BrandBackground from "@/components/brand-background";
 import BrandIdentity from "@/components/ui/brand-identity";
 import BrandMark from "@/components/ui/brand-mark";
 import ThemeToggle from "@/components/ui/theme-toggle";
@@ -23,7 +22,6 @@ export function LoadingView() {
       className="relative isolate flex min-h-screen items-center justify-center gap-3 text-muted"
       aria-live="polite"
     >
-      <BrandBackground />
       <LoadingMark className="relative z-[1]" />
       <p className="relative z-[1]">Cargando Daybook Travel…</p>
     </main>

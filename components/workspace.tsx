@@ -10,7 +10,6 @@ import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";
 import PeopleView from "@/components/people-view";
 import SideNav from "@/components/side-nav";
-import BrandBackground from "@/components/brand-background";
 import TripsView from "@/components/trips-view";
 import { useApp } from "../app/store";
 
@@ -55,7 +54,6 @@ export default function Workspace() {
 
   return (
     <div className="shell">
-      <BrandBackground />
       <div
         className="app-content"
         inert={modal ? true : undefined}

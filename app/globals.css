@@ -107,10 +107,6 @@
   /* Superficies de grafito, marfil y dorado. Los colores operativos de turnos
      y estados conservan sus significados. */
   --bg: #11120f;
-  --brand-ink-wash: #24251f;
-  --brand-gold-wash: #5d4314;
-  --brand-line-ink: #48483f;
-  --brand-line-gold: #8d681e;
   /* Color de los puntos del fondo de la pantalla de entrada, en componentes
      RGB sueltos: dot-field.tsx los lee y les pone su propia opacidad. */
   --dot: 230, 230, 230;
@@ -161,10 +157,6 @@
   /* Fondo, superficies y bordes del tema claro de Daybook Ticket y Parte
      Diario: lienzo gris frío y tarjetas blancas, en lugar del marfil de antes. */
   --bg: #f7f8f9;
-  --brand-ink-wash: #dad6c9;
-  --brand-gold-wash: #efdcae;
-  --brand-line-ink: #aaa79a;
-  --brand-line-gold: #c69942;
   --dot: 17, 18, 15;
   --dot-alpha: 1;
   --surface: #ffffff;
@@ -346,40 +338,11 @@ small {
   white-space: nowrap;
 }
 
-.brand-background {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.brand-background svg {
-  position: absolute;
-  width: clamp(380px, 36vw, 560px);
-  height: auto;
-}
-
-.brand-background-top { top: -110px; right: -100px; opacity: 0.28; }
-.brand-background-bottom { bottom: -80px; left: -160px; opacity: 0.55; }
-
-:root[data-theme="light"] .brand-background-top { opacity: 0.65; }
-:root[data-theme="light"] .brand-background-bottom { opacity: 0.85; }
-:root[data-theme="light"] .brand-background-bottom circle { stroke-width: 1.5; }
-
-.brand-shape-ink { fill: var(--brand-ink-wash); }
-.brand-shape-gold { fill: var(--brand-gold-wash); }
-.brand-line-ink { fill: none; stroke: var(--brand-line-ink); stroke-width: 1; }
-.brand-line-gold { fill: none; stroke: var(--brand-line-gold); stroke-width: 1; }
-
 @media (max-width: 430px) {
   .brand-identity { width: 42px; gap: 0; }
   .brand-identity .daybook-logo,
   .brand-identity-caption { display: none; }
   .brand-identity .daybook-mark { display: block; }
-  .brand-background-top { top: -80px; right: -180px; }
-  .brand-background-bottom { bottom: -40px; left: -180px; }
-  :root[data-theme="light"] .brand-background-top { top: -35px; right: -140px; }
 
   .login-header-identity { width: 168px; gap: 5px; }
   .login-header-identity .daybook-logo { display: inline-block; }
