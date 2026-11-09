@@ -25,12 +25,13 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 |---|---|
 | `app/page.tsx` | 14 líneas. Enchufa `AppProvider` con `Workspace`, nada más. |
 | `app/store.tsx` | **Todo el estado**: las variables, los efectos y las funciones que cambian datos. Cualquier pieza lo pide con `useApp()`; no se pasan props entre vistas. |
-| `app/components/workspace.tsx` | El armazón: decide qué pantalla se ve y ordena las piezas. |
-| `app/components/*.tsx` | Una pieza por archivo: `login-view`, `top-bar`, `page-head`, `access-state`, `agenda-panel`, `people-view`, `trips-view`, `modal-layer` y los cuatro formularios (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`), más las hojas `agenda-view`, `empty-state`, `dialog-actions`, `theme-toggle`. |
+| `components/workspace.tsx` | El armazón: decide qué pantalla se ve y ordena las piezas. |
+| `components/*.tsx` | Pantallas y diálogos, una pieza por archivo: `login-view`, `side-nav` (la barra lateral), `access-state`, `agenda-view`, `people-view`, `trips-view`, `costs-view`, `modal-layer` y los diálogos (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`, `manifest-dialog`). |
+| `components/ui/*.tsx` | Primitivas reutilizables: botón, campos, pastillas, tabla de datos, encabezado de página, partes de diálogo, marca (`brand-*`). |
 | `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
 | `app/year-view.tsx` | Vista anual de calor. |
-| `app/globals.css` | ~3.000 líneas. Tokens en `:root` y `:root[data-theme="light"]`. |
+| `app/globals.css` | ~630 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
@@ -285,7 +286,7 @@ rota. Nada de reescritura de una sentada.
 ## Convenciones
 
 - Español en UI, nombres de dominio y comentarios.
-- Estilos solo en `app/globals.css` con los tokens existentes. Sin Tailwind ni librerías de UI.
+- Estilos con Tailwind 4 y los tokens existentes (`bg-surface`, nunca la paleta de Tailwind). Lo que Tailwind no cubre vive en `app/globals.css`, dentro de `@layer fcc`. Sin otras librerías de UI.
 - Iconos: `lucide-react`, ya instalado.
 - Al cambiar el esquema: nueva migración numerada en `supabase/`, nunca editar una existente.
 - Cambios en lógica de fechas requieren test en `lib/*.test.ts`.
@@ -295,9 +296,10 @@ rota. Nada de reescritura de una sentada.
 No las deshagas sin medir de nuevo; salieron de mirar la aplicación en el navegador, no de
 opinión.
 
-- **Contraste del tema claro.** `--text-soft` y `--muted` estaban en 4.36 sobre el fondo, bajo
-  el mínimo AA de 4.5. Se oscurecieron a `#485360` y `#5f6b78` (5.0 y 5.4). El tema oscuro ya
-  iba holgado y no se toca.
+- **Contraste del tema claro.** Con la paleta de Daybook los valores actuales son `--fg-soft`
+  `#34352d` (11.7 sobre `#f7f8f9`) y `--muted` `#5f6058` (6.0), los dos sobre el mínimo AA de 4.5.
+  Antes de la paleta de Daybook estaban en 4.36 y se habían oscurecido; si se vuelve a tocar un
+  gris, medir de nuevo. El tema oscuro va holgado (8.5 el más bajo).
 - **Encabezado compacto.** El kicker (`.section-kicker`) está oculto a propósito: repetía lo
   que ya dicen el título y la pestaña activa, en 126px. Con el cambio el encabezado mide 51px
   y se ve una fila más de datos sin desplazar. Si vuelves a mostrarlo, di por qué.
@@ -327,10 +329,31 @@ opinión.
   no se tocaron: ahí el color informa y neutralizarlo sería borrar información. El velo de los
   diálogos también se neutralizó. Si alguien vuelve a meter un azul en los grises, es a
   contrapelo de una decisión, no un olvido.
-- **La pantalla de entrada es una sola columna centrada sobre un campo de puntos**
-  (`app/components/dot-field.tsx`). Se quitó el titular "Tu equipo viaja. La obra continúa."
-  y la tira de rutas: lo pidió Joaquín, quien entra ahí viene a entrar, no a que le expliquen
-  el producto.
+- **La pantalla de entrada sigue el patrón de las apps hermanas** (Daybook Ticket y Parte
+  Diario): una tarjeta centrada, el rótulo "Acceso seguro" en dorado, el botón de ancho
+  completo con la flecha al final y el enlace de recuperación centrado. Sin fondo decorativo.
+  Se quitó el titular "Tu equipo viaja. La obra continúa." y la tira de rutas: lo pidió
+  Joaquín, quien entra ahí viene a entrar, no a que le expliquen el producto.
+
+  **Cambiar el login obliga a volver a medir.** Tres cosas lo tienen fijado a propósito:
+  `lib/login-view.test.ts` (reglas de CSS por expresión regular, por ejemplo
+  `.login-header-identity` con `width: 168px`), `scripts/browser-login.mjs` (alto de la tarjeta
+  581,77 px en escritorio y 569,27 en celular, y el orden del tabulador) y el arnés de
+  `scripts/browser-recovery*.mjs` (248 mutantes del orden del tabulador). Por eso el botón de
+  mostrar contraseña quedó fuera: agregarlo exige reescribir ese arnés. Si se quiere, es un
+  trabajo aparte.
+
+- **Barra lateral y tema claro de Daybook.** La barra superior se reemplazó por el riel lateral
+  oscuro de Daybook Ticket y Parte Diario (`components/side-nav.tsx`): 232 px fijos, marca,
+  navegación y, abajo, el usuario con el cambio de tema y la salida. Por debajo de 820 px pasa a
+  una franja superior y por debajo de 430 px esconde los iconos. El tema claro usa el lienzo gris
+  frío (`#f7f8f9`) con tarjetas blancas y los bordes de Daybook.
+- **No hay fondo de círculos.** `BrandBackground` (los círculos de las esquinas) se eliminó de
+  toda la aplicación, la pantalla de carga y las de contraseña; no hay que volver a ponerlo.
+- **El campo de puntos ya no se usa en ninguna pantalla.** `components/dot-field.tsx` y sus
+  tokens `--dot` y `--dot-alpha` quedan sin importar desde que el login perdió el fondo. Es código muerto:
+  borrarlo es limpieza pendiente. Las dos notas siguientes explican cómo se hizo, por si se
+  retoma.
 - **El campo de puntos está escrito con canvas normal, a propósito.** La referencia que lo
   inspiró (21st.dev) usa three.js, @react-three/fiber, framer-motion y Tailwind. Traer una
   librería 3D para dibujar cuadraditos en un proyecto de siete dependencias no se justifica.
@@ -417,6 +440,22 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
   mides el DOM para comparar antes y después, mide `.shell`, no `document.body`.
 
 ## Detalles a corregir cuando toque
+
+- **El CI corre dos veces por cada cambio** (`.github/workflows/ci.yml` escucha `push` y
+  `pull_request`). El `verify` del `push` es el que falla de forma intermitente, casi siempre con
+  "Chrome no expuso CDP" en el paso del navegador: es del servidor de GitHub, no del código. Se
+  relanza con `gh run rerun <id> --failed`. Conviene dejar un solo disparador.
+- **La prueba B2 de PostgreSQL esperaba mal el arranque.** La imagen de Docker levanta primero un
+  servidor temporal solo por socket y luego el definitivo; ahora `waitForPostgres` exige TCP y
+  después el socket (PR #13). Si reaparece, mirar ahí antes de relanzar a ciegas.
+- **Cerrar `npm run dev` antes de correr `npm test`.** Una prueba arranca su propio `next dev` y
+  choca con el que ya está abierto ("Another next dev server is already running"). Para cerrarlo,
+  matar solo al que escucha (`kill $(lsof -ti :3111 -sTCP:LISTEN)`); `lsof -ti` a secas también
+  lista a los clientes conectados, y `pkill -f` puede matar tu propia terminal.
+- **Dar de alta a alguien son dos pasos:** crear su usuario en Supabase Auth y agregar su correo a
+  `public.members`, que se hace desde la pantalla **Accesos** (solo administradores). Sin el segundo,
+  inicia sesión pero ve "Tu cuenta todavía no está habilitada"; sin el primero, no puede iniciar
+  sesión. La pantalla no crea cuentas de Auth.
 
 - `package.json` dice `"name": "relevo"` y el proyecto en Vercel también. Se confunde con otro
   proyecto distinto llamado Relevo. Conviene renombrar a `fcc-travel`.
