@@ -40,7 +40,6 @@ const PUBLIC_SURFACE_FILES = [
   "app/globals.css",
   "app/store.tsx",
   "app/excel-sync-panel.tsx",
-  "components/brand-background.tsx",
   "components/ui/brand-logo.tsx",
   "components/ui/brand-mark.tsx",
   "components/ui/brand-identity.tsx",
