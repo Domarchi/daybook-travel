@@ -33,6 +33,10 @@ const TONO_POR_ESTADO: Record<string, Tono> = {
   Completado: "bien",
   Anulado: "malo",
   "No presentado": "malo",
+  // Accesos: la pastilla no es de un viaje, pero el mapa es el mismo.
+  Activo: "bien",
+  Desactivado: "malo",
+  Administrador: "aviso",
 };
 
 export function StatusPill({

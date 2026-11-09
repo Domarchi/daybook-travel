@@ -54,6 +54,7 @@ function useStoreValue() {
   const [email, setEmail] = useState<string | null>(null);
   const [demo, setDemo] = useState(false);
   const [accessStatus, setAccessStatus] = useState<AccessStatus>("checking");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [view, setView] = useState("Agenda");
@@ -185,6 +186,10 @@ function useStoreValue() {
           Number(ajustes.data.purchase_window_days) || VENTANA_POR_OMISION,
         );
       }
+      // El rol decide si aparece "Accesos". Si la función todavía no existe en
+      // la base (la migración 009 sin aplicar) simplemente no se es administrador.
+      const admin = await db().rpc("is_admin");
+      setIsAdmin(!admin.error && admin.data === true);
       setAccessStatus("allowed");
     } catch {
       setAccessStatus((current) => (current === "allowed" ? current : "error"));
@@ -205,6 +210,15 @@ function useStoreValue() {
     const timer = setInterval(() => void reload(), 60_000);
     return () => clearInterval(timer);
   }, [email, demo]);
+
+  // Al cerrar sesión, o si se pierde el rol (se recalcula cada minuto junto con
+  // los datos), "Accesos" deja de existir y no se puede quedar la pantalla abierta.
+  useEffect(() => {
+    if (!email || demo) setIsAdmin(false);
+  }, [email, demo]);
+  useEffect(() => {
+    if (!isAdmin) setView((actual) => (actual === "Accesos" ? "Agenda" : actual));
+  }, [isAdmin]);
 
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person])),
@@ -1100,6 +1114,7 @@ function useStoreValue() {
     setDemo,
     accessStatus,
     setAccessStatus,
+    isAdmin,
     people,
     setPeople,
     trips,

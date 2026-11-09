@@ -24,6 +24,10 @@ const TITULOS: Record<string, { titulo: string; bajada: string }> = {
     bajada:
       "Consulta montos registrados y distingue reservas pendientes de planes sin precio.",
   },
+  Accesos: {
+    titulo: "Accesos",
+    bajada: "Quién puede entrar a Daybook Travel y con qué rol.",
+  },
   Viajes: {
     titulo: "Viajes y solicitudes",
     bajada: "Prepara solicitudes y completa cada reserva.",
@@ -44,7 +48,7 @@ export default function PageHead() {
           {bajada}
         </p>
       </div>
-      {view !== "Costos" && (
+      {view !== "Costos" && view !== "Accesos" && (
         <Button
           type="button"
           variant="primary"

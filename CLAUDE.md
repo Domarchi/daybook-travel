@@ -27,6 +27,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/store.tsx` | **Todo el estado**: las variables, los efectos y las funciones que cambian datos. Cualquier pieza lo pide con `useApp()`; no se pasan props entre vistas. |
 | `app/components/workspace.tsx` | El armazón: decide qué pantalla se ve y ordena las piezas. |
 | `app/components/*.tsx` | Una pieza por archivo: `login-view`, `top-bar`, `page-head`, `access-state`, `agenda-panel`, `people-view`, `trips-view`, `modal-layer` y los cuatro formularios (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`), más las hojas `agenda-view`, `empty-state`, `dialog-actions`, `theme-toggle`. |
+| `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
 | `app/year-view.tsx` | Vista anual de calor. |
 | `app/globals.css` | ~3.000 líneas. Tokens en `:root` y `:root[data-theme="light"]`. |
@@ -53,6 +54,13 @@ Todo esto está implementado en SQL y es deliberado:
 6. **Un viaje debe caer dentro de la vigencia de una persona activa.**
 7. **Acceso por lista blanca.** Solo entran los correos en `public.members` (función `is_member()`).
    Las policies RLS dependen de eso. Si no hay correos, no entra nadie: falla cerrado, así debe ser.
+   **Se administra desde la pantalla Accesos** (migración 009), visible solo para administradores.
+   `members` tiene `role` (`admin`/`member`) y `active`: quitar un acceso lo **desactiva**, nunca lo
+   borra, y `is_member()` ya cuenta solo a los activos. Todo pasa por funciones SQL que exigen
+   `is_admin()` (`list_members`, `add_member`, `set_member_active`, `set_member_role`); la tabla
+   sigue sin permisos para el navegador. Nadie puede quitarse su propio acceso ni su rol de
+   administrador, y el historial de accesos solo lo lee un administrador. La cuenta de Auth se crea
+   fuera (es la de Daybook Asistencia): aquí solo se decide quién de esas cuentas entra a Travel.
 
 Antes de tocar `supabase/*.sql`: las migraciones ya aplicadas en producción **no se editan**,
 se agrega una nueva con el número siguiente.
