@@ -16,8 +16,10 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 - Cualquiera con la llave pública puede intentar consultar; lo que lo detiene son las políticas RLS.
 - Las validaciones de negocio están en triggers de Postgres, no en React. Si una regla debe
   cumplirse siempre, va en SQL.
-- No hay dónde correr tareas programadas ni llamadas con credenciales secretas (Duffel, correos).
-  Para eso habría que agregar Route Handlers o Server Actions de Next, que hoy no existen.
+- Lo que necesita credenciales secretas o correr solo vive en **un único Route Handler**:
+  `app/api/cron/alertas-urgentes/route.ts` (los avisos por correo, ver más abajo). Aparte del
+  demo interno de Qwen es lo único que corre en servidor; el resto de la aplicación sigue
+  hablando directo con Supabase desde el navegador.
 
 ## Mapa del código
 
@@ -40,6 +42,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |
+| `app/api/cron/alertas-urgentes/route.ts` | El cron de los avisos por correo. Delgado a propósito: la lógica está en `lib/urgent-alerts-handler.ts` (autorización, configuración, respuesta), `lib/urgent-alerts.ts` (qué viajes y qué dice el correo) y `lib/send-mail.ts` (Resend). Todo se prueba sin red. |
 | `supabase/00*.sql` | Migraciones, se aplican **en orden numérico**. Aquí vive la verdad del sistema. |
 
 ## Reglas que NO hay que romper
@@ -174,6 +177,28 @@ se agrega una nueva con el número siguiente.
    - El efecto que revisa la sesión atrapa ese error: sin variables se ve la pantalla de
      entrada con el motivo, no una página en blanco, y la demostración entra igual.
    - Todas las llamadas pasaron de `db.from(...)` a `db().from(...)`.
+
+9. **Avisos diarios de viajes por comprar. HECHO** (migración 012, rama `alertas-urgentes`).
+   Cada día hábil, el cron de Vercel (`vercel.json`, `0 11 * * 1-5` UTC: las 08:00 en horario de
+   verano de Chile y las 07:00 en el de invierno) llama a `/api/cron/alertas-urgentes` y, si hay
+   viajes **sin código de reserva** vencidos o urgentes, manda un correo a la lista de la obra.
+
+   - **Qué cuenta como urgente o vencido lo decide `lib/purchase.ts`**, el mismo código que pinta la
+     agenda: correo y pantalla no pueden discrepar. La base solo acota la consulta.
+   - **El cron no pasa por las políticas de las tablas.** Llama a una sola función,
+     `purchase_alert_data()`, que ejecuta únicamente `service_role` (ni el navegador con sesión ni
+     sin ella). Devuelve lo mínimo para armar el aviso y no escribe nada.
+   - **Falla cerrado.** Sin `CRON_SECRET` responde 503; con otro secreto, 401; sin la configuración
+     del correo no envía ni inventa un remitente. Las respuestas del cron solo traen cantidades:
+     nunca nombres ni correos. Sin viajes por comprar no manda nada.
+   - **Para probarlo sin enviar:** `GET /api/cron/alertas-urgentes?simular=1` con
+     `Authorization: Bearer $CRON_SECRET` devuelve el asunto y el texto sin mandar el correo.
+   - **Variables en Vercel** (las pone una persona; nunca en el repositorio ni con `NEXT_PUBLIC_`):
+     `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` (Vercel lo manda solo en el cron), `RESEND_API_KEY`,
+     `ALERT_FROM` (el dominio tiene que estar verificado en Resend; sin dominio verificado Resend solo
+     envía al correo de la cuenta) y `ALERT_RECIPIENTS` (correos separados por coma). `APP_URL` es
+     opcional. Hasta que estén puestas el cron responde 503 cada mañana: es lo esperado.
+   - Los destinatarios son una lista aparte, no la de Accesos, a pedido de la obra.
 
 ## Reconstrucción en Tailwind (en curso, rama `tailwind`)
 
