@@ -1,7 +1,11 @@
 name: CI
 
+# Un solo disparador por cambio: las ramas se verifican como pull request y
+# `main` después de cada merge. Con `push:` a secas todo corría dos veces y el
+# `verify` del push era el que fallaba de forma intermitente.
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
