@@ -247,18 +247,20 @@ async function touch(cdp, selector) {
 
 const stops = {
   theme: 'button[aria-label^="Activar modo"]', email: 'input[name="email"]',
-  password: 'input[name="password"]', login: 'form button',
+  password: 'input[name="password"]', showPassword: 'input[data-show-password]', login: 'form button',
   request: '[data-recovery-action]', demo: '[data-demo-action]',
   submit: 'form button[type="submit"]', newPassword: 'input[name="new-password"]',
   confirmation: 'input[name="confirm-password"]', newLink: 'a[href="/recuperar-clave"]',
   back: '[data-back-login]', retry: '[data-retry-signout]',
 };
-const loginOrder = ['theme','email','password','login','request','demo'];
+const loginOrder = ['theme','email','password','showPassword','login','request','demo'];
 const requestOrder = ['theme','email','submit','back'];
 const cooldownOrder = ['theme','email','back'];
 const updateOrder = ['theme','newPassword','confirmation','submit','back'];
 const invalidOrder = ['theme','newLink','back'];
 const retryOrder = ['theme','retry'];
+// Los mutantes de `browser-recovery-tab-mutants.mjs` se calculan de estos órdenes.
+export const orders = { loginOrder, requestOrder, cooldownOrder, updateOrder, invalidOrder, retryOrder };
 
 // El título es un punto de partida espacial, no una acción del producto.
 // Mouse/touch nativos sitúan el inicio secuencial sin asignar foco por JavaScript.
@@ -627,6 +629,7 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
     const loginToRequest = async () => {
       await tabTo(cdp,stops.email);
       await tabTo(cdp,stops.password);
+      await tabTo(cdp,stops.showPassword);
       await tabTo(cdp,stops.login);
       await activate(cdp,'[data-recovery-action]');
     };
@@ -660,6 +663,7 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
         const beforeLogin=counts.login;
         await fill(cdp,stops.email,fixtureUser.email);
         await fill(cdp,stops.password,expectedPassword);
+        await tabTo(cdp,stops.showPassword); // la casilla va entre la contraseña y entrar
         await activate(cdp,'form button');
         await waitUntil(cdp,`document.querySelector('[role="alert"]')?.textContent.includes('No pudimos iniciar') && !document.querySelector('form button')?.disabled`,'login rechazado listo');
         assert.equal(counts.login,beforeLogin+1,'T1 login rechazado ejercita SDK');
@@ -877,6 +881,7 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
           const beforeLogin=counts.login, beforeMembership=counts.membership;
           await fill(cdp,'input[name="email"]',fixtureUser.email);
           await fill(cdp,'input[name="password"]',expectedPassword);
+          await tabTo(cdp,stops.showPassword); // la casilla va entre la contraseña y entrar
           await activate(cdp,'form button');
           await waitUntil(cdp,`document.body.innerText.includes('Tu cuenta todavía no está habilitada')`,'identidad recuperada sin membresía').catch(async error => {
             const state=await cdp.evaluate(`({login:!!document.querySelector('[data-login-card]'),checking:document.body.innerText.includes('Comprobando tu acceso'),denied:document.body.innerText.includes('no está habilitada'),loadError:document.body.innerText.includes('No pudimos comprobar'),loginError:document.body.innerText.includes('No pudimos iniciar')})`);
@@ -906,6 +911,7 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
       const beforeLogin=counts.login, beforeMembership=counts.membership;
       await fill(cdp,stops.email,fixtureUser.email);
       await fill(cdp,stops.password,expectedPassword);
+      await tabTo(cdp,stops.showPassword); // la casilla va entre la contraseña y entrar
       await activate(cdp,'form button');
       await waitUntil(cdp,`document.body.innerText.includes('Tu cuenta todavía no está habilitada')`,'T2 sesión ordinaria con membresía rechazada');
       assert.equal(counts.login,beforeLogin+1,'T2 sesión ordinaria por login HTTP real');

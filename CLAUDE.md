@@ -356,13 +356,22 @@ opinión.
   Se quitó el titular "Tu equipo viaja. La obra continúa." y la tira de rutas: lo pidió
   Joaquín, quien entra ahí viene a entrar, no a que le expliquen el producto.
 
-  **Cambiar el login obliga a volver a medir.** Tres cosas lo tienen fijado a propósito:
-  `lib/login-view.test.ts` (reglas de CSS por expresión regular, por ejemplo
-  `.login-header-identity` con `width: 168px`), `scripts/browser-login.mjs` (alto de la tarjeta
-  581,77 px en escritorio y 569,27 en celular, y el orden del tabulador) y el arnés de
-  `scripts/browser-recovery*.mjs` (248 mutantes del orden del tabulador). Por eso el botón de
-  mostrar contraseña quedó fuera: agregarlo exige reescribir ese arnés. Si se quiere, es un
-  trabajo aparte.
+  **Mostrar contraseña.** Es una casilla (`input[data-show-password]`) justo después del campo,
+  no un icono dentro de él: así `form button` sigue siendo el botón de entrar y teclado y lectores
+  de pantalla la usan sin ayuda. El orden del tabulador es tema → correo → contraseña → casilla →
+  entrar → recuperación → demostración. Para que cupiera sin scroll en 390×844 y en 1440×900 se
+  recortaron márgenes del login.
+
+  **Cambiar el login sigue exigiendo volver a medir, pero ya no hay que reescribir las pruebas.**
+  Se aflojaron a propósito: `lib/login-view.test.ts` ya no lee el CSS con expresiones regulares ni
+  fija clases exactas (los tamaños del logo y del isotipo los mide el navegador), y el contrato
+  del teclado se comprueba por **orden relativo**, así que un control nuevo entre medio no lo
+  rompe. `scripts/browser-login.mjs` acepta una tarjeta de 450 a 700 px en vez de 581,77 ± 1, y
+  sigue exigiendo que no haya desbordamiento. El arnés `scripts/browser-recovery*.mjs` calcula sus
+  mutantes del orden del tabulador desde `orders` (exportado por `browser-recovery.mjs`), en vez de
+  un total fijo de 248. Al agregar un control al login hay que: añadirlo a `stops` y a `loginOrder`,
+  y pasar por él con `tabTo` donde el arnés teclea correo y contraseña (`fill` y `activate` avanzan
+  de a una parada).
 
 - **Barra lateral y tema claro de Daybook.** La barra superior se reemplazó por el riel lateral
   oscuro de Daybook Ticket y Parte Diario (`components/side-nav.tsx`): 232 px fijos, marca,
