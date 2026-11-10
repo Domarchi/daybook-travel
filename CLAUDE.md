@@ -31,8 +31,9 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `components/document-types-panel.tsx` | El recuadro «Documentos exigidos» de Personas. Lo ven todos; solo un administrador agrega o desactiva tipos. |
 | `lib/accreditation.ts` | **La acreditación.** `motivosDeAcreditacion(persona, fecha, tipos, documentos)` dice qué documentos faltan o vencen antes de un viaje. Sin React ni Supabase. 9 pruebas, más `accreditation-postgres.test.ts` contra la migración 010. |
-| `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
-| `app/year-view.tsx` | Vista anual de calor. |
+| `app/excel-sync-panel.tsx` | La pantalla del importador Excel en 3 pasos (Preparar → Revisar → Aplicar), 818 líneas. Bien hecho, no romper. Sus cuentas están en `lib/excel-preview.ts` (leer hojas, comparar, armar la vista previa; 10 pruebas) y sus piezas chicas en `app/excel-sync-parts.tsx`. |
+| `app/year-view.tsx` | El calendario de la Agenda (vista Mes y Semana). El panel del día seleccionado está en `app/year-day-detail.tsx`. |
+| `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
 | `app/globals.css` | ~630 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |

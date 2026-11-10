@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -14,17 +14,29 @@ import {
 } from "lucide-react";
 import { db } from "../lib/supabase";
 import {
-  PERSON_EXCEL_FIELDS,
-  TRIP_EXCEL_FIELDS,
   buildExcelSyncPayload,
   issuePublicoAlLeerExcel,
-  mensajePublicoExcel,
-  type ExcelRow,
   type ExcelSyncPayload,
   type ExcelSyncResult,
-  type ExcelSyncValidationError,
 } from "../lib/excel-sync";
 import type { Person, Trip } from "../lib/types";
+import {
+  MAX_FILE_BYTES,
+  MAX_ROWS_PER_SHEET,
+  actionLabel,
+  buildPreviewLines,
+  getServerIssues,
+  normalizeName,
+  issueToLocal,
+  peopleHeaders,
+  resultCount,
+  rowsToRecords,
+  tripHeaders,
+  type LocalIssue,
+  type Phase,
+  type PreviewLine,
+} from "../lib/excel-preview";
+import { Paso, TARJETA, TARJETA_NUMERO, TONOS, Tarjeta } from "./excel-sync-parts";
 import { Button } from "@/components/ui/button";
 import { SectionKicker } from "@/components/ui/section-kicker";
 import { TableWrap } from "@/components/ui/table-wrap";
@@ -44,18 +56,6 @@ const TITULO = "text-[18px] tracking-[-0.025em] text-foreground";
 
 // Las tres cajitas de aviso: seguridad, mensaje suelto y nota de demostracion.
 const AVISO = "rounded-sm border border-line bg-surface-soft text-[12px] text-foreground-soft";
-
-// Las tarjetas de conteo, en el resumen y en la pantalla final.
-const TARJETA = "grid min-h-[76px] content-center gap-px rounded-sm border border-line bg-surface px-3 py-[10px]";
-const TARJETA_NUMERO = "text-[22px] leading-[1.1] tracking-[-0.03em]";
-
-// Los tonos de las tarjetas y de las pastillas de accion. El gris es el estado
-// en reposo: una cuenta en cero no se enciende.
-const TONOS = {
-  new: "border-[color-mix(in_srgb,var(--success)_38%,var(--border))] bg-[color-mix(in_srgb,var(--success)_9%,var(--surface))] text-success [&>strong]:text-inherit",
-  change: "border-[color-mix(in_srgb,var(--warning)_38%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_9%,var(--surface))] text-warning [&>strong]:text-inherit",
-  conflict: "border-[color-mix(in_srgb,var(--danger)_40%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_9%,var(--surface))] text-danger [&>strong]:text-inherit",
-};
 
 // Las celdas de la tabla de revision. En tarjeta esta tabla NO se parte en dos
 // columnas como la de Viajes: cada dato va en su propia linea, con el titulo
@@ -84,176 +84,6 @@ type Props = {
   onBusyChange?: (busy: boolean) => void;
   onApplied: (message: string) => Promise<void> | void;
 };
-
-type ImportRow = ExcelRow & { row_number: number };
-type Phase = "idle" | "reading" | "preview" | "applying" | "done";
-type PreviewAction = "new" | "change" | "unchanged" | "conflict";
-
-type PreviewLine = {
-  entity: "Persona" | "Viaje";
-  row: number;
-  action: PreviewAction;
-  title: string;
-  detail: string;
-};
-
-type LocalIssue = {
-  entity: "Persona" | "Viaje" | "Archivo";
-  row?: number;
-  message: string;
-};
-
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_ROWS_PER_SHEET = 5_000;
-
-const peopleHeaders = [...PERSON_EXCEL_FIELDS];
-const tripHeaders = [...TRIP_EXCEL_FIELDS];
-
-const personCompareKeys = [
-  "employee_code",
-  "name",
-  "origin",
-  "destination",
-  "shift",
-  "start_date",
-  "end_date",
-  "baggage",
-  "active",
-];
-
-const tripCompareKeys = [
-  "date",
-  "origin",
-  "destination",
-  "requested_time",
-  "baggage",
-  "status",
-  "pnr",
-  "flight",
-  "amount",
-  "notes",
-];
-
-const normalizeName = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es-CL")
-    .replace(/[^a-z0-9]/g, "");
-
-const displayValue = (value: unknown) => {
-  if (value === null || value === undefined) return "";
-  if (value instanceof Date) {
-    const year = value.getFullYear();
-    const month = String(value.getMonth() + 1).padStart(2, "0");
-    const day = String(value.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-  return value;
-};
-
-function rowsToRecords(
-  rows: unknown[][],
-  sheet: string,
-  expectedHeaders: readonly string[],
-): ImportRow[] {
-  if (!rows.length) return [];
-  const expected = new Set(expectedHeaders.map(normalizeName));
-  const candidates = rows.slice(0, 10).map((candidate, index) => ({
-    index,
-    headers: candidate.map((cell) => String(displayValue(cell)).trim()),
-    score: candidate.reduce<number>(
-      (total, cell) =>
-        total +
-        (expected.has(normalizeName(String(displayValue(cell)))) ? 1 : 0),
-      0,
-    ),
-  }));
-  const headerRow = candidates.reduce(
-    (best, candidate) => (candidate.score > best.score ? candidate : best),
-    { index: -1, headers: [] as string[], score: 0 },
-  );
-  if (headerRow.score < 3) {
-    throw new Error(
-      `No encontramos los encabezados de ${sheet} dentro de las primeras 10 filas. Usa el libro descargado desde Daybook Travel.`,
-    );
-  }
-  const { headers } = headerRow;
-  const duplicate = headers.find(
-    (header, index) =>
-      header &&
-      headers.findIndex(
-        (candidate) => normalizeName(candidate) === normalizeName(header),
-      ) !== index,
-  );
-  if (duplicate) {
-    throw new Error(`La hoja ${sheet} repite el encabezado “${duplicate}”.`);
-  }
-  const records: ImportRow[] = [];
-  rows.slice(headerRow.index + 1).forEach((cells, index) => {
-    if (!cells.some((cell) => String(displayValue(cell)).trim())) return;
-    const record: ImportRow = { row_number: headerRow.index + index + 2 };
-    headers.forEach((header, column) => {
-      if (header) record[header] = displayValue(cells[column]);
-    });
-    records.push(record);
-  });
-  return records;
-}
-
-function resultCount(value: number | unknown[] | null | undefined) {
-  if (Array.isArray(value)) return value.length;
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
-function comparable(value: unknown) {
-  if (value === null || value === undefined || value === "") return "";
-  if (typeof value === "boolean") return value ? "true" : "false";
-  const text = String(value).trim();
-  const time = /^(\d{1,2}):(\d{2})(?::00)?$/.exec(text);
-  return time ? `${time[1].padStart(2, "0")}:${time[2]}` : text;
-}
-
-function hasChanges(
-  imported: Record<string, unknown>,
-  current: Record<string, unknown>,
-  keys: string[],
-) {
-  return keys.some(
-    (key) =>
-      key in imported && comparable(imported[key]) !== comparable(current[key]),
-  );
-}
-
-function issueToLocal(issue: ExcelSyncValidationError): LocalIssue {
-  return {
-    entity:
-      issue.entity === "people"
-        ? "Persona"
-        : issue.entity === "trips"
-          ? "Viaje"
-          : "Archivo",
-    row: issue.row_number,
-    message: mensajePublicoExcel(issue.message),
-  };
-}
-
-function actionLabel(action: PreviewAction) {
-  if (action === "new") return "Nuevo";
-  if (action === "change") return "Cambio";
-  if (action === "conflict") return "Conflicto";
-  return "Sin cambios";
-}
-
-function getServerIssues(result: ExcelSyncResult | null) {
-  if (!result) return [];
-  return [
-    ...(result.people?.conflicts ?? []).map(issueToLocal),
-    ...(result.people?.errors ?? []).map(issueToLocal),
-    ...(result.trips?.conflicts ?? []).map(issueToLocal),
-    ...(result.trips?.errors ?? []).map(issueToLocal),
-  ];
-}
 
 export default function ExcelSyncPanel({
   people,
@@ -984,222 +814,5 @@ export default function ExcelSyncPanel({
         </div>
       )}
     </div>
-  );
-}
-
-function buildPreviewLines(
-  payload: ExcelSyncPayload,
-  people: Person[],
-  trips: Trip[],
-) {
-  const lines: PreviewLine[] = [];
-  const currentPeople = new Map(people.map((person) => [person.id, person]));
-  const currentTrips = new Map(trips.map((trip) => [trip.id, trip]));
-  const seenPersonIds = new Set<string>();
-  const seenTripIds = new Set<string>();
-  const peopleByCode = new Map(
-    people
-      .filter((person) => person.employee_code)
-      .map((person) => [normalizeName(person.employee_code!), person]),
-  );
-  const importedPeopleByCode = new Map(
-    payload.people
-      .filter((person) => person.employee_code)
-      .map((person) => [normalizeName(person.employee_code!), person]),
-  );
-  const importedCodes = new Set<string>();
-  const newTripKeys = new Set<string>();
-
-  for (const record of payload.people) {
-    const id = String(record.id ?? "").trim();
-    const code = String(record.employee_code ?? "").trim();
-    const row = record.row_number;
-    const title = String(record.name || `Persona en fila ${row}`);
-    let action: PreviewAction = "new";
-    let detail = `${record.origin ?? "Origen pendiente"} → ${record.destination ?? "Destino pendiente"}`;
-    if (id) {
-      if (seenPersonIds.has(id)) {
-        action = "conflict";
-        detail = "El mismo ID Daybook aparece más de una vez en el libro.";
-      } else {
-        const current = currentPeople.get(id);
-        if (!current) {
-          action = "conflict";
-          detail = "El ID Daybook no existe en los datos actuales.";
-        } else if (
-          record.version !== undefined &&
-          current.version !== undefined &&
-          Number(record.version) !== Number(current.version)
-        ) {
-          action = "conflict";
-          detail = "La versión del registro ya cambió en Daybook Travel.";
-        } else {
-          action = hasChanges(
-            record as Record<string, unknown>,
-            current as unknown as Record<string, unknown>,
-            personCompareKeys,
-          )
-            ? "change"
-            : "unchanged";
-        }
-      }
-      seenPersonIds.add(id);
-    } else if (code) {
-      const normalizedCode = normalizeName(code);
-      if (
-        peopleByCode.has(normalizedCode) ||
-        importedCodes.has(normalizedCode)
-      ) {
-        action = "conflict";
-        detail =
-          "El Código trabajador ya está en uso. Descarga el libro actual para editar esa persona.";
-      }
-      importedCodes.add(normalizedCode);
-    }
-    lines.push({ entity: "Persona", row, action, title, detail });
-  }
-
-  for (const record of payload.trips) {
-    const id = String(record.id ?? "").trim();
-    const row = record.row_number;
-    const personCode = String(record.person_employee_code ?? "").trim();
-    const normalizedPersonCode = normalizeName(personCode);
-    const relatedPerson = record.person_id
-      ? currentPeople.get(record.person_id)
-      : peopleByCode.get(normalizedPersonCode) ??
-        importedPeopleByCode.get(normalizedPersonCode);
-    const title = relatedPerson
-      ? `${relatedPerson.name} · ${record.date ?? "fecha pendiente"}`
-      : personCode
-        ? `${personCode} · ${record.date ?? "fecha pendiente"}`
-        : `Viaje del ${record.date ?? `fila ${row}`}`;
-    let action: PreviewAction = "new";
-    let detail = `${record.origin ?? "Origen pendiente"} → ${record.destination ?? "Destino pendiente"}`;
-    if (id) {
-      if (seenTripIds.has(id)) {
-        action = "conflict";
-        detail = "El mismo ID Daybook aparece más de una vez en el libro.";
-      } else {
-        const current = currentTrips.get(id);
-        if (!current) {
-          action = "conflict";
-          detail = "El ID Daybook no existe en los datos actuales.";
-        } else if (
-          record.version !== undefined &&
-          current.version !== undefined &&
-          Number(record.version) !== Number(current.version)
-        ) {
-          action = "conflict";
-          detail = "La versión del viaje ya cambió en Daybook Travel.";
-        } else {
-          const importedPersonId =
-            String(record.person_id ?? "").trim() ||
-            peopleByCode.get(normalizeName(personCode))?.id ||
-            "";
-          const changedImmutableField =
-            (importedPersonId !== "" && importedPersonId !== current.person_id) ||
-            comparable(record.direction) !== comparable(current.direction) ||
-            comparable(record.planned_date) !==
-              comparable(current.planned_date ?? current.date);
-          const mutableChanges = hasChanges(
-            record as Record<string, unknown>,
-            current as unknown as Record<string, unknown>,
-            tripCompareKeys,
-          );
-          if (changedImmutableField) {
-            action = "conflict";
-            detail =
-              "La persona, fecha planificada y sentido no se pueden cambiar desde Excel.";
-          } else if (mutableChanges && !comparable(record.change_reason)) {
-            action = "conflict";
-            detail =
-              "Agrega un motivoCambio para actualizar este viaje desde Excel.";
-          } else {
-            action = mutableChanges ? "change" : "unchanged";
-          }
-        }
-      }
-      seenTripIds.add(id);
-    } else {
-      const referenceKey = record.person_id
-        ? `id:${record.person_id}`
-        : `code:${normalizedPersonCode}`;
-      const tripKey = `${referenceKey}:${record.date}:${record.direction}`;
-      if (
-        !record.person_id &&
-        (!personCode ||
-          (!peopleByCode.has(normalizedPersonCode) &&
-            !importedPeopleByCode.has(normalizedPersonCode)))
-      ) {
-        action = "conflict";
-        detail =
-          "El código no corresponde a una persona actual ni a una persona nueva de este libro.";
-      } else if (newTripKeys.has(tripKey)) {
-        action = "conflict";
-        detail =
-          "El mismo movimiento aparece más de una vez para esta persona y fecha.";
-      }
-      newTripKeys.add(tripKey);
-    }
-    lines.push({ entity: "Viaje", row, action, title, detail });
-  }
-
-  return lines;
-}
-
-// Un paso de la barra de arriba. El número va en un círculo que cambia de color
-// según dónde esté la persona: gris lo que falta, blanco lo que está haciendo,
-// verde lo que ya pasó.
-function Paso({
-  estado,
-  numero,
-  children,
-}: {
-  estado: "pendiente" | "actual" | "hecho";
-  numero: number;
-  children: ReactNode;
-}) {
-  return (
-    <li
-      className={cn(
-        "flex min-h-9 items-center gap-2 text-[11px] font-[750]",
-        "max-[430px]:gap-[5px] max-[430px]:text-[10px]",
-        estado === "actual" ? "text-foreground" : "text-muted",
-      )}
-    >
-      <span
-        className={cn(
-          "inline-flex size-6 flex-none items-center justify-center rounded-[999px] border text-[10px]",
-          "max-[430px]:size-[22px]",
-          estado === "actual"
-            ? "border-foreground-soft bg-foreground text-surface"
-            : estado === "hecho"
-              ? "border-[color-mix(in_srgb,var(--success)_48%,var(--border))] bg-[color-mix(in_srgb,var(--success)_12%,var(--surface))] text-success"
-              : "border-line-strong bg-surface-soft text-muted",
-        )}
-      >
-        {numero}
-      </span>{" "}
-      {children}
-    </li>
-  );
-}
-
-// Una de las cinco cajas del resumen. Solo se enciende con color cuando tiene
-// algo dentro: un cero en "Conflictos" no debe gritar.
-function Tarjeta({
-  numero,
-  tono,
-  children,
-}: {
-  numero: number;
-  tono?: keyof typeof TONOS;
-  children: ReactNode;
-}) {
-  return (
-    <span className={cn(TARJETA, tono && TONOS[tono])}>
-      <strong className={TARJETA_NUMERO}>{numero}</strong>
-      <small>{children}</small>
-    </span>
   );
 }

@@ -51,6 +51,7 @@ import {
   makeDemoTrips,
 } from "../lib/demo";
 import { localDate, normalize } from "../lib/format";
+import { csvDeViajes } from "../lib/trips-csv";
 import type {
   AccessStatus,
   HistoryItem,
@@ -1097,57 +1098,21 @@ function useStoreValue() {
       setNotice("No hay viajes futuros por solicitar con estos filtros.");
       return;
     }
-    const cell = (value: unknown) =>
-      '"' +
-      String(value ?? "")
-        .replace(/^[=+@-]/, "'$&")
-        .replaceAll('"', '""') +
-      '"';
-    const csv =
-      "\uFEFF" +
-      [
-        [
-          "Persona",
-          "Fecha",
-          "Sentido",
-          "Origen",
-          "Destino",
-          "Hora requerida",
-          "Equipaje",
-          "Estado",
-          "Reserva",
-          "Vuelo",
-          "Monto CLP",
-          ...(exigeAcreditacion ? ["Acreditación"] : []),
-        ],
-        ...rows.map((trip) => [
-          personName(trip.person_id),
-          trip.date,
-          trip.direction,
-          trip.origin,
-          trip.destination,
-          trip.requested_time,
-          trip.baggage,
-          trip.status,
-          trip.pnr,
-          trip.flight,
-          trip.amount,
-          ...(exigeAcreditacion
-            ? [
-                resumenDeMotivos(
-                  motivosDeAcreditacion(
-                    trip.person_id,
-                    trip.date,
-                    documentTypes,
-                    documents,
-                  ),
-                ) || "Al día",
-              ]
-            : []),
-        ]),
-      ]
-        .map((row) => row.map(cell).join(";"))
-        .join("\r\n");
+    const csv = csvDeViajes(
+      rows,
+      personName,
+      exigeAcreditacion
+        ? (trip) =>
+            resumenDeMotivos(
+              motivosDeAcreditacion(
+                trip.person_id,
+                trip.date,
+                documentTypes,
+                documents,
+              ),
+            ) || "Al día"
+        : undefined,
+    );
     const url = URL.createObjectURL(
       new Blob([csv], { type: "text/csv;charset=utf-8;" }),
     );
