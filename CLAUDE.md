@@ -97,7 +97,7 @@ se agrega una nueva con el número siguiente.
    - **10×10**: ciclo de veinte días desde la fecha de inicio, que es además la primera
      subida. **Sin grupos A y B**: dos personas desfasadas diez días quedan cruzadas solas.
      Es la decisión que tomó Joaquín, y evita agregar columnas de grupo.
-   - `generate_pulse()` en SQL **ya no se llama**: la aplicación inserta los viajes con
+   - `generate_pulse()` en SQL **ya no se llama** (y desde la migración 011 ya no existe): la aplicación inserta los viajes con
      `upsert` e `ignoreDuplicates`, así que nunca pisa un viaje existente.
    - Una prueba compara el motor nuevo contra el calendario retirado en cuatro fechas de
      inicio y tres períodos: nadie que ya esté cargado cambia de fechas.
@@ -159,9 +159,10 @@ se agrega una nueva con el número siguiente.
      que todos los bloques dicen "1 pasajero" y el agrupamiento no se ve. Para verlo hacen falta
      dos personas el mismo día y la misma ruta.
 
-7. **Retirar `generate_pulse()`.** Quedó en la base sin que nadie la llame. Una migración
-   nueva puede eliminarla; conviene esperar a que la versión nueva lleve un tiempo en
-   producción, para poder volver atrás sin tocar SQL.
+7. **Retirar `generate_pulse()`. HECHO** (migración 011, rama `retira-generate-pulse`). Nadie la
+   llamaba desde que `lib/cycles.ts` es el único motor de fechas; la 011 hace `drop function`.
+   Su definición sigue en 001 y 002 por si hiciera falta volver atrás. Una prueba contra
+   PostgreSQL real comprueba que desaparece sin tocar ninguna otra función.
 
 8. **Cliente de Supabase perezoso. HECHO** (rama `entrada`). `lib/supabase.ts` exporta ahora
    `db()`, una función que crea el cliente la primera vez que alguien lo pide y lo reutiliza
