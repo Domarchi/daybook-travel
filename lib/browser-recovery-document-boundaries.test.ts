@@ -221,7 +221,7 @@ test('M1 reverse wrap ÚLTIMO exacto → BODY → PRIMERO exacto: roundtrip 390x
   assert.equal(wrong.active(), 'login', 'M1 reverse wrap negativo alcanzó otro BUTTON, no demo');
 
   const normal = browser(order, 'none', true, 'last');
-  assert.deepEqual(normal.focusable(), order, 'M1 reverse wrap seis controles exactos');
+  assert.deepEqual(normal.focusable(), order, 'M1 reverse wrap controles exactos del contrato');
   await assert.doesNotReject(() => api.keyboardSequence(normal.cdp, state, order, viewport, mobile),
     'M1 reverse wrap debe aceptar ÚLTIMO exacto → BODY negativo no editable → PRIMERO exacto 390x844/login');
   assert.deepEqual(normal.visited, [...order, 'outside-after', order.at(-1),
@@ -238,8 +238,10 @@ test('M1 reverse wrap ÚLTIMO exacto → BODY → PRIMERO exacto: roundtrip 390x
   modifiers.flatMap(modifiers => [
     { type: 'rawKeyDown', key: 'Tab', modifiers },
     { type: 'keyUp', key: 'Tab', modifiers },
-  ]), 'M1 reverse wrap: exactamente 16 pares nativos, incluidos los dos Tab finales');
-  assert.equal(modifiers.length, 16);
+  ]), 'M1 reverse wrap: un par nativo por Tab, incluidos los dos Tab finales');
+  // Ida (n-1), salida y regreso (2), vuelta (n-1) y los dos finales: depende del
+  // largo del orden, no de un número fijo que se rompe al agregar un control.
+  assert.equal(modifiers.length, 2 * order.length + 4);
   assert.equal(normal.active(), 'theme', 'M1 reverse wrap termina en el PRIMERO exacto');
 });
 

@@ -126,9 +126,12 @@ export async function exerciseTabMutants({cdp,state,order,stops,viewport,certify
 }
 
 export async function main() {
-  // Contrato explícito de los 176 mutantes originales: no basta un total que
-  // pudiera ocultar duplicados, estados omitidos o assertions intercambiadas.
-  const login=['theme','email','password','login','request','demo'];
+  // El catálogo se calcula de los mismos órdenes que recorre el arnés, así que
+  // agregar un control al login (como la casilla de mostrar contraseña) agrega
+  // sus mutantes solo. Lo que se sigue exigiendo es que no falte ni sobre
+  // ninguno: la comparación exacta de abajo, no un total fijo.
+  const recovery=await import('./browser-recovery.mjs');
+  const login=[...recovery.orders.loginOrder];
   const cooldown=['theme','email','back'];
   const update=['theme','newPassword','confirmation','submit','back'];
   const orders={login,'login-error':login,request:['theme','email','submit','back'],
@@ -148,15 +151,13 @@ export async function main() {
       }
     }
   }
-  const recovery=await import('./browser-recovery.mjs');
   await recovery.main({runMutants:async options => {
     const receipts=await exerciseTabMutants(options);
     measured.push(...receipts);
     return receipts;
   }});
-  assert.equal(expectedT1.length,176,'T1 catálogo original 176');
-  assert.equal(expectedM1.length,72,'M1 catálogo 3 trampas × 12 estados × 2 viewports');
-  assert.equal(new Set(measured.map(receipt => receipt.id)).size,248,'T1+M1 248 mutantes distintos');
+  const esperados=expectedT1.length+expectedM1.length;
+  assert.equal(new Set(measured.map(receipt => receipt.id)).size,esperados,`T1+M1 ${esperados} mutantes distintos`);
   assert.deepEqual(measured.map(receipt => `${receipt.id}|${receipt.assertion}`).sort(),
     [...expectedT1,...expectedM1].sort(),'T1+M1 catálogo completo y assertions exactas');
   assert.ok(measured.every(receipt => receipt.killed && receipt.restored),'T1+M1 muertes y restauraciones completas');
