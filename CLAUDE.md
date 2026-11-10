@@ -28,6 +28,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `components/workspace.tsx` | El armazón: decide qué pantalla se ve y ordena las piezas. |
 | `components/*.tsx` | Pantallas y diálogos, una pieza por archivo: `login-view`, `side-nav` (la barra lateral), `access-state`, `agenda-view`, `people-view`, `trips-view`, `costs-view`, `modal-layer` y los diálogos (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`, `manifest-dialog`). |
 | `components/ui/*.tsx` | Primitivas reutilizables: botón, campos, pastillas, tabla de datos, encabezado de página, partes de diálogo, marca (`brand-*`). |
+| `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
 | `app/year-view.tsx` | Vista anual de calor. |
 | `app/globals.css` | ~630 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
@@ -54,6 +55,13 @@ Todo esto está implementado en SQL y es deliberado:
 6. **Un viaje debe caer dentro de la vigencia de una persona activa.**
 7. **Acceso por lista blanca.** Solo entran los correos en `public.members` (función `is_member()`).
    Las policies RLS dependen de eso. Si no hay correos, no entra nadie: falla cerrado, así debe ser.
+   **Se administra desde la pantalla Accesos** (migración 009), visible solo para administradores.
+   `members` tiene `role` (`admin`/`member`) y `active`: quitar un acceso lo **desactiva**, nunca lo
+   borra, y `is_member()` ya cuenta solo a los activos. Todo pasa por funciones SQL que exigen
+   `is_admin()` (`list_members`, `add_member`, `set_member_active`, `set_member_role`); la tabla
+   sigue sin permisos para el navegador. Nadie puede quitarse su propio acceso ni su rol de
+   administrador, y el historial de accesos solo lo lee un administrador. La cuenta de Auth se crea
+   fuera (es la de Daybook Asistencia): aquí solo se decide quién de esas cuentas entra a Travel.
 
 Antes de tocar `supabase/*.sql`: las migraciones ya aplicadas en producción **no se editan**,
 se agrega una nueva con el número siguiente.
@@ -445,9 +453,9 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
   matar solo al que escucha (`kill $(lsof -ti :3111 -sTCP:LISTEN)`); `lsof -ti` a secas también
   lista a los clientes conectados, y `pkill -f` puede matar tu propia terminal.
 - **Dar de alta a alguien son dos pasos:** crear su usuario en Supabase Auth y agregar su correo a
-  `public.members` (`insert into public.members(email) values ('...')`). Sin el segundo, inicia
-  sesión pero ve "Tu cuenta todavía no está habilitada"; sin el primero, no puede iniciar sesión.
-  Todavía no hay pantalla para esto.
+  `public.members`, que se hace desde la pantalla **Accesos** (solo administradores). Sin el segundo,
+  inicia sesión pero ve "Tu cuenta todavía no está habilitada"; sin el primero, no puede iniciar
+  sesión. La pantalla no crea cuentas de Auth.
 
 - `package.json` dice `"name": "relevo"` y el proyecto en Vercel también. Se confunde con otro
   proyecto distinto llamado Relevo. Conviene renombrar a `fcc-travel`.

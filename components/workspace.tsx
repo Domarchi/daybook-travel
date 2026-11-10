@@ -6,6 +6,7 @@ import AccessState from "@/components/access-state";
 import CostsView from "@/components/costs-view";
 import AgendaPanel from "@/components/agenda-panel";
 import { LoadingView, LoginView } from "@/components/login-view";
+import MembersView from "@/components/members-view";
 import ModalLayer from "@/components/modal-layer";
 import PageHead from "@/components/ui/page-head";
 import PeopleView from "@/components/people-view";
@@ -23,6 +24,7 @@ export default function Workspace() {
     email,
     demo,
     accessStatus,
+    isAdmin,
     people,
     trips,
     view,
@@ -100,6 +102,8 @@ export default function Workspace() {
                 <PeopleView />
               ) : view === "Costos" ? (
                 <CostsView />
+              ) : view === "Accesos" && isAdmin ? (
+                <MembersView />
               ) : (
                 <TripsView />
               )}

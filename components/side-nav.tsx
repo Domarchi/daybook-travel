@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Coins, LogOut, Moon, Plane, Sun, Users } from "lucide-react";
+import { CalendarDays, Coins, LogOut, Moon, Plane, ShieldCheck, Sun, Users } from "lucide-react";
 import BrandLogo from "@/components/ui/brand-logo";
 import BrandMark from "@/components/ui/brand-mark";
 import { useApp } from "../app/store";
@@ -13,6 +13,9 @@ const navItems = [
   { label: "Costos", icon: Coins },
 ];
 
+// Solo la ve quien administra los accesos.
+const accesosItem = { label: "Accesos", icon: ShieldCheck };
+
 // El riel lateral de Daybook: marca arriba, navegación en medio, usuario abajo.
 // Reemplaza a la barra superior; la lógica de sesión y de tema es la misma.
 export default function SideNav() {
@@ -23,6 +26,7 @@ export default function SideNav() {
     toggleTheme,
     demo,
     email,
+    isAdmin,
     setDemo,
     setAccessStatus,
     setPeople,
@@ -42,7 +46,7 @@ export default function SideNav() {
       </div>
 
       <nav className="side-nav" aria-label="Navegación principal">
-        {navItems.map(({ label, icon: Icon }) => (
+        {(isAdmin && !demo ? [...navItems, accesosItem] : navItems).map(({ label, icon: Icon }) => (
           <button
             type="button"
             key={label}
