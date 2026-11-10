@@ -4,7 +4,10 @@ Aplicación interna para organizar personas, turnos y pasajes en Copiapó.
 
 Producción: [relevo-chi.vercel.app](https://relevo-chi.vercel.app/)
 
-> El manual histórico se retiró del circuito distribuible porque mostraba la identidad anterior. Debe regenerarse desde una fuente reproducible antes de volver a publicarse.
+> **Guía de uso:** [`docs/Manual_Daybook_Travel.pdf`](docs/Manual_Daybook_Travel.pdf), versión 2.0, con la identidad Daybook. El manual anterior se retiró y no se reutiliza.
+> Se regenera con `python3 docs/manual/hacer_manual.py docs/manual/manual.html` y luego
+> `google-chrome --headless=new --no-pdf-header-footer --print-to-pdf=docs/Manual_Daybook_Travel.pdf docs/manual/manual.html`.
+> Si cambia una pantalla, se edita el texto de `hacer_manual.py` y se vuelven a correr los dos comandos.
 
 ## Funciones principales
 
