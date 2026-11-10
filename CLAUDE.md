@@ -29,6 +29,8 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `components/*.tsx` | Pantallas y diálogos, una pieza por archivo: `login-view`, `side-nav` (la barra lateral), `access-state`, `agenda-view`, `people-view`, `trips-view`, `costs-view`, `modal-layer` y los diálogos (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`, `manifest-dialog`). |
 | `components/ui/*.tsx` | Primitivas reutilizables: botón, campos, pastillas, tabla de datos, encabezado de página, partes de diálogo, marca (`brand-*`). |
 | `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
+| `components/document-types-panel.tsx` | El recuadro «Documentos exigidos» de Personas. Lo ven todos; solo un administrador agrega o desactiva tipos. |
+| `lib/accreditation.ts` | **La acreditación.** `motivosDeAcreditacion(persona, fecha, tipos, documentos)` dice qué documentos faltan o vencen antes de un viaje. Sin React ni Supabase. 9 pruebas, más `accreditation-postgres.test.ts` contra la migración 010. |
 | `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
 | `app/year-view.tsx` | Vista anual de calor. |
 | `app/globals.css` | ~630 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
@@ -62,6 +64,12 @@ Todo esto está implementado en SQL y es deliberado:
    sigue sin permisos para el navegador. Nadie puede quitarse su propio acceso ni su rol de
    administrador, y el historial de accesos solo lo lee un administrador. La cuenta de Auth se crea
    fuera (es la de Daybook Asistencia): aquí solo se decide quién de esas cuentas entra a Travel.
+
+8. **Acreditación por documentos** (migración 010). Qué documentos se exigen **no está en el
+   código**: es la tabla `document_types`, que mantiene un administrador (policy con `is_admin()`).
+   Cada persona tiene una fecha de vencimiento por tipo en `person_documents`, que cualquier
+   miembro carga; `expires_on` en null significa «sin registrar» (no se borra la fila). Ambas
+   tablas están auditadas y sin DELETE. Un tipo que ya no se exige se **desactiva**.
 
 Antes de tocar `supabase/*.sql`: las migraciones ya aplicadas en producción **no se editan**,
 se agrega una nueva con el número siguiente.
@@ -117,8 +125,19 @@ se agrega una nueva con el número siguiente.
    - Al escribir un monto que se aparta más de un 40% de esa referencia, el diálogo lo dice. No
      bloquea: una tarifa cara puede ser legítima. Existe para que un cero de más no pase.
 
-5. **Elegibilidad.** Hoy solo se valida vigencia por fechas. Falta acreditación (documentos al día)
-   como condición para que alguien entre a un manifiesto — visible y con motivo, nunca oculto.
+5. **Elegibilidad por acreditación. HECHO** (rama `acreditacion`). Documentos con vencimiento,
+   evaluados contra la **fecha del viaje**, no contra hoy: vale hasta el día de su vencimiento.
+
+   - **No bloquea al guardar nada.** Actúa solo al armar el manifiesto: quien tiene un documento
+     faltante o vencido sale del manifiesto y aparece en «Acreditación pendiente» con el motivo.
+     Katy o Tamara pueden marcar «Incluir igual». La decisión es de ellas y está a la vista.
+   - Cada manifiesto parte sin excepciones: lo aprobado no se recuerda de un manifiesto al otro.
+   - Texto, PDF, CSV y «Marcar como solicitados» usan **la misma lista**: lo que el manifiesto
+     muestra. Antes el CSV y el marcado ignoraban la selección parcial.
+   - Sin tipos activos la acreditación no aparece en ninguna pantalla.
+   - La lista de documentos la define la obra y **todavía no está cargada**: se agregan desde
+     Personas → «Documentos exigidos» (administrador). La demostración trae tres de ejemplo.
+   - Si la migración 010 no está aplicada, la aplicación carga igual y no exige nada.
 
 6. **Manifiesto por día y ruta. HECHO** (rama `manifiesto`). `lib/manifest.ts` arma los bloques
    y el texto; "Lista para solicitar" abre una ventana con ese texto y un botón para copiarlo.

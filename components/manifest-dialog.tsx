@@ -8,7 +8,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogBody } from "@/components/ui/dialog-parts";
-import { localDate } from "../lib/format";
+import { Checkbox, Label } from "@/components/ui/field";
+import { resumenDeMotivos } from "../lib/accreditation";
+import { formatDate, localDate } from "../lib/format";
 import { agruparManifiesto, textoDeManifiesto } from "../lib/manifest";
 import { useApp } from "../app/store";
 import { cargarLogo } from "@/lib/brand";
@@ -19,7 +21,9 @@ export default function ManifestDialog() {
     busy,
     demo,
     closeModal,
+    alternarAcreditacionAprobada,
     exportCsv,
+    manifestPendientesDeAcreditacion,
     manifestTrips,
     markSelectedRequested,
     personName,
@@ -128,6 +132,46 @@ export default function ManifestDialog() {
             {copiado ? "Copiado" : "Copiar"}
           </Button>
         </div>
+        {manifestPendientesDeAcreditacion.length > 0 && (
+          <section
+            aria-labelledby="acreditacion-pendiente"
+            className="mb-3 max-h-[34vh] shrink-0 overflow-y-auto rounded-md border border-[color-mix(in_srgb,var(--warning)_45%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_8%,var(--surface))] px-3 py-[11px]"
+          >
+            <h3 id="acreditacion-pendiente" className="text-[13px] text-foreground">
+              Acreditación pendiente
+            </h3>
+            <p className="mt-1 mb-2 text-[12px] text-muted">
+              Estas personas no entran al manifiesto mientras les falte un
+              documento al día para la fecha del viaje. Marca «Incluir igual»
+              solo si ya lo confirmaste.
+            </p>
+            <ul className="m-0 grid list-none gap-2 p-0">
+              {manifestPendientesDeAcreditacion.map(({ trip, motivos, incluido }) => (
+                <li
+                  key={trip.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-[13px] max-[430px]:grid-cols-1"
+                >
+                  <span className="grid min-w-0 gap-[2px]">
+                    <strong className="text-foreground">
+                      {personName(trip.person_id)}
+                      <span className="font-normal text-muted">
+                        {" "}· {formatDate(trip.date)} · {trip.origin} → {trip.destination}
+                      </span>
+                    </strong>
+                    <small className="text-muted">{resumenDeMotivos(motivos)}</small>
+                  </span>
+                  <Label className="grid-cols-[18px_auto] items-center gap-2 text-[12px]">
+                    <Checkbox
+                      checked={incluido}
+                      onChange={() => alternarAcreditacionAprobada(trip.id)}
+                    />
+                    Incluir igual
+                  </Label>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {fallo && (
           <p
             className="mb-3 shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[10px] text-[13px] text-danger"
@@ -165,7 +209,9 @@ export default function ManifestDialog() {
           type="button"
           variant="primary"
           disabled={busy || pasajes === 0}
-          onClick={() => void markSelectedRequested().then(closeModal)}
+          onClick={() =>
+            void markSelectedRequested(manifestTrips.map((trip) => trip.id)).then(closeModal)
+          }
         >
           {busy
             ? "Actualizando…"

@@ -34,7 +34,22 @@ import {
   resumenDeCompra,
   ventanaValida,
 } from "../lib/purchase";
-import { makeDemoPeople, makeDemoTrips } from "../lib/demo";
+import {
+  hayExigencias,
+  limpiarNombreDeTipo,
+  motivosDeAcreditacion,
+  nombreDeTipoValido,
+  resumenDeMotivos,
+  tipoRepetido,
+  type DocumentoDePersona,
+  type TipoDeDocumento,
+} from "../lib/accreditation";
+import {
+  makeDemoDocuments,
+  makeDemoDocumentTypes,
+  makeDemoPeople,
+  makeDemoTrips,
+} from "../lib/demo";
 import { localDate, normalize } from "../lib/format";
 import type {
   AccessStatus,
@@ -57,6 +72,11 @@ function useStoreValue() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<TipoDeDocumento[]>([]);
+  const [documents, setDocuments] = useState<DocumentoDePersona[]>([]);
+  // Viajes del manifiesto que Katy o Tamara decidieron incluir aunque la persona
+  // tenga documentos pendientes. Vale solo mientras el manifiesto está abierto.
+  const [conAcreditacionAprobada, setConAcreditacionAprobada] = useState<string[]>([]);
   const [view, setView] = useState("Agenda");
   const [query, setQuery] = useState("");
   const [peopleQuery, setPeopleQuery] = useState("");
@@ -159,6 +179,8 @@ function useStoreValue() {
         setAccessStatus("denied");
         setPeople([]);
         setTrips([]);
+        setDocumentTypes([]);
+        setDocuments([]);
         return;
       }
       const [peopleRows, tripRows] = await Promise.all([
@@ -185,6 +207,21 @@ function useStoreValue() {
         setPurchaseWindow(
           Number(ajustes.data.purchase_window_days) || VENTANA_POR_OMISION,
         );
+      }
+      // Acreditación. Si las tablas todavía no existen (la migración 010 sin
+      // aplicar) nada se exige y la aplicación sigue como antes.
+      try {
+        const tipos = await db()
+          .from("document_types")
+          .select("id,name,active")
+          .order("name");
+        if (tipos.error) throw tipos.error;
+        const filas = await allRows("person_documents");
+        setDocumentTypes((tipos.data ?? []) as TipoDeDocumento[]);
+        setDocuments(filas as unknown as DocumentoDePersona[]);
+      } catch {
+        setDocumentTypes([]);
+        setDocuments([]);
       }
       // El rol decide si aparece "Accesos". Si la función todavía no existe en
       // la base (la migración 009 sin aplicar) simplemente no se es administrador.
@@ -355,12 +392,53 @@ function useStoreValue() {
   // Los viajes que van al manifiesto. Si Katy ya marcó algunos, el manifiesto es
   // de esos y de nadie más: lo que ve en la pantalla es lo que va en el correo.
   // Si no marcó ninguno, son todos los que están por solicitar.
-  const manifestTrips = useMemo(() => {
+  const manifestCandidates = useMemo(() => {
     const marcados = requestableTrips.filter((trip) =>
       selectedTrips.includes(trip.id),
     );
     return marcados.length ? marcados : requestableTrips;
   }, [requestableTrips, selectedTrips]);
+
+  // Acreditación: de los viajes del manifiesto, los de personas con documentos
+  // faltantes o vencidos para la fecha del viaje. Nunca se ocultan: salen del
+  // manifiesto a la vista, con su motivo, salvo que alguien decida incluirlos.
+  const exigeAcreditacion = hayExigencias(documentTypes);
+  const manifestPendientesDeAcreditacion = useMemo(
+    () =>
+      manifestCandidates
+        .map((trip) => ({
+          trip,
+          motivos: motivosDeAcreditacion(
+            trip.person_id,
+            trip.date,
+            documentTypes,
+            documents,
+          ),
+          incluido: conAcreditacionAprobada.includes(trip.id),
+        }))
+        .filter((fila) => fila.motivos.length > 0),
+    [manifestCandidates, documentTypes, documents, conAcreditacionAprobada],
+  );
+  const manifestTrips = useMemo(() => {
+    const fuera = new Set(
+      manifestPendientesDeAcreditacion
+        .filter((fila) => !fila.incluido)
+        .map((fila) => fila.trip.id),
+    );
+    return manifestCandidates.filter((trip) => !fuera.has(trip.id));
+  }, [manifestCandidates, manifestPendientesDeAcreditacion]);
+
+  function motivosDeAcreditacionDe(personId: string, fecha: string) {
+    return motivosDeAcreditacion(personId, fecha, documentTypes, documents);
+  }
+
+  function alternarAcreditacionAprobada(tripId: string) {
+    setConAcreditacionAprobada((actual) =>
+      actual.includes(tripId)
+        ? actual.filter((id) => id !== tripId)
+        : [...actual, tripId],
+    );
+  }
 
   useEffect(() => {
     setSelectedTrips([]);
@@ -489,6 +567,9 @@ function useStoreValue() {
     setAccessStatus("allowed");
     setPeople(demoPeople);
     setTrips(makeDemoTrips(demoPeople));
+    const tiposDeDemo = makeDemoDocumentTypes();
+    setDocumentTypes(tiposDeDemo);
+    setDocuments(makeDemoDocuments(demoPeople, tiposDeDemo));
     setCalendarMonth(localDate().slice(0, 7));
     setSelectedDay(null);
     setCalendarShift("Todos");
@@ -647,6 +728,7 @@ function useStoreValue() {
         throw new Error("La subida y la bajada no pueden ser el mismo día.");
       }
       let savedId = editPerson?.id ?? "";
+      let avisoDeDocumentos = "";
       if (demo) {
         savedId ||= crypto.randomUUID();
         setPeople((current) =>
@@ -658,12 +740,39 @@ function useStoreValue() {
                 a.name.localeCompare(b.name, "es"),
               ),
         );
+        const cambios = fechasDeDocumentosCambiadas(form, savedId);
+        if (cambios.length) {
+          setDocuments((current) => [
+            ...current.filter(
+              (documento) =>
+                !cambios.some(
+                  (cambio) =>
+                    cambio.person_id === documento.person_id &&
+                    cambio.type_id === documento.type_id,
+                ),
+            ),
+            ...cambios,
+          ]);
+        }
       } else {
         const result = editPerson
           ? await db().from("people").update(person).eq("id", editPerson.id)
           : await db().from("people").insert(person).select("id").single();
         if (result.error) throw result.error;
         if (!editPerson) savedId = String(result.data?.id ?? "");
+        // Los documentos van aparte de la persona. Si fallan, la persona ya
+        // quedó guardada: se avisa, no se deja el diálogo abierto, porque
+        // guardar de nuevo crearía una persona repetida.
+        const cambios = fechasDeDocumentosCambiadas(form, savedId);
+        if (cambios.length) {
+          const documentos = await db()
+            .from("person_documents")
+            .upsert(cambios, { onConflict: "person_id,type_id" });
+          if (documentos.error) {
+            avisoDeDocumentos =
+              "La persona se guardó, pero no pudimos guardar sus documentos. Ábrela de nuevo e inténtalo otra vez.";
+          }
+        }
         await reload();
       }
       const resumeDate = pendingTripDate;
@@ -673,10 +782,83 @@ function useStoreValue() {
         openTrip(null, resumeDate, savedId);
       } else {
         setNotice(
-          "Persona guardada. Sus viajes existentes conservaron sus fechas.",
+          avisoDeDocumentos ||
+            "Persona guardada. Sus viajes existentes conservaron sus fechas.",
         );
       }
     }, "form");
+  }
+
+  // Las fechas de documentos del formulario de la persona que difieren de lo
+  // guardado. Solo los cambios: reenviar lo mismo ensuciaría el historial.
+  function fechasDeDocumentosCambiadas(form: FormData, personId: string) {
+    return documentTypes.flatMap((tipo) => {
+      const campo = form.get("doc_" + tipo.id);
+      if (campo === null) return [];
+      const nueva = String(campo) || null;
+      const actual =
+        documents.find(
+          (documento) =>
+            documento.person_id === personId && documento.type_id === tipo.id,
+        )?.expires_on ?? null;
+      return nueva === actual
+        ? []
+        : [{ person_id: personId, type_id: tipo.id, expires_on: nueva }];
+    });
+  }
+
+  // Los tipos de documento que se exigen. Solo un administrador puede (lo
+  // vuelve a comprobar la base). Nunca se borran: dejar de exigir es desactivar.
+  async function addDocumentType(nombre: string): Promise<boolean> {
+    const limpio = limpiarNombreDeTipo(nombre);
+    if (!nombreDeTipoValido(limpio)) {
+      setNotice("Escribe el nombre del documento (entre 2 y 80 letras).");
+      return false;
+    }
+    if (tipoRepetido(limpio, documentTypes)) {
+      setNotice("Ese documento ya está en la lista.");
+      return false;
+    }
+    let guardado = false;
+    await runAction(async () => {
+      const resultado = await db().from("document_types").insert({ name: limpio });
+      if (resultado.error) {
+        throw new Error(
+          resultado.error.code === "23505"
+            ? "Ese documento ya está en la lista."
+            : resultado.error.code === "42501"
+              ? "Solo un administrador puede cambiar los documentos exigidos."
+              : "No pudimos guardar el documento. Inténtalo nuevamente.",
+        );
+      }
+      await reload();
+      guardado = true;
+      setNotice(`${limpio} ahora se exige para viajar.`);
+    });
+    return guardado;
+  }
+
+  async function setDocumentTypeActive(id: string, active: boolean) {
+    const tipo = documentTypes.find((fila) => fila.id === id);
+    if (!tipo) return;
+    await runAction(async () => {
+      const resultado = await db()
+        .from("document_types")
+        .update({ active })
+        .eq("id", id)
+        .select("id");
+      if (resultado.error || !resultado.data?.length) {
+        throw new Error(
+          "No pudimos cambiar el documento. Solo un administrador puede hacerlo.",
+        );
+      }
+      await reload();
+      setNotice(
+        active
+          ? `${tipo.name} se vuelve a exigir.`
+          : `${tipo.name} ya no se exige. Puedes volver a activarlo.`,
+      );
+    });
   }
 
   async function saveTrip(event: FormEvent<HTMLFormElement>) {
@@ -897,6 +1079,8 @@ function useStoreValue() {
       return;
     }
     clearMessages();
+    // Cada manifiesto parte sin excepciones: una aprobación de ayer no vale hoy.
+    setConAcreditacionAprobada([]);
     // Si ya hay viajes marcados no se tocan: pisarlos hacía que quien marcaba
     // tres terminara marcando trece como solicitados sin darse cuenta.
     const hayMarcados = requestableTrips.some((trip) =>
@@ -907,7 +1091,8 @@ function useStoreValue() {
   }
 
   function exportCsv() {
-    const rows = requestableTrips;
+    // Lo mismo que lleva el texto y el PDF: lo que el manifiesto muestra.
+    const rows = manifestTrips;
     if (!rows.length) {
       setNotice("No hay viajes futuros por solicitar con estos filtros.");
       return;
@@ -933,6 +1118,7 @@ function useStoreValue() {
           "Reserva",
           "Vuelo",
           "Monto CLP",
+          ...(exigeAcreditacion ? ["Acreditación"] : []),
         ],
         ...rows.map((trip) => [
           personName(trip.person_id),
@@ -946,6 +1132,18 @@ function useStoreValue() {
           trip.pnr,
           trip.flight,
           trip.amount,
+          ...(exigeAcreditacion
+            ? [
+                resumenDeMotivos(
+                  motivosDeAcreditacion(
+                    trip.person_id,
+                    trip.date,
+                    documentTypes,
+                    documents,
+                  ),
+                ) || "Al día",
+              ]
+            : []),
         ]),
       ]
         .map((row) => row.map(cell).join(";"))
@@ -958,14 +1156,15 @@ function useStoreValue() {
     anchor.download = "daybook-travel-solicitud.csv";
     anchor.click();
     URL.revokeObjectURL(url);
-    setSelectedTrips(rows.map((trip) => trip.id));
     setNotice(
       "Lista descargada. Revísala y, cuando la envíes, marca la selección como solicitada.",
     );
   }
 
-  async function markSelectedRequested() {
-    const ids = selectedTrips.filter((id) =>
+  async function markSelectedRequested(soloEstos?: string[]) {
+    // El manifiesto pasa exactamente lo que mostró; sin argumento se usa la
+    // selección de la tabla de viajes.
+    const ids = (soloEstos ?? selectedTrips).filter((id) =>
       trips.some(
         (trip) =>
           trip.id === id &&
@@ -1202,6 +1401,14 @@ function useStoreValue() {
     visibleTrips,
     requestableTrips,
     manifestTrips,
+    manifestPendientesDeAcreditacion,
+    alternarAcreditacionAprobada,
+    motivosDeAcreditacionDe,
+    exigeAcreditacion,
+    documentTypes,
+    documents,
+    addDocumentType,
+    setDocumentTypeActive,
     upcomingTrips,
     plannedCount,
     requestedCount,

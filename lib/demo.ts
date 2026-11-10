@@ -4,6 +4,7 @@
 import { addDays } from "./calendar.ts";
 import { movimientos } from "./cycles.ts";
 import { localDate, nextWeekday } from "./format.ts";
+import type { DocumentoDePersona, TipoDeDocumento } from "./accreditation.ts";
 import type { Person, Trip } from "./types.ts";
 
 export function makeDemoPeople(): Person[] {
@@ -119,4 +120,36 @@ export function makeDemoTrips(people: Person[]): Trip[] {
   return [...fourByThree, ...tenByTen, ...manual].sort((a, b) =>
     a.date.localeCompare(b.date),
   );
+}
+
+// Documentos de la demostración: uno vigente, uno vencido y uno sin registrar,
+// para que el manifiesto muestre de verdad cómo se ve cada caso.
+export function makeDemoDocumentTypes(): TipoDeDocumento[] {
+  return [
+    { id: "d-cedula", name: "Cédula de identidad", active: true },
+    { id: "d-medico", name: "Examen médico", active: true },
+    { id: "d-induccion", name: "Inducción de seguridad", active: true },
+  ];
+}
+
+export function makeDemoDocuments(
+  people: Person[],
+  tipos: TipoDeDocumento[],
+): DocumentoDePersona[] {
+  const hoy = localDate();
+  const lejos = addDays(hoy, 400);
+  const [cedula, medico, induccion] = tipos;
+  return [
+    // La persona 1 está al día.
+    { person_id: people[0].id, type_id: cedula.id, expires_on: lejos },
+    { person_id: people[0].id, type_id: medico.id, expires_on: lejos },
+    { person_id: people[0].id, type_id: induccion.id, expires_on: lejos },
+    // La persona 2 tiene el examen médico vencido.
+    { person_id: people[1].id, type_id: cedula.id, expires_on: lejos },
+    { person_id: people[1].id, type_id: medico.id, expires_on: addDays(hoy, -20) },
+    { person_id: people[1].id, type_id: induccion.id, expires_on: lejos },
+    // La jefatura no tiene registrada la inducción.
+    { person_id: people[2].id, type_id: cedula.id, expires_on: lejos },
+    { person_id: people[2].id, type_id: medico.id, expires_on: lejos },
+  ];
 }

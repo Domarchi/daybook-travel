@@ -13,9 +13,12 @@ export default function PersonDialog() {
   const {
     busy,
     closeModal,
+    documents,
+    documentTypes,
     editPerson,
     savePerson,
   } = useApp();
+  const tiposActivos = documentTypes.filter((tipo) => tipo.active);
 
   // El turno decide si los días de viaje tienen sentido: el 10×10 no los usa,
   // porque su ciclo es de veinte días y no depende del día de la semana.
@@ -162,6 +165,34 @@ export default function PersonDialog() {
                   : "Úsalo mientras falta definir la jornada. Los movimientos se registran uno a uno hasta completar la ficha."}
           </Hint>
         </FormSection>
+        {tiposActivos.length > 0 && (
+          <FormSection aria-labelledby="person-documents">
+            <h3 id="person-documents" className="text-foreground">Documentos</h3>
+            <FormGrid>
+              {tiposActivos.map((tipo) => (
+                <Label key={tipo.id}>
+                  {tipo.name} <small className="text-muted">(vence el)</small>
+                  <Input
+                    name={"doc_" + tipo.id}
+                    type="date"
+                    defaultValue={
+                      documents.find(
+                        (documento) =>
+                          documento.person_id === editPerson?.id &&
+                          documento.type_id === tipo.id,
+                      )?.expires_on ?? ""
+                    }
+                  />
+                </Label>
+              ))}
+            </FormGrid>
+            <Hint>
+              Sin fecha, el documento figura como sin registrar. Al armar el
+              manifiesto, quien tenga uno faltante o vencido para el día del
+              viaje aparece marcado con el motivo.
+            </Hint>
+          </FormSection>
+        )}
       </DialogBody>
       <DialogActions
         busy={busy}
