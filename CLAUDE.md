@@ -460,10 +460,11 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 
 ## Detalles a corregir cuando toque
 
-- **El CI corre dos veces por cada cambio** (`.github/workflows/ci.yml` escucha `push` y
-  `pull_request`). El `verify` del `push` es el que falla de forma intermitente, casi siempre con
-  "Chrome no expuso CDP" en el paso del navegador: es del servidor de GitHub, no del código. Se
-  relanza con `gh run rerun <id> --failed`. Conviene dejar un solo disparador.
+- **El CI corre una sola vez por cambio.** `.github/workflows/ci.yml` escucha `pull_request` y
+  `push` solo a `main` (antes escuchaba `push` sin filtro y todo corría dos veces; el `verify` del
+  push era el que fallaba de forma intermitente, casi siempre con "Chrome no expuso CDP", que es
+  del servidor de GitHub y no del código). Si aun así falla así, se relanza con
+  `gh run rerun <id> --failed`. Una prueba (`lib/ci-workflow.test.ts`) fija los disparadores.
 - **La prueba B2 de PostgreSQL esperaba mal el arranque.** La imagen de Docker levanta primero un
   servidor temporal solo por socket y luego el definitivo; ahora `waitForPostgres` exige TCP y
   después el socket (PR #13). Si reaparece, mirar ahí antes de relanzar a ciegas.
