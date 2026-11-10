@@ -33,8 +33,9 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `components/document-types-panel.tsx` | El recuadro «Documentos exigidos» de Personas. Lo ven todos; solo un administrador agrega o desactiva tipos. |
 | `lib/accreditation.ts` | **La acreditación.** `motivosDeAcreditacion(persona, fecha, tipos, documentos)` dice qué documentos faltan o vencen antes de un viaje. Sin React ni Supabase. 9 pruebas, más `accreditation-postgres.test.ts` contra la migración 010. |
-| `app/excel-sync-panel.tsx` | Importador Excel en 3 pasos (Preparar → Revisar → Aplicar). Bien hecho, no romper. |
-| `app/year-view.tsx` | Vista anual de calor. |
+| `app/excel-sync-panel.tsx` | La pantalla del importador Excel en 3 pasos (Preparar → Revisar → Aplicar), 818 líneas. Bien hecho, no romper. Sus cuentas están en `lib/excel-preview.ts` (leer hojas, comparar, armar la vista previa; 10 pruebas) y sus piezas chicas en `app/excel-sync-parts.tsx`. |
+| `app/year-view.tsx` | El calendario de la Agenda (vista Mes y Semana). El panel del día seleccionado está en `app/year-day-detail.tsx`. |
+| `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
 | `app/globals.css` | ~630 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |
@@ -43,6 +44,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |
 | `app/api/cron/alertas-urgentes/route.ts` | El cron de los avisos por correo. Delgado a propósito: la lógica está en `lib/urgent-alerts-handler.ts` (autorización, configuración, respuesta), `lib/urgent-alerts.ts` (qué viajes y qué dice el correo) y `lib/send-mail.ts` (Resend). Todo se prueba sin red. |
+| `docs/manual/hacer_manual.py` | **La fuente de la guía de uso** (`docs/Manual_Daybook_Travel.pdf`, 17 páginas). Arma `manual.html` y Chrome lo imprime a PDF; los comandos están en el README. La numeración de páginas se calcula ahí, no en el navegador. No lleva correos ni nombres de personas: la lista de accesos vive en la pantalla Accesos. Al cambiar una pantalla, se actualiza el texto y se regenera. |
 | `supabase/00*.sql` | Migraciones, se aplican **en orden numérico**. Aquí vive la verdad del sistema. |
 
 ## Reglas que NO hay que romper
@@ -363,6 +365,12 @@ opinión.
   `MS_CIERRE_DIALOGO` en `store.tsx` tiene que calzar con la duración del CSS. `abrirModal()`
   cancela un cierre en curso: sin eso, cerrar y abrir otro dentro de esos 200ms dejaba el nuevo
   marcado como "cerrando".
+- **La Agenda tiene vista «Mes» y «Semana».** La semanal muestra una sola fila (454 px contra 834
+  del mes con los datos de la demostración), con flechas de semana anterior y siguiente, y la
+  elección se recuerda en el navegador (`localStorage`, clave `agenda-vista`; si no se puede leer,
+  parte en «Mes»). Las flechas del teclado cruzan de semana y de mes. Además el título del mes ya
+  no salta a dos líneas (`whitespace-nowrap`, y los controles bajan con `flex-wrap`) y las celdas
+  bajaron de 78 a 64 px.
 - **La barra de selección de Viajes vive siempre en el DOM**, dentro de `.bulk-bar-slot`, y el
   hueco crece con ella. Antes aparecía de golpe y empujaba la tabla 76px. La cuenta se congela
   en el último valor mientras se cierra, si no se leería "0 viajes" al encogerse.
@@ -380,13 +388,22 @@ opinión.
   Se quitó el titular "Tu equipo viaja. La obra continúa." y la tira de rutas: lo pidió
   Joaquín, quien entra ahí viene a entrar, no a que le expliquen el producto.
 
-  **Cambiar el login obliga a volver a medir.** Tres cosas lo tienen fijado a propósito:
-  `lib/login-view.test.ts` (reglas de CSS por expresión regular, por ejemplo
-  `.login-header-identity` con `width: 168px`), `scripts/browser-login.mjs` (alto de la tarjeta
-  581,77 px en escritorio y 569,27 en celular, y el orden del tabulador) y el arnés de
-  `scripts/browser-recovery*.mjs` (248 mutantes del orden del tabulador). Por eso el botón de
-  mostrar contraseña quedó fuera: agregarlo exige reescribir ese arnés. Si se quiere, es un
-  trabajo aparte.
+  **Mostrar contraseña.** Es una casilla (`input[data-show-password]`) justo después del campo,
+  no un icono dentro de él: así `form button` sigue siendo el botón de entrar y teclado y lectores
+  de pantalla la usan sin ayuda. El orden del tabulador es tema → correo → contraseña → casilla →
+  entrar → recuperación → demostración. Para que cupiera sin scroll en 390×844 y en 1440×900 se
+  recortaron márgenes del login.
+
+  **Cambiar el login sigue exigiendo volver a medir, pero ya no hay que reescribir las pruebas.**
+  Se aflojaron a propósito: `lib/login-view.test.ts` ya no lee el CSS con expresiones regulares ni
+  fija clases exactas (los tamaños del logo y del isotipo los mide el navegador), y el contrato
+  del teclado se comprueba por **orden relativo**, así que un control nuevo entre medio no lo
+  rompe. `scripts/browser-login.mjs` acepta una tarjeta de 450 a 700 px en vez de 581,77 ± 1, y
+  sigue exigiendo que no haya desbordamiento. El arnés `scripts/browser-recovery*.mjs` calcula sus
+  mutantes del orden del tabulador desde `orders` (exportado por `browser-recovery.mjs`), en vez de
+  un total fijo de 248. Al agregar un control al login hay que: añadirlo a `stops` y a `loginOrder`,
+  y pasar por él con `tabTo` donde el arnés teclea correo y contraseña (`fill` y `activate` avanzan
+  de a una parada).
 
 - **Barra lateral y tema claro de Daybook.** La barra superior se reemplazó por el riel lateral
   oscuro de Daybook Ticket y Parte Diario (`components/side-nav.tsx`): 232 px fijos, marca,

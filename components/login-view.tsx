@@ -1,18 +1,18 @@
 "use client";
 
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import BrandIdentity from "@/components/ui/brand-identity";
 import BrandMark from "@/components/ui/brand-mark";
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/field";
+import { Checkbox, Input, Label } from "@/components/ui/field";
 import { LoadingMark } from "@/components/ui/dialog-parts";
 import { SectionKicker } from "@/components/ui/section-kicker";
 
 // El pie es el mismo de la aplicación, así que las clases son las mismas.
 const PIE =
-  "mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:mt-4 max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
+  "mt-6 flex items-center justify-between gap-5 border-t border-line pt-[18px] max-[760px]:pt-3 text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:mt-4 max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
 // Comparte el fondo estático de la entrada para evitar un cambio visual de fondo.
@@ -50,18 +50,22 @@ export function LoginView({
   notice: string;
   enterDemo: () => void;
 }) {
+  // Quien escribe en un celular se equivoca de letra y no lo ve. Es una casilla
+  // y no un icono dentro del campo para que `form button` siga siendo el botón
+  // de entrar, y para que lectores de pantalla y teclado la usen sin ayuda.
+  const [mostrarClave, setMostrarClave] = useState(false);
   return (
-    <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">
-      <header className="relative z-[1] flex min-h-[92px] items-center justify-between gap-5 border-b border-line py-3">
+    <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px] max-[760px]:pb-4">
+      <header className="relative z-[1] flex min-h-[76px] max-[760px]:min-h-16 items-center justify-between gap-5 border-b border-line py-3">
         <BrandIdentity className="login-header-identity" />
         <div className="flex items-center gap-[14px] text-[10px] font-[750] tracking-[0.09em] text-muted">
           <ThemeToggle theme={theme} onToggle={toggleTheme} compact />
         </div>
       </header>
-      <section className="relative z-[1] mx-auto my-8 grid w-[min(100%,430px)] content-center gap-3 max-[760px]:my-4">
+      <section className="relative z-[1] mx-auto my-5 grid w-[min(100%,430px)] content-center gap-3 max-[760px]:my-2">
         <div
           data-login-card
-          className="rounded-lg border border-line bg-surface p-[clamp(28px,4vw,40px)] text-center shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-6"
+          className="rounded-lg border border-line bg-surface p-[clamp(24px,3.5vw,34px)] text-center shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-4"
         >
           <BrandMark className="login-card-mark" />
           <SectionKicker className="text-[12px] tracking-[0.08em] text-[color:var(--focus)]">
@@ -70,10 +74,10 @@ export function LoginView({
           <h1 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
             Bienvenido a Daybook Travel
           </h1>
-          <p className="mt-2 mb-[22px] text-[13px] text-muted">
+          <p className="mt-2 mb-[22px] text-[13px] text-muted max-[760px]:mb-4">
             Usa el mismo correo y contraseña de Daybook Asistencia.
           </p>
-          <form onSubmit={login} aria-busy={busy} className="grid gap-[15px] text-left">
+          <form onSubmit={login} aria-busy={busy} className="grid gap-[15px] text-left max-[760px]:gap-3">
             <Label>
               Correo
               <Input
@@ -88,11 +92,19 @@ export function LoginView({
               Contraseña
               <Input
                 name="password"
-                type="password"
+                type={mostrarClave ? "text" : "password"}
                 autoComplete="current-password"
                 required
                 minLength={6}
               />
+            </Label>
+            <Label className="min-h-11 grid-cols-[18px_1fr] items-center gap-[10px] font-normal">
+              <Checkbox
+                data-show-password
+                checked={mostrarClave}
+                onChange={(evento) => setMostrarClave(evento.target.checked)}
+              />
+              Mostrar contraseña
             </Label>
             <Button
               type="submit"

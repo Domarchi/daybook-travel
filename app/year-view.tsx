@@ -8,13 +8,9 @@ import {
   type KeyboardEvent,
 } from "react";
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Plus,
-  X,
 } from "lucide-react";
 import { addDays } from "../lib/calendar";
 import type { Person, Trip } from "../lib/types";
@@ -22,19 +18,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { FilterPills } from "@/components/ui/filter-pills";
 import { SectionKicker } from "@/components/ui/section-kicker";
-import { ShiftBadge, tonoDeJornada } from "@/components/ui/shift-badge";
-import { StatusPill } from "@/components/ui/status-pill";
+import { ShiftBadge } from "@/components/ui/shift-badge";
 import { cn } from "@/lib/utils";
+import YearDayDetail from "./year-day-detail";
 
 // El día del calendario, sin los estados. Se arma fuera del componente porque
 // se repite treinta veces por mes y no cambia nunca.
 const DIA = [
-  "relative flex min-h-[78px] min-w-11 flex-col items-stretch justify-between",
-  "gap-[7px] overflow-hidden rounded-[10px] border-line p-[9px] text-left",
+  "relative flex min-h-[64px] min-w-11 flex-col items-stretch justify-between",
+  "gap-[5px] overflow-hidden rounded-[10px] border-line p-[8px] text-left",
   "active:scale-100",
   "bg-[color-mix(in_srgb,var(--surface-raised)_70%,var(--bg))] text-foreground-soft",
   "raton:hover:not-disabled:border-foreground-soft raton:hover:not-disabled:bg-surface-hover",
-  "max-[760px]:min-h-[66px] max-[760px]:rounded-sm max-[760px]:px-[5px] max-[760px]:py-[7px]",
+  "max-[760px]:min-h-[58px] max-[760px]:rounded-sm max-[760px]:px-[5px] max-[760px]:py-[7px]",
 ].join(" ");
 
 // La raya de arriba que marca el día de hoy.
@@ -101,6 +97,21 @@ export default function YearView({
     return today.startsWith(month) ? today : `${month}-01`;
   });
   const [focusRequest, setFocusRequest] = useState<string | null>(null);
+  // "Mes" muestra todo el mes; "Semana" una sola fila, que es lo que se mira a
+  // diario y ocupa una fracción de la pantalla. La elección se recuerda en este
+  // navegador, y si no se puede leer se parte en "Mes".
+  const [vista, setVista] = useState<"Mes" | "Semana">(() => {
+    try {
+      return window.localStorage.getItem("agenda-vista") === "Semana" ? "Semana" : "Mes";
+    } catch {
+      return "Mes";
+    }
+  });
+  // Un día cualquiera de la semana que muestra la vista semanal.
+  const [ancla, setAncla] = useState(() => {
+    const today = localToday();
+    return today.startsWith(month) ? today : `${month}-01`;
+  });
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDay(localToday()), 60_000);
@@ -181,6 +192,15 @@ export default function YearView({
   const length = monthEnd.getUTCDate();
   const numberOfWeeks = Math.ceil((gap + length) / 7);
 
+  const inicioDeSemana = addDays(ancla, -((new Date(ancla + "T12:00Z").getUTCDay() + 6) % 7));
+  const semana = Array.from({ length: 7 }, (_, dia) => addDays(inicioDeSemana, dia));
+  const viajesDeLaSemana = semana.reduce((suma, dia) => suma + (byDay.get(dia)?.length ?? 0), 0);
+  const rangoDeSemana = (() => {
+    const formato = new Intl.DateTimeFormat("es-CL", { day: "numeric", month: "long", timeZone: "UTC" });
+    const fecha = (dia: string) => formato.format(new Date(dia + "T12:00Z"));
+    return `Semana del ${fecha(semana[0])} al ${fecha(semana[6])}`;
+  })();
+
   const monthRows = [...byDay].filter(([date]) => date.startsWith(month));
   const monthTrips = monthRows.flatMap(([, rows]) => rows);
   const distinctPeople = new Set(monthTrips.map((trip) => trip.person_id)).size;
@@ -189,8 +209,30 @@ export default function YearView({
   function navigateMonth(next: string) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(next)) return;
     onMonthChange(next);
-    setFocusedDate(currentDay.startsWith(next) ? currentDay : `${next}-01`);
+    const inicio = currentDay.startsWith(next) ? currentDay : `${next}-01`;
+    setFocusedDate(inicio);
+    setAncla(inicio);
     onSelect(null);
+  }
+
+  function moveWeek(delta: number) {
+    const next = addDays(ancla, delta * 7);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(next)) return;
+    setAncla(next);
+    setFocusedDate(next);
+    onMonthChange(next.slice(0, 7));
+    onSelect(null);
+  }
+
+  function changeView(opcion: string) {
+    const siguiente = opcion === "Semana" ? "Semana" : "Mes";
+    setVista(siguiente);
+    try {
+      window.localStorage.setItem("agenda-vista", siguiente);
+    } catch {}
+    if (siguiente === "Semana") {
+      setAncla(selected ?? (currentDay.startsWith(month) ? currentDay : `${month}-01`));
+    }
   }
 
   function moveMonth(delta: number) {
@@ -205,6 +247,7 @@ export default function YearView({
     setCurrentDay(date);
     onMonthChange(date.slice(0, 7));
     setFocusedDate(date);
+    setAncla(date);
     onSelect(date);
   }
 
@@ -229,6 +272,7 @@ export default function YearView({
     if (targetYear < 1 || targetYear > 9999) return;
     const nextMonth = date.slice(0, 7);
     setFocusedDate(date);
+    setAncla(date);
     setFocusRequest(date);
     if (nextMonth !== month) {
       onMonthChange(nextMonth);
@@ -295,8 +339,7 @@ export default function YearView({
     };
   }
 
-  function renderCalendarDay(index: number) {
-    const date = addDays(monthStart, index);
+  function renderCalendarDay(date: string) {
     const counts = countsFor(date);
     const isToday = date === currentDay;
     const isSelected = date === selected;
@@ -345,7 +388,7 @@ export default function YearView({
       >
         <span className="flex items-center justify-between gap-[5px]">
           <strong className="text-[15px] leading-none text-foreground max-[430px]:text-[14px] tabular-nums">
-            {index + 1}
+            {Number(date.slice(8))}
           </strong>
           {isToday ? (
             <em className="rounded-[999px] bg-[color-mix(in_srgb,var(--focus)_15%,transparent)] px-[5px] py-[2px] text-[8px] font-extrabold text-[var(--focus)] uppercase not-italic max-[760px]:hidden">
@@ -400,23 +443,32 @@ export default function YearView({
       className="overflow-hidden rounded-lg border border-line bg-surface shadow-[0_1px_0_rgba(255,255,255,0.02)]"
       aria-labelledby="calendar-title"
     >
-      <header className="flex items-end justify-between gap-7 border-b border-line px-[22px] pt-[22px] pb-[18px] max-[820px]:flex-col max-[820px]:items-start max-[760px]:gap-3 max-[760px]:px-[14px] max-[760px]:pt-[18px] max-[760px]:pb-[14px]">
-        <div>
+      <header className="flex flex-wrap items-end justify-between gap-x-7 gap-y-3 border-b border-line px-[22px] pt-[18px] pb-[14px] max-[820px]:flex-col max-[820px]:items-start max-[760px]:gap-3 max-[760px]:px-[14px] max-[760px]:pt-[18px] max-[760px]:pb-[14px]">
+        <div className="shrink-0">
           <SectionKicker className="max-[760px]:hidden">Planificación mensual</SectionKicker>
           <h2
             id="calendar-title"
-            className="text-[clamp(22px,2.5vw,31px)] leading-[1.1] tracking-[-0.035em] text-foreground first-letter:uppercase"
+            className="whitespace-nowrap text-[clamp(22px,2.5vw,31px)] leading-[1.1] tracking-[-0.035em] text-foreground first-letter:uppercase"
           >
             {monthLabel(month)}
           </h2>
           <p className="mt-[7px] text-[13px] text-muted">
-            {monthTrips.length
-              ? `${monthTrips.length} ${monthTrips.length === 1 ? "viaje" : "viajes"} de ${distinctPeople} ${distinctPeople === 1 ? "persona" : "personas"}.`
-              : "Todavía no hay viajes programados para este mes."}
+            {vista === "Semana"
+              ? `${rangoDeSemana}: ${viajesDeLaSemana ? `${viajesDeLaSemana} ${viajesDeLaSemana === 1 ? "viaje" : "viajes"}` : "sin viajes"}.`
+              : monthTrips.length
+                ? `${monthTrips.length} ${monthTrips.length === 1 ? "viaje" : "viajes"} de ${distinctPeople} ${distinctPeople === 1 ? "persona" : "personas"}.`
+                : "Todavía no hay viajes programados para este mes."}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-[9px] max-[820px]:w-full max-[820px]:justify-between">
+          <FilterPills
+            label="Vista del calendario"
+            opciones={["Mes", "Semana"]}
+            valor={vista}
+            onCambio={changeView}
+            className="max-[760px]:w-auto"
+          />
           <FilterPills
             label="Filtrar calendario por turno"
             variante="jornadas"
@@ -430,8 +482,8 @@ export default function YearView({
               type="button"
               variant="icon"
               className="border-0 bg-transparent"
-              aria-label="Mes anterior"
-              onClick={() => moveMonth(-1)}
+              aria-label={vista === "Semana" ? "Semana anterior" : "Mes anterior"}
+              onClick={() => (vista === "Semana" ? moveWeek(-1) : moveMonth(-1))}
             >
               <ChevronLeft size={18} />
             </Button>
@@ -448,8 +500,8 @@ export default function YearView({
               type="button"
               variant="icon"
               className="border-0 bg-transparent"
-              aria-label="Mes siguiente"
-              onClick={() => moveMonth(1)}
+              aria-label={vista === "Semana" ? "Semana siguiente" : "Mes siguiente"}
+              onClick={() => (vista === "Semana" ? moveWeek(1) : moveMonth(1))}
             >
               <ChevronRight size={18} />
             </Button>
@@ -497,9 +549,9 @@ export default function YearView({
       <div className={cn("grid items-start", selected && "min-[1120px]:grid-cols-[minmax(0,1fr)_360px]")}>
       <div>
       <div
-        className="overflow-x-auto overscroll-x-contain px-[18px] pt-4 pb-[18px] [scrollbar-width:thin] max-[760px]:px-[7px] max-[760px]:pt-3 max-[760px]:pb-[14px]"
+        className="overflow-x-auto overscroll-x-contain px-[18px] pt-3 pb-[14px] [scrollbar-width:thin] max-[760px]:px-[7px] max-[760px]:pt-3 max-[760px]:pb-[14px]"
         role="region"
-        aria-label={`Calendario de ${monthLabel(month)}`}
+        aria-label={vista === "Semana" ? rangoDeSemana : `Calendario de ${monthLabel(month)}`}
       >
         <div
           ref={calendarRef}
@@ -522,7 +574,11 @@ export default function YearView({
               </span>
             ))}
           </div>
-          {Array.from({ length: numberOfWeeks }, (_, weekIndex) => (
+          {vista === "Semana" ? (
+            <div role="row" style={{ display: "contents" }}>
+              {semana.map((dia) => renderCalendarDay(dia))}
+            </div>
+          ) : Array.from({ length: numberOfWeeks }, (_, weekIndex) => (
             <div
               role="row"
               style={{ display: "contents" }}
@@ -531,10 +587,10 @@ export default function YearView({
               {Array.from({ length: 7 }, (_, columnIndex) => {
                 const dayIndex = weekIndex * 7 + columnIndex - gap;
                 return dayIndex >= 0 && dayIndex < length ? (
-                  renderCalendarDay(dayIndex)
+                  renderCalendarDay(addDays(monthStart, dayIndex))
                 ) : (
                   <span
-                    className="min-h-[78px] border border-transparent max-[760px]:min-h-[66px]"
+                    className="min-h-[64px] border border-transparent max-[760px]:min-h-[58px]"
                     role="gridcell"
                     aria-disabled="true"
                     aria-label="Fuera del mes"
@@ -564,120 +620,18 @@ export default function YearView({
       </div>
 
       {selected ? (
-        <section
-          ref={detailRef}
-          className="row-start-1 border-b border-line bg-surface-soft scroll-mt-[140px] min-[1120px]:sticky min-[1120px]:top-[86px] min-[1120px]:col-start-2 min-[1120px]:border-b-0 min-[1120px]:border-l min-[1120px]:self-stretch"
-          aria-live="polite"
-        >
-          <header className="flex flex-col items-stretch gap-4 border-b border-line px-[18px] py-4 max-[760px]:px-[14px]">
-            <div>
-              <SectionKicker>Día seleccionado</SectionKicker>
-              <h3 className="text-[20px] leading-[1.2] tracking-[-0.025em] text-foreground first-letter:uppercase">
-                {longDate(selected)}
-              </h3>
-              <p className="mt-[7px] text-[13px] text-muted">
-                {rows.length
-                  ? `${rows.length} ${rows.length === 1 ? "viaje programado" : "viajes programados"}`
-                  : "Sin movimientos registrados"}
-              </p>
-            </div>
-            <div className="flex items-center gap-[7px]">
-              <Button
-                type="button"
-                variant="primary"
-                className="max-[760px]:flex-1"
-                onClick={() => onAdd(selected)}
-              >
-                <Plus size={17} /> Agregar viaje
-              </Button>
-              <Button
-                type="button"
-                variant="icon"
-                aria-label="Cerrar detalle del día"
-                onClick={() => {
-                  onSelect(null);
-                  requestDayFocus(selected);
-                }}
-              >
-                <X size={18} />
-              </Button>
-            </div>
-          </header>
-
-          {rows.length ? (
-            <div className="grid">
-              {rows.map((trip) => {
-                const member = members.get(trip.person_id);
-                const isUp = trip.direction === "SUBIDA";
-                const directionLabel = isUp ? "Subida" : "Bajada";
-                return (
-                  <Button
-                    type="button"
-                    key={trip.id}
-                    className="grid min-h-[100px] grid-cols-[32px_minmax(0,1fr)_18px] items-start gap-x-[10px] gap-y-2 rounded-none border-0 border-b border-line bg-transparent px-[18px] py-[14px] text-left last:border-b-0 max-[760px]:px-[14px]"
-                    onClick={() => onTrip(trip.id)}
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex size-9 items-center justify-center rounded-[9px]",
-                        isUp
-                          ? "bg-subida-soft text-subida"
-                          : "bg-bajada-soft text-bajada",
-                      )}
-                      aria-hidden="true"
-                    >
-                      {isUp ? (
-                        <ArrowUpRight size={19} />
-                      ) : (
-                        <ArrowDownLeft size={19} />
-                      )}
-                    </span>
-                    <span className="grid min-w-0 gap-[2px]">
-                      <strong className="overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground">
-                        {member?.name ?? "Persona"}
-                      </strong>
-                      <small className="text-muted whitespace-normal">
-                        <span
-                          className={isUp ? "text-subida" : "text-bajada"}
-                        >
-                          {directionLabel}
-                        </span>{" "}
-                        · {trip.origin} → {trip.destination}
-                      </small>
-                    </span>
-                    <span className="col-start-2 row-start-2 flex min-w-0 flex-wrap items-center gap-2">
-                      <strong className="overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground">
-                        {trip.requested_time?.slice(0, 5) || "Hora pendiente"}
-                      </strong>
-                      <ShiftBadge tono={tonoDeJornada(member?.shift ?? "")}>
-                        {member?.shift ?? "Por confirmar"}
-                      </ShiftBadge>
-                    <StatusPill
-                      status={trip.status}
-                    />
-                    </span>
-                    <ChevronRight
-                      className="col-start-3 row-start-1 self-center text-muted"
-                      size={17}
-                    />
-                  </Button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex min-h-24 items-center justify-center gap-3 p-[22px] text-muted">
-              <CalendarDays size={20} />
-              <span className="grid gap-[2px]">
-                <strong className="text-foreground">
-                  Este día está libre
-                </strong>
-                <small>
-                  Agrega un viaje si necesitas registrar un movimiento.
-                </small>
-              </span>
-            </div>
-          )}
-        </section>
+        <YearDayDetail
+          detailRef={detailRef}
+          titulo={longDate(selected)}
+          rows={rows}
+          members={members}
+          onAdd={() => onAdd(selected)}
+          onClose={() => {
+            onSelect(null);
+            requestDayFocus(selected);
+          }}
+          onTrip={onTrip}
+        />
       ) : (
         <p className="border-t border-line px-[22px] py-[13px] text-center text-[12px] text-muted">
           Selecciona un día para ver personas, horarios y reservas.
