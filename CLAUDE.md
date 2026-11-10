@@ -337,6 +337,12 @@ opinión.
   `MS_CIERRE_DIALOGO` en `store.tsx` tiene que calzar con la duración del CSS. `abrirModal()`
   cancela un cierre en curso: sin eso, cerrar y abrir otro dentro de esos 200ms dejaba el nuevo
   marcado como "cerrando".
+- **La Agenda tiene vista «Mes» y «Semana».** La semanal muestra una sola fila (454 px contra 834
+  del mes con los datos de la demostración), con flechas de semana anterior y siguiente, y la
+  elección se recuerda en el navegador (`localStorage`, clave `agenda-vista`; si no se puede leer,
+  parte en «Mes»). Las flechas del teclado cruzan de semana y de mes. Además el título del mes ya
+  no salta a dos líneas (`whitespace-nowrap`, y los controles bajan con `flex-wrap`) y las celdas
+  bajaron de 78 a 64 px.
 - **La barra de selección de Viajes vive siempre en el DOM**, dentro de `.bulk-bar-slot`, y el
   hueco crece con ella. Antes aparecía de golpe y empujaba la tabla 76px. La cuenta se congela
   en el último valor mientras se cierra, si no se leería "0 viajes" al encogerse.
