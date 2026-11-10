@@ -1,5 +1,6 @@
 "use client";
 
+import DocumentTypesPanel from "@/components/document-types-panel";
 import EmptyState from "@/components/ui/empty-state";
 import { ArrowUpRight, CalendarDays, ChevronRight, FileSpreadsheet, Search, UserPlus, Users } from "lucide-react";
 import { formatDate } from "../lib/format";
@@ -26,6 +27,7 @@ export default function PeopleView() {
 
   return (
     <section aria-labelledby="people-results">
+      <DocumentTypesPanel />
       <div className="mb-[10px] flex flex-wrap items-center gap-2 max-[760px]:flex-col max-[760px]:items-stretch">
         <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-[13px] font-[650] text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
           <Search size={18} aria-hidden="true" />
