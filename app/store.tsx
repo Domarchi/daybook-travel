@@ -59,6 +59,7 @@ import {
 } from "../lib/types";
 import { useTema } from "./estado/use-tema";
 import { useAvisos } from "./estado/use-avisos";
+import { useSesion } from "./estado/use-sesion";
 
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
@@ -66,6 +67,7 @@ const MS_CIERRE_DIALOGO = 200;
 function useStoreValue() {
   const tema = useTema();
   const avisos = useAvisos({ ...tema });
+  const sesion = useSesion({ ...tema, ...avisos });
 
   const {
     theme,
@@ -80,11 +82,14 @@ function useStoreValue() {
     busyRef,
     clearMessages,
     runAction,
-  } = { ...tema, ...avisos };
+    ready,
+    setReady,
+    email,
+    setEmail,
+    demo,
+    setDemo,
+  } = { ...tema, ...avisos, ...sesion };
 
-  const [ready, setReady] = useState(false);
-  const [email, setEmail] = useState<string | null>(null);
-  const [demo, setDemo] = useState(false);
   const [accessStatus, setAccessStatus] = useState<AccessStatus>("checking");
   const [isAdmin, setIsAdmin] = useState(false);
   const [people, setPeople] = useState<Person[]>([]);
@@ -131,33 +136,6 @@ function useStoreValue() {
   // obra: vive en la base, no en el navegador. Mientras carga vale la de siempre.
   const [purchaseWindow, setPurchaseWindow] = useState(VENTANA_POR_OMISION);
   const [purchaseFilter, setPurchaseFilter] = useState("todos");
-
-  useEffect(() => {
-    let sesion;
-    try {
-      sesion = db().auth;
-    } catch (error) {
-      // Sin variables de entorno no hay a quién preguntarle por la sesión. Se
-      // muestra la pantalla de entrada con el motivo, en vez de una página en
-      // blanco, y la demostración sigue funcionando sin credenciales.
-      setNotice(
-        error instanceof Error
-          ? error.message
-          : "Falta configurar el acceso a la base de datos.",
-      );
-      setReady(true);
-      return;
-    }
-    sesion.getSession().then(({ data }) => {
-      setEmail(data.session?.user.email ?? null);
-      setReady(true);
-    });
-    const { data } = sesion.onAuthStateChange((_event, session) => {
-      setEmail(session?.user.email ?? null);
-      setReady(true);
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
 
   async function allRows(table: string) {
     const rows: Record<string, unknown>[] = [];
