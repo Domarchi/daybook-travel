@@ -26,7 +26,8 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | Ruta | Qué es |
 |---|---|
 | `app/page.tsx` | 14 líneas. Enchufa `AppProvider` con `Workspace`, nada más. |
-| `app/store.tsx` | **Todo el estado**: las variables, los efectos y las funciones que cambian datos. Cualquier pieza lo pide con `useApp()`; no se pasan props entre vistas. |
+| `app/store.tsx` | 53 líneas. **Junta el estado**: llama a los hooks de `app/estado/` y los expone todos juntos. Cualquier pieza lo pide con `useApp()`; no se pasan props entre vistas. |
+| `app/estado/use-*.ts` | **El estado, por tema** (antes era un solo hook de 1.422 líneas). `use-tema`, `use-avisos` (avisos y `runAction`), `use-sesion`, `use-datos` (lo que viene de la base y `reload`), `use-navegacion` (pantalla y filtros), `use-dialogos` (modal, salida animada, foco), `use-derivados` (listas filtradas, costos, compra), `use-acreditacion`, y las acciones: `use-acciones-sesion`, `-viajes`, `-personas`, `-generar` y `use-manifiesto`. Cada hook declara en su tipo `Entrada` de cuáles depende y `store.tsx` le pasa solo esos. |
 | `components/workspace.tsx` | El armazón: decide qué pantalla se ve y ordena las piezas. |
 | `components/*.tsx` | Pantallas y diálogos, una pieza por archivo: `login-view`, `side-nav` (la barra lateral), `access-state`, `agenda-view`, `people-view`, `trips-view`, `costs-view`, `modal-layer` y los diálogos (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`, `manifest-dialog`). |
 | `components/ui/*.tsx` | Primitivas reutilizables: botón, campos, pastillas, tabla de datos, encabezado de página, partes de diálogo, marca (`brand-*`). |
@@ -91,6 +92,14 @@ se agrega una nueva con el número siguiente.
    un solo archivo. Lo que se gana es poder encontrar y cambiar una cosa sin leer 2.630
    líneas. Si algún día los redibujos molestan, eso se resuelve aparte (dividir el store o
    memorizar), no partiendo archivos.
+
+   **Después se partió también el hook** (rama `parte-el-store`): `app/store.tsx` pasó de 1.422
+   líneas a 53 y su contenido vive en trece hooks de `app/estado/`. Mismo método: movimiento puro
+   (un script copió rangos de líneas del original, sin reescribir), una etapa por commit, y al
+   final todas las líneas del original comparadas contra las nuevas: la única diferencia son
+   imports, listas de nombres y el tipo `Entrada`. El orden de los efectos se conservó. Para
+   agregar estado nuevo: ponerlo en el hook de su tema y, si otro lo necesita, pedirlo en su
+   `Entrada`. Dos hooks no pueden declarar el mismo nombre (el store los mezcla con `...`).
 
 2. **Un solo motor de ciclos. HECHO** (rama `motor-de-ciclos`). `lib/cycles.ts` es ahora el
    único que decide fechas de viaje, y la base solo guarda lo que él genera.
