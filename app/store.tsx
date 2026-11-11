@@ -58,18 +58,29 @@ import {
   Trip,
 } from "../lib/types";
 import { useTema } from "./estado/use-tema";
+import { useAvisos } from "./estado/use-avisos";
 
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
 
 function useStoreValue() {
   const tema = useTema();
+  const avisos = useAvisos({ ...tema });
 
   const {
     theme,
     setTheme,
     toggleTheme,
-  } = { ...tema };
+    notice,
+    setNotice,
+    formError,
+    setFormError,
+    busy,
+    setBusy,
+    busyRef,
+    clearMessages,
+    runAction,
+  } = { ...tema, ...avisos };
 
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
@@ -114,16 +125,12 @@ function useStoreValue() {
     addDays(localDate(), 90),
   );
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [notice, setNotice] = useState("");
-  const [formError, setFormError] = useState("");
-  const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   // Dias de anticipacion con que se compran los pasajes. Es una politica de la
   // obra: vive en la base, no en el navegador. Mientras carga vale la de siempre.
   const [purchaseWindow, setPurchaseWindow] = useState(VENTANA_POR_OMISION);
   const [purchaseFilter, setPurchaseFilter] = useState("todos");
-  const busyRef = useRef(false);
 
   useEffect(() => {
     let sesion;
@@ -499,40 +506,6 @@ function useStoreValue() {
   const reservationRequired = ["Emitido", "Completado", "No presentado"].includes(
     tripStatus,
   );
-
-  function clearMessages() {
-    setNotice("");
-    setFormError("");
-  }
-
-  async function runAction(
-    operation: () => Promise<void>,
-    destination: "form" | "global" = "global",
-  ) {
-    setBusy(true);
-    busyRef.current = true;
-    setFormError("");
-    if (destination === "global") setNotice("");
-    try {
-      await operation();
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : ((error as { message?: string })?.message ??
-            "No se pudo completar la acción. Inténtalo nuevamente.");
-      if (destination === "form") {
-        setFormError(message);
-        setTimeout(
-          () => document.querySelector<HTMLElement>(".dialog-error")?.focus(),
-          0,
-        );
-      } else setNotice(message);
-    } finally {
-      setBusy(false);
-      busyRef.current = false;
-    }
-  }
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
