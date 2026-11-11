@@ -7,12 +7,10 @@
 import { useEffect, useState } from "react";
 import { localDate } from "../../lib/format";
 import { Person } from "../../lib/types";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
-import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
 
-type Entrada = Tema & Avisos & Sesion & Datos;
+type Entrada = Avisos & Datos;
 
 export function useNavegacion(e: Entrada) {
   const {

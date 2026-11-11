@@ -8,16 +8,12 @@ import { useEffect, useRef, useState } from "react";
 import { addDays } from "../../lib/calendar";
 import { localDate } from "../../lib/format";
 import { HistoryItem, ModalName, Person, Trip } from "../../lib/types";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
-import type { Sesion } from "./use-sesion";
-import type { Datos } from "./use-datos";
-import type { Navegacion } from "./use-navegacion";
 
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion;
+type Entrada = Avisos;
 
 export function useDialogos(e: Entrada) {
   const {

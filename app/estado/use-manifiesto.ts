@@ -8,7 +8,6 @@ import { localDate } from "../../lib/format";
 import { db } from "../../lib/supabase";
 import { csvDeViajes } from "../../lib/trips-csv";
 import { Trip } from "../../lib/types";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
@@ -16,12 +15,8 @@ import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
 import type { Derivados } from "./use-derivados";
 import type { Acreditacion } from "./use-acreditacion";
-import type { AccionesSesion } from "./use-acciones-sesion";
-import type { AccionesViajes } from "./use-acciones-viajes";
-import type { AccionesPersonas } from "./use-acciones-personas";
-import type { AccionesGenerar } from "./use-acciones-generar";
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion & AccionesSesion & AccionesViajes & AccionesPersonas & AccionesGenerar;
+type Entrada = Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion;
 
 export function useManifiesto(e: Entrada) {
   const {

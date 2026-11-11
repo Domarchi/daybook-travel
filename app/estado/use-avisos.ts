@@ -5,11 +5,8 @@
 // cambió dónde viven. Lo que usan de los otros hooks lo reciben en `e`.
 
 import { useRef, useState } from "react";
-import type { Tema } from "./use-tema";
 
-type Entrada = Tema;
-
-export function useAvisos(e: Entrada) {
+export function useAvisos() {
   const [notice, setNotice] = useState("");
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);

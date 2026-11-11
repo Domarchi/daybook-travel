@@ -8,17 +8,14 @@ import { localDate } from "../../lib/format";
 import { ventanaValida } from "../../lib/purchase";
 import { db } from "../../lib/supabase";
 import { Trip } from "../../lib/types";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
 import type { Derivados } from "./use-derivados";
-import type { Acreditacion } from "./use-acreditacion";
-import type { AccionesSesion } from "./use-acciones-sesion";
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion & AccionesSesion;
+type Entrada = Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados;
 
 export function useAccionesViajes(e: Entrada) {
   const {
@@ -29,7 +26,6 @@ export function useAccionesViajes(e: Entrada) {
     dateFilter,
     demo,
     editTrip,
-    history,
     peopleById,
     personFilter,
     purchaseWindow,

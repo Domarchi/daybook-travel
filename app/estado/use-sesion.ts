@@ -5,10 +5,9 @@
 
 import { useEffect, useState } from "react";
 import { db } from "../../lib/supabase";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
 
-type Entrada = Tema & Avisos;
+type Entrada = Avisos;
 
 export function useSesion(e: Entrada) {
   const {

@@ -6,18 +6,14 @@
 import { FormEvent } from "react";
 import { db } from "../../lib/supabase";
 import { Person } from "../../lib/types";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
-import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
-import type { Derivados } from "./use-derivados";
 import type { Acreditacion } from "./use-acreditacion";
-import type { AccionesSesion } from "./use-acciones-sesion";
 import type { AccionesViajes } from "./use-acciones-viajes";
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion & AccionesSesion & AccionesViajes;
+type Entrada = Avisos & Sesion & Datos & Dialogos & Acreditacion & AccionesViajes;
 
 export function useAccionesPersonas(e: Entrada) {
   const {
@@ -29,7 +25,6 @@ export function useAccionesPersonas(e: Entrada) {
     fechasDeDocumentosCambiadas,
     openTrip,
     pendingTripDate,
-    people,
     reload,
     runAction,
     setDocuments,

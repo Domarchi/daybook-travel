@@ -9,11 +9,10 @@ import { DocumentoDePersona, TipoDeDocumento } from "../../lib/accreditation";
 import { VENTANA_POR_OMISION } from "../../lib/purchase";
 import { db } from "../../lib/supabase";
 import { AccessStatus, Person, Trip } from "../../lib/types";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 
-type Entrada = Tema & Avisos & Sesion;
+type Entrada = Avisos & Sesion;
 
 export function useDatos(e: Entrada) {
   const {

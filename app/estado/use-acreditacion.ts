@@ -13,15 +13,12 @@ import {
   tipoRepetido,
 } from "../../lib/accreditation";
 import { db } from "../../lib/supabase";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
-import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
-import type { Dialogos } from "./use-dialogos";
 import type { Derivados } from "./use-derivados";
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados;
+type Entrada = Avisos & Datos & Navegacion & Derivados;
 
 export function useAcreditacion(e: Entrada) {
   const {

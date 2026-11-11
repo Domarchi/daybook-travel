@@ -17,14 +17,11 @@ import { movimientos } from "../../lib/cycles";
 import { localDate, normalize } from "../../lib/format";
 import { estadoDeCompra, resumenDeCompra } from "../../lib/purchase";
 import { esTurnoRotativo, Person, Trip } from "../../lib/types";
-import type { Tema } from "./use-tema";
-import type { Avisos } from "./use-avisos";
-import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion & Dialogos;
+type Entrada = Datos & Navegacion & Dialogos;
 
 export function useDerivados(e: Entrada) {
   const {

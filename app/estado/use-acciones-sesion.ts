@@ -12,22 +12,17 @@ import {
 } from "../../lib/demo";
 import { localDate } from "../../lib/format";
 import { db } from "../../lib/supabase";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
-import type { Dialogos } from "./use-dialogos";
-import type { Derivados } from "./use-derivados";
-import type { Acreditacion } from "./use-acreditacion";
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion;
+type Entrada = Avisos & Sesion & Datos & Navegacion;
 
 export function useAccionesSesion(e: Entrada) {
   const {
     clearMessages,
     clearTripFilters,
-    email,
     runAction,
     setAccessStatus,
     setCalendarMonth,

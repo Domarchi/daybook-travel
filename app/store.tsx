@@ -21,18 +21,18 @@ import { useManifiesto } from "./estado/use-manifiesto";
 
 function useStoreValue() {
   const tema = useTema();
-  const avisos = useAvisos({ ...tema });
-  const sesion = useSesion({ ...tema, ...avisos });
-  const datos = useDatos({ ...tema, ...avisos, ...sesion });
-  const navegacion = useNavegacion({ ...tema, ...avisos, ...sesion, ...datos });
-  const dialogos = useDialogos({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion });
-  const derivados = useDerivados({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos });
-  const acreditacion = useAcreditacion({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados });
-  const acciones_sesion = useAccionesSesion({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion });
-  const acciones_viajes = useAccionesViajes({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion });
-  const acciones_personas = useAccionesPersonas({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes });
-  const acciones_generar = useAccionesGenerar({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes, ...acciones_personas });
-  const manifiesto = useManifiesto({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes, ...acciones_personas, ...acciones_generar });
+  const avisos = useAvisos();
+  const sesion = useSesion({ ...avisos });
+  const datos = useDatos({ ...avisos, ...sesion });
+  const navegacion = useNavegacion({ ...avisos, ...datos });
+  const dialogos = useDialogos({ ...avisos });
+  const derivados = useDerivados({ ...datos, ...navegacion, ...dialogos });
+  const acreditacion = useAcreditacion({ ...avisos, ...datos, ...navegacion, ...derivados });
+  const acciones_sesion = useAccionesSesion({ ...avisos, ...sesion, ...datos, ...navegacion });
+  const acciones_viajes = useAccionesViajes({ ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados });
+  const acciones_personas = useAccionesPersonas({ ...avisos, ...sesion, ...datos, ...dialogos, ...acreditacion, ...acciones_viajes });
+  const acciones_generar = useAccionesGenerar({ ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados });
+  const manifiesto = useManifiesto({ ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion });
 
   return { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes, ...acciones_personas, ...acciones_generar, ...manifiesto };
 }

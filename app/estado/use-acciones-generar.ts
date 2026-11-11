@@ -7,19 +7,14 @@ import { FormEvent } from "react";
 import { addDays } from "../../lib/calendar";
 import { localDate } from "../../lib/format";
 import { db } from "../../lib/supabase";
-import type { Tema } from "./use-tema";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
 import type { Derivados } from "./use-derivados";
-import type { Acreditacion } from "./use-acreditacion";
-import type { AccionesSesion } from "./use-acciones-sesion";
-import type { AccionesViajes } from "./use-acciones-viajes";
-import type { AccionesPersonas } from "./use-acciones-personas";
 
-type Entrada = Tema & Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion & AccionesSesion & AccionesViajes & AccionesPersonas;
+type Entrada = Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados;
 
 export function useAccionesGenerar(e: Entrada) {
   const {
@@ -38,7 +33,6 @@ export function useAccionesGenerar(e: Entrada) {
     setGenerateUntil,
     setNotice,
     setTrips,
-    trips,
   } = e;
 
   function openGenerate(personId?: string) {
