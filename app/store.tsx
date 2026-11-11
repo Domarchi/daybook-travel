@@ -1,25 +1,30 @@
 "use client";
 
-// Aqui vive todo el estado de la aplicacion: las variables, los efectos y las
-// funciones que antes estaban dentro de App(). El texto es identico al que
-// habia en page.tsx; lo unico nuevo es el envoltorio de las tres ultimas
-// funciones de este archivo.
-//
-// Cualquier pieza de la aplicacion pide lo que necesita con useApp().
-
+// Aqui vive todo el estado de la aplicacion. Desde que se partio, este archivo
+// solo junta los hooks de `app/estado/`: cada uno tiene un tema (la sesion, los
+// datos, los filtros, los dialogos, las acciones). Cualquier pieza de la
+// aplicacion pide lo que necesita con useApp(), igual que antes.
 import {
+  createContext,
   FormEvent,
   ReactNode,
-  createContext,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { db } from "../lib/supabase";
+import {
+  DocumentoDePersona,
+  hayExigencias,
+  limpiarNombreDeTipo,
+  motivosDeAcreditacion,
+  nombreDeTipoValido,
+  resumenDeMotivos,
+  TipoDeDocumento,
+  tipoRepetido,
+} from "../lib/accreditation";
 import { addDays } from "../lib/calendar";
-import { movimientos } from "../lib/cycles";
 import {
   cobertura,
   porMes,
@@ -28,22 +33,7 @@ import {
   referenciaDeRuta,
   rutaDe,
 } from "../lib/costs";
-import {
-  VENTANA_POR_OMISION,
-  estadoDeCompra,
-  resumenDeCompra,
-  ventanaValida,
-} from "../lib/purchase";
-import {
-  hayExigencias,
-  limpiarNombreDeTipo,
-  motivosDeAcreditacion,
-  nombreDeTipoValido,
-  resumenDeMotivos,
-  tipoRepetido,
-  type DocumentoDePersona,
-  type TipoDeDocumento,
-} from "../lib/accreditation";
+import { movimientos } from "../lib/cycles";
 import {
   makeDemoDocuments,
   makeDemoDocumentTypes,
@@ -51,21 +41,36 @@ import {
   makeDemoTrips,
 } from "../lib/demo";
 import { localDate, normalize } from "../lib/format";
+import {
+  estadoDeCompra,
+  resumenDeCompra,
+  VENTANA_POR_OMISION,
+  ventanaValida,
+} from "../lib/purchase";
+import { db } from "../lib/supabase";
 import { csvDeViajes } from "../lib/trips-csv";
-import type {
+import {
   AccessStatus,
+  esTurnoRotativo,
   HistoryItem,
   ModalName,
   Person,
   Trip,
 } from "../lib/types";
-import { esTurnoRotativo } from "../lib/types";
+import { useTema } from "./estado/use-tema";
 
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
 
 function useStoreValue() {
-  const [theme, setTheme] = useState("dark");
+  const tema = useTema();
+
+  const {
+    theme,
+    setTheme,
+    toggleTheme,
+  } = { ...tema };
+
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [demo, setDemo] = useState(false);
@@ -119,13 +124,6 @@ function useStoreValue() {
   const [purchaseWindow, setPurchaseWindow] = useState(VENTANA_POR_OMISION);
   const [purchaseFilter, setPurchaseFilter] = useState("todos");
   const busyRef = useRef(false);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("fcc-travel-theme");
-      if (saved === "light" || saved === "dark") setTheme(saved);
-    } catch {}
-  }, []);
 
   useEffect(() => {
     let sesion;
@@ -501,15 +499,6 @@ function useStoreValue() {
   const reservationRequired = ["Emitido", "Completado", "No presentado"].includes(
     tripStatus,
   );
-
-  function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem("fcc-travel-theme", next);
-    } catch {}
-  }
 
   function clearMessages() {
     setNotice("");
