@@ -10,7 +10,7 @@ export function useTema() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("fcc-travel-theme");
+      const saved = localStorage.getItem("daybook-travel-theme");
       if (saved === "light" || saved === "dark") setTheme(saved);
     } catch {}
   }, []);
@@ -20,7 +20,7 @@ export function useTema() {
     setTheme(next);
     document.documentElement.dataset.theme = next;
     try {
-      localStorage.setItem("fcc-travel-theme", next);
+      localStorage.setItem("daybook-travel-theme", next);
     } catch {}
   }
 

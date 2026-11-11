@@ -305,7 +305,7 @@ rota. Nada de reescritura de una sentada.
   CSS usa para los estados de hover. Escribirla a mano dentro de una clase (`[@media(...)]:`)
   no sirve: hay que poner guiones bajos donde van los espacios y, si se escapa uno, Tailwind
   genera CSS inválido y la aplicación entera se cae con "Parsing CSS source code failed".
-- `@layer fcc` envuelve todo el CSS propio y lo deja **por debajo** de las utilidades de
+- `@layer daybook` envuelve todo el CSS propio y lo deja **por debajo** de las utilidades de
   Tailwind. Sin eso, `button { ... }` le ganaba a `bg-primary` y los componentes de shadcn
   llegaban con el estilo viejo pegado.
 - Los tokens que chocaban con los espacios de nombres de Tailwind se renombraron:
@@ -315,16 +315,16 @@ rota. Nada de reescritura de una sentada.
   los radios. `--ease-out` y `--ease-drawer` se dejaron sin renombrar a propósito: ahí el
   choque es deseable, hace que `ease-out` de Tailwind use la curva de la aplicación.
 - Tailwind se importa **sin su preflight**, que es su reset. Con preflight puesto, las reglas
-  de la capa `fcc` que cuentan con los valores por omisión del navegador se desarman. El costo:
+  de la capa `daybook` que cuentan con los valores por omisión del navegador se desarman. El costo:
   los componentes de shadcn dan por hecho que preflight está, así que algunos necesitan
-  retoques. Cuando la migración termine y la capa `fcc` esté vacía, se puede volver a evaluar.
+  retoques. Cuando la migración termine y la capa `daybook` esté vacía, se puede volver a evaluar.
 - El "kicker" que iba sobre el título ya no se dibuja. No es un cambio de diseño: estaba con
   `display:none` desde que compactamos el encabezado, así que no lo veía nadie ni lo leía un
   lector de pantalla. Se sacó el markup muerto en vez de traducirlo escondido.
-- `.dialog-actions` sigue en la capa `fcc` porque hay diálogos que arman esa barra a mano en
+- `.dialog-actions` sigue en la capa `daybook` porque hay diálogos que arman esa barra a mano en
   vez de usar el componente. Igual que con `.empty-state`: el CSS viejo se limpia al final, no
   a medida que se avanza.
-- La regla `.empty-state` sigue en la capa `fcc` aunque el componente ya esté migrado: la
+- La regla `.empty-state` sigue en la capa `daybook` aunque el componente ya esté migrado: la
   comparte con `.access-state`, que todavía no lo está. Se borra cuando migre esa.
 - **`.overlay` y `.dialog` se quedan en CSS a propósito**, no por pereza. Ahí vive la entrada
   y la salida del panel: `@starting-style` para entrar y `.overlay[data-cerrando] .dialog`
@@ -342,7 +342,7 @@ rota. Nada de reescritura de una sentada.
 ## Convenciones
 
 - Español en UI, nombres de dominio y comentarios.
-- Estilos con Tailwind 4 y los tokens existentes (`bg-surface`, nunca la paleta de Tailwind). Lo que Tailwind no cubre vive en `app/globals.css`, dentro de `@layer fcc`. Sin otras librerías de UI.
+- Estilos con Tailwind 4 y los tokens existentes (`bg-surface`, nunca la paleta de Tailwind). Lo que Tailwind no cubre vive en `app/globals.css`, dentro de `@layer daybook`. Sin otras librerías de UI.
 - Iconos: `lucide-react`, ya instalado.
 - Al cambiar el esquema: nueva migración numerada en `supabase/`, nunca editar una existente.
 - Cambios en lógica de fechas requieren test en `lib/*.test.ts`.
@@ -524,8 +524,14 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
   inicia sesión pero ve "Tu cuenta todavía no está habilitada"; sin el primero, no puede iniciar
   sesión. La pantalla no crea cuentas de Auth.
 
-- `package.json` dice `"name": "relevo"` y el proyecto en Vercel también. Se confunde con otro
-  proyecto distinto llamado Relevo. Conviene renombrar a `fcc-travel`.
+- **Nada dice FCC en la aplicación.** El paquete se llama `daybook-travel`, la capa CSS es
+  `daybook`, la clave del tema en el navegador es `daybook-travel-theme` (al cambiarla cada quien
+  vuelve una vez al tema oscuro) y el rótulo de la entrada dice «Gestión de traslados». Quedan
+  tres «FCC» a propósito: los alias de `lib/excel-sync.ts` que leen planillas viejas con la
+  columna de identificador antigua, los mensajes de las migraciones 003 y 004 (aplicadas, no se editan; el
+  navegador los traduce con `mensajePublicoExcel`) y la lista de frases prohibidas de
+  `lib/brand-guard.test.ts`. El proyecto de Vercel sigue llamándose `relevo` y el repositorio
+  `fcc-travel`.
 - Usa TypeScript 7 y `@types/node` 26 — versiones muy nuevas. Si aparecen errores raros de tipos,
   mirar ahí antes de dar vueltas.
 - `AGENTS.md` lo regenera `next dev`; no lo edites a mano.

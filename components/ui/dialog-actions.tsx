@@ -2,7 +2,7 @@
 
 // La barra de botones al pie de los dialogos.
 //
-// La clase .dialog-actions sigue existiendo en la capa fcc porque hay dialogos
+// La clase .dialog-actions sigue existiendo en la capa daybook porque hay dialogos
 // que arman esta barra a mano en vez de usar este componente. Se borra cuando
 // no quede ninguno.
 import { Button } from "@/components/ui/button";

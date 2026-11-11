@@ -14,7 +14,7 @@ export default function PasswordFrame({ title, children }: { title: string; chil
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('fcc-travel-theme', next); } catch {}
+    try { localStorage.setItem('daybook-travel-theme', next); } catch {}
   }
   return (
     <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">

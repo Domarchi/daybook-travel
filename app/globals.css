@@ -21,7 +21,7 @@
    existen mas abajo. Asi un componente de 21st que pida "bg-surface" toma el
    mismo gris que el resto de la aplicacion, y cambia solo con el tema.
    --------------------------------------------------------------------------- */
-@layer theme, base, fcc, components, utilities;
+@layer theme, base, daybook, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css" layer(utilities);
@@ -84,8 +84,6 @@
   --radius-sm: var(--rad-sm);
   --radius-md: var(--rad);
   --radius-lg: var(--rad-lg);
-  --ease-out-fcc: var(--ease-out);
-  --ease-drawer-fcc: var(--ease-drawer);
 }
 
 /* ---------------------------------------------------------------------------
@@ -100,7 +98,7 @@
    antes, porque están todas en la misma capa. Y las reglas con !important
    siguen ganando, porque en CSS lo importante invierte el orden de las capas.
    --------------------------------------------------------------------------- */
-@layer fcc {
+@layer daybook {
 
 :root {
   color-scheme: dark;

@@ -2,7 +2,7 @@
 
 // El marco de las tablas: el borde, el radio y el desplazamiento horizontal
 // cuando la tabla no cabe. Las reglas de `table`, `th` y `td` siguen en la capa
-// fcc hasta que se migre la vista de Viajes, que es la que las usa de verdad.
+// daybook hasta que se migre la vista de Viajes, que es la que las usa de verdad.
 import * as React from "react";
 import { cn } from "@/lib/utils";
 

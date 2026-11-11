@@ -28,7 +28,7 @@ test("la identidad usa el descriptor aprobado de Travel", async () => {
 
   assert.match(
     identity,
-    />\s*Gestión de traslados · FCC\s*</,
+    />\s*Gestión de traslados\s*</,
     "la identidad debe mostrar el descriptor exacto aprobado",
   );
   assert.doesNotMatch(identity, /Coordinación de viajes/);

@@ -7,7 +7,7 @@ export default function BrandIdentity({ className }: { className?: string }) {
     <div className={cn("brand-identity", className)}>
       <BrandLogo />
       <BrandMark />
-      <span className="brand-identity-caption">Gestión de traslados · FCC</span>
+      <span className="brand-identity-caption">Gestión de traslados</span>
     </div>
   );
 }
