@@ -1,0 +1,233 @@
+// Abrir, guardar y ver el historial de un viaje, y la ventana de compra.
+//
+// El texto de las funciones es el mismo que tenían dentro de `store.tsx`; solo
+// cambió dónde viven. Lo que usan de los otros hooks lo reciben en `e`.
+
+import { FormEvent } from "react";
+import { localDate } from "../../lib/format";
+import { ventanaValida } from "../../lib/purchase";
+import { db } from "../../lib/supabase";
+import { Trip } from "../../lib/types";
+import type { Avisos } from "./use-avisos";
+import type { Sesion } from "./use-sesion";
+import type { Datos } from "./use-datos";
+import type { Navegacion } from "./use-navegacion";
+import type { Dialogos } from "./use-dialogos";
+import type { Derivados } from "./use-derivados";
+
+type Entrada = Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados;
+
+export function useAccionesViajes(e: Entrada) {
+  const {
+    abrirModal,
+    activePeople,
+    clearMessages,
+    closeModal,
+    dateFilter,
+    demo,
+    editTrip,
+    peopleById,
+    personFilter,
+    purchaseWindow,
+    reload,
+    runAction,
+    selectedDay,
+    setCalendarMonth,
+    setEditPerson,
+    setEditTrip,
+    setFormError,
+    setHistory,
+    setHistoryLoading,
+    setNewDate,
+    setNewPerson,
+    setNotice,
+    setPendingTripDate,
+    setPurchaseWindow,
+    setReservationOpen,
+    setSelectedDay,
+    setTrips,
+    setTripStatus,
+    trips,
+    view,
+  } = e;
+
+  function openTrip(trip: Trip | null, date?: string, personId?: string) {
+    clearMessages();
+    if (!trip && !activePeople.length && !personId) {
+      setPendingTripDate(date || selectedDay || dateFilter || localDate());
+      setEditPerson(null);
+      setFormError("");
+      abrirModal("person");
+      return;
+    }
+    setEditTrip(trip);
+    setTripStatus(trip?.status ?? "Planificado");
+    setReservationOpen(
+      Boolean(
+        trip?.pnr ||
+        trip?.flight ||
+        trip?.amount ||
+        (trip && trip.status !== "Planificado"),
+      ),
+    );
+    setNewDate(date || selectedDay || dateFilter || localDate());
+    setNewPerson(personId || (view === "Viajes" ? personFilter : "") || "");
+    abrirModal("trip");
+  }
+
+  async function saveTrip(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    await runAction(async () => {
+      const person = peopleById.get(String(form.get("person_id")));
+      if (!person) throw new Error("Selecciona una persona activa.");
+      const direction = String(form.get("direction"));
+      const changeReason = String(form.get("change_reason") ?? "").trim();
+      const observations = String(form.get("notes") ?? "").trim();
+      if (editTrip && !changeReason) {
+        throw new Error("Indica el motivo de este cambio.");
+      }
+      const notes = editTrip
+        ? [observations, `Motivo del cambio: ${changeReason}`]
+            .filter(Boolean)
+            .join("\n")
+        : observations;
+      const trip = {
+        person_id: person.id,
+        date: String(form.get("date")),
+        direction,
+        origin:
+          String(form.get("origin")).trim() ||
+          (direction === "SUBIDA" ? person.origin : person.destination),
+        destination:
+          String(form.get("destination")).trim() ||
+          (direction === "SUBIDA" ? person.destination : person.origin),
+        requested_time: String(form.get("requested_time")) || null,
+        baggage: String(form.get("baggage")),
+        status: String(form.get("status")),
+        pnr: String(form.get("pnr") ?? "").trim(),
+        flight: String(form.get("flight") ?? "").trim(),
+        amount:
+          form.get("amount") === "" || form.get("amount") === null
+            ? null
+            : Number(form.get("amount")),
+        notes,
+        updated_at: new Date().toISOString(),
+      };
+      if (
+        (!editTrip || editTrip.date !== trip.date) &&
+        (trip.date < person.start_date ||
+          (person.end_date && trip.date > person.end_date) ||
+          !person.active)
+      ) {
+        throw new Error(
+          "La fecha debe estar dentro de la vigencia de una persona activa.",
+        );
+      }
+      if (
+        ["Emitido", "Completado", "No presentado"].includes(trip.status) &&
+        !trip.pnr
+      ) {
+        throw new Error("Registra el código de reserva para este estado.");
+      }
+      if (
+        trips.some(
+          (row) =>
+            row.id !== editTrip?.id &&
+            row.person_id === trip.person_id &&
+            row.date === trip.date &&
+            row.direction === trip.direction,
+        )
+      ) {
+        throw new Error("Ese movimiento ya existe para la persona y fecha.");
+      }
+      if (demo) {
+        setTrips((current) =>
+          (editTrip
+            ? current.map((row) =>
+                row.id === editTrip.id ? { ...trip, id: row.id } : row,
+              )
+            : [...current, { ...trip, id: crypto.randomUUID() }]
+          ).sort((a, b) => a.date.localeCompare(b.date)),
+        );
+      } else if (editTrip) {
+        const result = await db()
+          .from("trips")
+          .update(trip)
+          .eq("id", editTrip.id)
+          .eq("updated_at", editTrip.updated_at!)
+          .select("id");
+        if (result.error) throw result.error;
+        if (!result.data?.length) {
+          throw new Error(
+            "Otra persona modificó este viaje. Actualiza la vista antes de editar.",
+          );
+        }
+        await reload();
+      } else {
+        const result = await db().from("trips").insert(trip);
+        if (result.error) throw result.error;
+        await reload();
+      }
+      closeModal();
+      if (view === "Agenda") {
+        setCalendarMonth(trip.date.slice(0, 7));
+        setSelectedDay(trip.date);
+      }
+      setNotice("Viaje guardado correctamente.");
+    }, "form");
+  }
+
+  async function savePurchaseWindow(dias: number) {
+    clearMessages();
+    if (!ventanaValida(dias)) {
+      setNotice("La ventana de compra va de 1 a 120 dias.");
+      return;
+    }
+    const anterior = purchaseWindow;
+    setPurchaseWindow(dias);
+    if (demo) return;
+    const { error } = await db()
+      .from("settings")
+      .update({
+        purchase_window_days: dias,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", "00000000-0000-0000-0000-000000000001");
+    if (error) {
+      setPurchaseWindow(anterior);
+      setNotice("No pudimos guardar la ventana de compra.");
+    }
+  }
+
+  async function showHistory(trip: Trip) {
+    clearMessages();
+    setEditTrip(trip);
+    setHistory([]);
+    setHistoryLoading(!demo);
+    abrirModal("history");
+    if (demo) return;
+    try {
+      const { data, error } = await db()
+        .from("history")
+        .select("*")
+        .eq("record_id", trip.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setHistory(data ?? []);
+    } catch {
+      setFormError("No se pudo cargar el historial. Inténtalo nuevamente.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  return {
+    openTrip,
+    saveTrip,
+    savePurchaseWindow,
+    showHistory,
+  };
+}
+
+export type AccionesViajes = ReturnType<typeof useAccionesViajes>;

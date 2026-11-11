@@ -39,6 +39,19 @@ const PUBLIC_SURFACE_FILES = [
   "app/layout.tsx",
   "app/globals.css",
   "app/store.tsx",
+  "app/estado/use-acciones-generar.ts",
+  "app/estado/use-acciones-personas.ts",
+  "app/estado/use-acciones-sesion.ts",
+  "app/estado/use-acciones-viajes.ts",
+  "app/estado/use-acreditacion.ts",
+  "app/estado/use-avisos.ts",
+  "app/estado/use-datos.ts",
+  "app/estado/use-derivados.ts",
+  "app/estado/use-dialogos.ts",
+  "app/estado/use-manifiesto.ts",
+  "app/estado/use-navegacion.ts",
+  "app/estado/use-sesion.ts",
+  "app/estado/use-tema.ts",
   "app/excel-sync-panel.tsx",
   "components/ui/brand-logo.tsx",
   "components/ui/brand-mark.tsx",
@@ -126,8 +139,8 @@ test("lib/brand.ts expone constantes Daybook, no FCC_*", async () => {
 });
 
 test("CSV y Excel exponen identidad Daybook sin romper aliases antiguos", async () => {
-  const store = await readFile(path("app/store.tsx"), "utf8");
-  assert.match(store, /daybook-travel-solicitud\.csv/);
+  const manifiesto = await readFile(path("app/estado/use-manifiesto.ts"), "utf8");
+  assert.match(manifiesto, /daybook-travel-solicitud\.csv/);
   assert.equal(PERSON_EXCEL_FIELDS[0], "daybookId");
   assert.equal(TRIP_EXCEL_FIELDS[0], "daybookId");
 
