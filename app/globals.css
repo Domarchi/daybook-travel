@@ -107,12 +107,6 @@
   /* Superficies de grafito, marfil y dorado. Los colores operativos de turnos
      y estados conservan sus significados. */
   --bg: #11120f;
-  /* Color de los puntos del fondo de la pantalla de entrada, en componentes
-     RGB sueltos: dot-field.tsx los lee y les pone su propia opacidad. */
-  --dot: 230, 230, 230;
-  /* Fuerza de los puntos. 1 es la entrada, a plena luz; las pantallas con
-     texto encima la bajan por su cuenta más abajo. */
-  --dot-alpha: 1;
   --surface: #1b1c18;
   --surface-raised: #24251f;
   --surface-soft: #2c2d27;
@@ -157,8 +151,6 @@
   /* Fondo, superficies y bordes del tema claro de Daybook Ticket y Parte
      Diario: lienzo gris frío y tarjetas blancas, en lugar del marfil de antes. */
   --bg: #f7f8f9;
-  --dot: 17, 18, 15;
-  --dot-alpha: 1;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-soft: #eef0f1;

@@ -275,9 +275,9 @@ rota. Nada de reescritura de una sentada.
    que Tailwind no cubre: los tokens de los dos temas, la tipografía base de los elementos
    (`h1`–`h3`, `p`, `small`, `strong`), el armazón (`.shell`, `.app-content`), el velo y la
    caja de los diálogos (`.overlay`, `.dialog`, `.excel-dialog`), los dos degradados de la
-   entrada (`.velo-entrada`, `.velo-carga`), el campo de puntos, un `@keyframes` y el bloque
+   entrada (`.velo-entrada`, `.velo-carga`), un `@keyframes` y el bloque
    de movimiento reducido. **Cero clases huérfanas.** Al final ese archivo debería
-   quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre (el campo de puntos).
+   quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre.
 
 ### Lo que ya está montado
 
@@ -412,19 +412,14 @@ opinión.
   frío (`#f7f8f9`) con tarjetas blancas y los bordes de Daybook.
 - **No hay fondo de círculos.** `BrandBackground` (los círculos de las esquinas) se eliminó de
   toda la aplicación, la pantalla de carga y las de contraseña; no hay que volver a ponerlo.
-- **El campo de puntos ya no se usa en ninguna pantalla.** `components/dot-field.tsx` y sus
-  tokens `--dot` y `--dot-alpha` quedan sin importar desde que el login perdió el fondo. Es código muerto:
-  borrarlo es limpieza pendiente. Las dos notas siguientes explican cómo se hizo, por si se
-  retoma.
-- **El campo de puntos está escrito con canvas normal, a propósito.** La referencia que lo
-  inspiró (21st.dev) usa three.js, @react-three/fiber, framer-motion y Tailwind. Traer una
+- **El campo de puntos se eliminó** (`components/dot-field.tsx` y los tokens `--dot` y
+  `--dot-alpha`) cuando el login perdió el fondo. Estaba escrito con canvas normal, a propósito:
+  la referencia de 21st.dev usa three.js, @react-three/fiber y framer-motion, y traer una
   librería 3D para dibujar cuadraditos en un proyecto de siete dependencias no se justifica.
-  Si alguien propone reemplazarlo por la versión original, esa es la razón por la que no.
-  Además la referencia era una maqueta: su "login" daba por buena cualquier clave.
-- **Tres cosas del campo de puntos que no son adorno**: el color sale del token `--dot`, así
-  que funciona en los dos temas; respeta `prefers-reduced-motion`; y si la pestaña está en
-  segundo plano dibuja el estado asentado y se salta la entrada, porque el navegador congela
-  `requestAnimationFrame` y si no el fondo quedaría vacío.
+  Si alguien lo vuelve a pedir: que el color salga de un token para que ande en los dos temas,
+  que respete `prefers-reduced-motion`, y que con la pestaña en segundo plano dibuje el estado
+  asentado (el navegador congela `requestAnimationFrame` y el fondo quedaría vacío). Está en el
+  historial de git.
 - **El recuadro del manifiesto crece con `flex: 1 1 auto`.** Si se le pone el alto del texto
   queda un hueco suelto entre la frase de abajo y los botones; si se le deja imponer su alto
   con `rows`, esa frase se corta por la mitad. Ya se probaron las tres.
@@ -530,11 +525,3 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
   es de antes: en el CSS viejo `.selection-cell { width: 46px }` le ganaba por especificidad
   al `td { width: 100% }` de la media query. La migración lo copió tal cual a propósito.
   Arreglarlo es un cambio de diseño, no de migración: va aparte.
-- **`claseDeCompra()` en `lib/purchase.ts` ya no la usa nadie.** Devolvía la clase CSS
-  `compra-<estado>`; ahora la pastilla sale de `components/ui/trip-pills.tsx`. Borrarla en la
-  limpieza.
-- **El `hover` de los botones todavía lo pone el CSS**, no la primitiva. La regla
-  `@media (hover: hover) and (pointer: fine) { button:hover:not(:disabled) { ... } }` sigue
-  vistiendo a todos los botones migrados, porque `components/ui/button.tsx` no traduce el
-  hover. Hoy no se nota; el día que se borre esa regla en la limpieza, los botones se quedan
-  sin reacción al pasar el mouse. Hay que traducirla a la primitiva **antes** de borrarla.

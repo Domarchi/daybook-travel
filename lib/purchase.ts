@@ -114,6 +114,3 @@ export function resumenDeCompra(
   resumen.fechasAbiertas = [...fechas].sort();
   return resumen;
 }
-
-/** La clase CSS que colorea cada estado. Igual de simple que statusClass. */
-export const claseDeCompra = (estado: EstadoCompra) => "compra-" + estado;
