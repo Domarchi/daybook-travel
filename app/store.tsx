@@ -15,13 +15,11 @@ import {
   useState,
 } from "react";
 import {
-  DocumentoDePersona,
   hayExigencias,
   limpiarNombreDeTipo,
   motivosDeAcreditacion,
   nombreDeTipoValido,
   resumenDeMotivos,
-  TipoDeDocumento,
   tipoRepetido,
 } from "../lib/accreditation";
 import { addDays } from "../lib/calendar";
@@ -41,25 +39,14 @@ import {
   makeDemoTrips,
 } from "../lib/demo";
 import { localDate, normalize } from "../lib/format";
-import {
-  estadoDeCompra,
-  resumenDeCompra,
-  VENTANA_POR_OMISION,
-  ventanaValida,
-} from "../lib/purchase";
+import { estadoDeCompra, resumenDeCompra, ventanaValida } from "../lib/purchase";
 import { db } from "../lib/supabase";
 import { csvDeViajes } from "../lib/trips-csv";
-import {
-  AccessStatus,
-  esTurnoRotativo,
-  HistoryItem,
-  ModalName,
-  Person,
-  Trip,
-} from "../lib/types";
+import { esTurnoRotativo, HistoryItem, ModalName, Person, Trip } from "../lib/types";
 import { useTema } from "./estado/use-tema";
 import { useAvisos } from "./estado/use-avisos";
 import { useSesion } from "./estado/use-sesion";
+import { useDatos } from "./estado/use-datos";
 
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
@@ -68,6 +55,7 @@ function useStoreValue() {
   const tema = useTema();
   const avisos = useAvisos({ ...tema });
   const sesion = useSesion({ ...tema, ...avisos });
+  const datos = useDatos({ ...tema, ...avisos, ...sesion });
 
   const {
     theme,
@@ -88,14 +76,26 @@ function useStoreValue() {
     setEmail,
     demo,
     setDemo,
-  } = { ...tema, ...avisos, ...sesion };
+    accessStatus,
+    setAccessStatus,
+    isAdmin,
+    setIsAdmin,
+    people,
+    setPeople,
+    trips,
+    setTrips,
+    documentTypes,
+    setDocumentTypes,
+    documents,
+    setDocuments,
+    loading,
+    setLoading,
+    purchaseWindow,
+    setPurchaseWindow,
+    allRows,
+    reload,
+  } = { ...tema, ...avisos, ...sesion, ...datos };
 
-  const [accessStatus, setAccessStatus] = useState<AccessStatus>("checking");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [people, setPeople] = useState<Person[]>([]);
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [documentTypes, setDocumentTypes] = useState<TipoDeDocumento[]>([]);
-  const [documents, setDocuments] = useState<DocumentoDePersona[]>([]);
   // Viajes del manifiesto que Katy o Tamara decidieron incluir aunque la persona
   // tenga documentos pendientes. Vale solo mientras el manifiesto está abierto.
   const [conAcreditacionAprobada, setConAcreditacionAprobada] = useState<string[]>([]);
@@ -130,113 +130,9 @@ function useStoreValue() {
     addDays(localDate(), 90),
   );
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  // Dias de anticipacion con que se compran los pasajes. Es una politica de la
-  // obra: vive en la base, no en el navegador. Mientras carga vale la de siempre.
-  const [purchaseWindow, setPurchaseWindow] = useState(VENTANA_POR_OMISION);
   const [purchaseFilter, setPurchaseFilter] = useState("todos");
 
-  async function allRows(table: string) {
-    const rows: Record<string, unknown>[] = [];
-    for (let offset = 0; ; offset += 1000) {
-      const { data, error } = await db()
-        .from(table)
-        .select("*")
-        .order("id")
-        .range(offset, offset + 999);
-      if (error) throw error;
-      rows.push(...(data ?? []));
-      if (!data || data.length < 1000) return rows;
-    }
-  }
-
-  async function reload() {
-    setLoading(true);
-    setAccessStatus((current) =>
-      current === "allowed" ? current : "checking",
-    );
-    try {
-      const { data: member, error } = await db().rpc("is_member");
-      if (error) throw error;
-      if (!member) {
-        setAccessStatus("denied");
-        setPeople([]);
-        setTrips([]);
-        setDocumentTypes([]);
-        setDocuments([]);
-        return;
-      }
-      const [peopleRows, tripRows] = await Promise.all([
-        allRows("people"),
-        allRows("trips"),
-      ]);
-      setPeople(
-        (peopleRows as unknown as Person[]).sort((a, b) =>
-          a.name.localeCompare(b.name, "es"),
-        ),
-      );
-      setTrips(
-        (tripRows as unknown as Trip[]).sort((a, b) =>
-          a.date.localeCompare(b.date),
-        ),
-      );
-      // Si la tabla todavia no existe, se sigue con la ventana por omision en
-      // vez de dejar la aplicacion sin cargar.
-      const ajustes = await db()
-        .from("settings")
-        .select("purchase_window_days")
-        .maybeSingle();
-      if (!ajustes.error && ajustes.data) {
-        setPurchaseWindow(
-          Number(ajustes.data.purchase_window_days) || VENTANA_POR_OMISION,
-        );
-      }
-      // Acreditación. Si las tablas todavía no existen (la migración 010 sin
-      // aplicar) nada se exige y la aplicación sigue como antes.
-      try {
-        const tipos = await db()
-          .from("document_types")
-          .select("id,name,active")
-          .order("name");
-        if (tipos.error) throw tipos.error;
-        const filas = await allRows("person_documents");
-        setDocumentTypes((tipos.data ?? []) as TipoDeDocumento[]);
-        setDocuments(filas as unknown as DocumentoDePersona[]);
-      } catch {
-        setDocumentTypes([]);
-        setDocuments([]);
-      }
-      // El rol decide si aparece "Accesos". Si la función todavía no existe en
-      // la base (la migración 009 sin aplicar) simplemente no se es administrador.
-      const admin = await db().rpc("is_admin");
-      setIsAdmin(!admin.error && admin.data === true);
-      setAccessStatus("allowed");
-    } catch {
-      setAccessStatus((current) => (current === "allowed" ? current : "error"));
-      setNotice(
-        "No pudimos cargar la información. Revisa la conexión e inténtalo nuevamente.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (email && !demo) void reload();
-  }, [email, demo]);
-
-  useEffect(() => {
-    if (!email || demo) return;
-    const timer = setInterval(() => void reload(), 60_000);
-    return () => clearInterval(timer);
-  }, [email, demo]);
-
-  // Al cerrar sesión, o si se pierde el rol (se recalcula cada minuto junto con
-  // los datos), "Accesos" deja de existir y no se puede quedar la pantalla abierta.
-  useEffect(() => {
-    if (!email || demo) setIsAdmin(false);
-  }, [email, demo]);
   useEffect(() => {
     if (!isAdmin) setView((actual) => (actual === "Accesos" ? "Agenda" : actual));
   }, [isAdmin]);
