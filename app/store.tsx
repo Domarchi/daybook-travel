@@ -7,12 +7,6 @@
 import { createContext, FormEvent, ReactNode, useContext } from "react";
 import { motivosDeAcreditacion, resumenDeMotivos } from "../lib/accreditation";
 import { addDays } from "../lib/calendar";
-import {
-  makeDemoDocuments,
-  makeDemoDocumentTypes,
-  makeDemoPeople,
-  makeDemoTrips,
-} from "../lib/demo";
 import { localDate } from "../lib/format";
 import { ventanaValida } from "../lib/purchase";
 import { db } from "../lib/supabase";
@@ -26,6 +20,7 @@ import { useNavegacion } from "./estado/use-navegacion";
 import { useDialogos } from "./estado/use-dialogos";
 import { useDerivados } from "./estado/use-derivados";
 import { useAcreditacion } from "./estado/use-acreditacion";
+import { useAccionesSesion } from "./estado/use-acciones-sesion";
 
 function useStoreValue() {
   const tema = useTema();
@@ -36,6 +31,7 @@ function useStoreValue() {
   const dialogos = useDialogos({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion });
   const derivados = useDerivados({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos });
   const acreditacion = useAcreditacion({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados });
+  const acciones_sesion = useAccionesSesion({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion });
 
   const {
     theme,
@@ -172,46 +168,9 @@ function useStoreValue() {
     fechasDeDocumentosCambiadas,
     addDocumentType,
     setDocumentTypeActive,
-  } = { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion };
-
-  async function login(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await runAction(async () => {
-      const { error } = await db().auth.signInWithPassword({
-        email: String(form.get("email")),
-        password: String(form.get("password")),
-      });
-      if (error) {
-        throw new Error(
-          "No pudimos iniciar sesión. Comprueba tu correo y contraseña.",
-        );
-      }
-    });
-  }
-
-  function enterDemo() {
-    const demoPeople = makeDemoPeople();
-    setView("Agenda");
-    setDemo(true);
-    setAccessStatus("allowed");
-    setPeople(demoPeople);
-    setTrips(makeDemoTrips(demoPeople));
-    const tiposDeDemo = makeDemoDocumentTypes();
-    setDocumentTypes(tiposDeDemo);
-    setDocuments(makeDemoDocuments(demoPeople, tiposDeDemo));
-    setCalendarMonth(localDate().slice(0, 7));
-    setSelectedDay(null);
-    setCalendarShift("Todos");
-    setPeopleQuery("");
-    setPeopleFilter("Activas");
-    clearTripFilters();
-    setCostMonth("");
-    setCostStatus("Todos");
-    setCostCategory("");
-    clearMessages();
-    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
-  }
+    login,
+    enterDemo,
+  } = { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion };
 
   function openPerson(person: Person | null = null) {
     clearMessages();
