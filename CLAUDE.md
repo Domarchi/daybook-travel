@@ -37,7 +37,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/excel-sync-panel.tsx` | La pantalla del importador Excel en 3 pasos (Preparar → Revisar → Aplicar), 818 líneas. Bien hecho, no romper. Sus cuentas están en `lib/excel-preview.ts` (leer hojas, comparar, armar la vista previa; 10 pruebas) y sus piezas chicas en `app/excel-sync-parts.tsx`. |
 | `app/year-view.tsx` | El calendario de la Agenda (vista Mes y Semana). El panel del día seleccionado está en `app/year-day-detail.tsx`. |
 | `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
-| `app/globals.css` | ~630 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
+| `app/globals.css` | ~620 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
@@ -279,7 +279,14 @@ rota. Nada de reescritura de una sentada.
    de compra). El calendario (`app/year-view.tsx`) y el panel de Excel
    (`app/excel-sync-panel.tsx`) también están HECHOS. No queda ningún componente
    por migrar: lo que sigue es la limpieza.
-5. **Armazón** — top-bar, workspace, login-view, access-state.
+5. **Armazón. Casi HECHO** — la barra superior ya no existe (la reemplazó `side-nav`), y
+   `workspace`, `login-view` y `access-state` están en Tailwind (`access-state` con
+   `components/ui/state-panel.tsx`). Lo único del armazón que sigue en CSS es la **barra
+   lateral** (`.sidebar`, `.nav-link`, `.user-rail`, `.rail-button`) y la **marca**
+   (`.brand-identity`, `.daybook-logo`, `.daybook-mark`), unas 230 líneas. Se escribieron así
+   cuando llegó la barra de Daybook, después de la migración. Traducirlas pide tokens para los
+   colores fijos de la barra (es oscura en los dos temas) y resolver el cambio de logo según el
+   tema, que hoy son selectores con `:root[data-theme="light"]` y `!important`.
 6. **Limpieza. HECHO** — `app/globals.css` pasó de 3.286 líneas a 434. Lo que queda es lo
    que Tailwind no cubre: los tokens de los dos temas, la tipografía base de los elementos
    (`h1`–`h3`, `p`, `small`, `strong`), el armazón (`.shell`, `.app-content`), el velo y la
@@ -314,18 +321,9 @@ rota. Nada de reescritura de una sentada.
 - El bloque `@theme inline` conecta los tokens con los nombres que espera Tailwind, incluidos
   los radios. `--ease-out` y `--ease-drawer` se dejaron sin renombrar a propósito: ahí el
   choque es deseable, hace que `ease-out` de Tailwind use la curva de la aplicación.
-- Tailwind se importa **sin su preflight**, que es su reset. Con preflight puesto, las reglas
-  de la capa `daybook` que cuentan con los valores por omisión del navegador se desarman. El costo:
-  los componentes de shadcn dan por hecho que preflight está, así que algunos necesitan
-  retoques. Cuando la migración termine y la capa `daybook` esté vacía, se puede volver a evaluar.
 - El "kicker" que iba sobre el título ya no se dibuja. No es un cambio de diseño: estaba con
   `display:none` desde que compactamos el encabezado, así que no lo veía nadie ni lo leía un
   lector de pantalla. Se sacó el markup muerto en vez de traducirlo escondido.
-- `.dialog-actions` sigue en la capa `daybook` porque hay diálogos que arman esa barra a mano en
-  vez de usar el componente. Igual que con `.empty-state`: el CSS viejo se limpia al final, no
-  a medida que se avanza.
-- La regla `.empty-state` sigue en la capa `daybook` aunque el componente ya esté migrado: la
-  comparte con `.access-state`, que todavía no lo está. Se borra cuando migre esa.
 - **`.overlay` y `.dialog` se quedan en CSS a propósito**, no por pereza. Ahí vive la entrada
   y la salida del panel: `@starting-style` para entrar y `.overlay[data-cerrando] .dialog`
   para salir. Eso es un selector de padre que decide el estado de un hijo — CSS lo dice en
