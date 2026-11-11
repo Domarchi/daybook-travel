@@ -9,9 +9,7 @@ import {
   FormEvent,
   ReactNode,
   useContext,
-  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import {
@@ -42,15 +40,13 @@ import { localDate, normalize } from "../lib/format";
 import { estadoDeCompra, resumenDeCompra, ventanaValida } from "../lib/purchase";
 import { db } from "../lib/supabase";
 import { csvDeViajes } from "../lib/trips-csv";
-import { esTurnoRotativo, HistoryItem, ModalName, Person, Trip } from "../lib/types";
+import { esTurnoRotativo, Person, Trip } from "../lib/types";
 import { useTema } from "./estado/use-tema";
 import { useAvisos } from "./estado/use-avisos";
 import { useSesion } from "./estado/use-sesion";
 import { useDatos } from "./estado/use-datos";
 import { useNavegacion } from "./estado/use-navegacion";
-
-/** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
-const MS_CIERRE_DIALOGO = 200;
+import { useDialogos } from "./estado/use-dialogos";
 
 function useStoreValue() {
   const tema = useTema();
@@ -58,6 +54,7 @@ function useStoreValue() {
   const sesion = useSesion({ ...tema, ...avisos });
   const datos = useDatos({ ...tema, ...avisos, ...sesion });
   const navegacion = useNavegacion({ ...tema, ...avisos, ...sesion, ...datos });
+  const dialogos = useDialogos({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion });
 
   const {
     theme,
@@ -133,26 +130,41 @@ function useStoreValue() {
     showTripGroup,
     clearTripFilters,
     showPurchaseQueue,
-  } = { ...tema, ...avisos, ...sesion, ...datos, ...navegacion };
+    modal,
+    setModal,
+    closingModal,
+    setClosingModal,
+    editPerson,
+    setEditPerson,
+    editTrip,
+    setEditTrip,
+    newDate,
+    setNewDate,
+    newPerson,
+    setNewPerson,
+    pendingTripDate,
+    setPendingTripDate,
+    tripStatus,
+    setTripStatus,
+    reservationOpen,
+    setReservationOpen,
+    generateSelection,
+    setGenerateSelection,
+    generateUntil,
+    setGenerateUntil,
+    history,
+    setHistory,
+    historyLoading,
+    setHistoryLoading,
+    cierreRef,
+    abrirModal,
+    limpiarModal,
+    closeModal,
+  } = { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos };
 
   // Viajes del manifiesto que Katy o Tamara decidieron incluir aunque la persona
   // tenga documentos pendientes. Vale solo mientras el manifiesto está abierto.
   const [conAcreditacionAprobada, setConAcreditacionAprobada] = useState<string[]>([]);
-  const [modal, setModal] = useState<ModalName>(null);
-  const [closingModal, setClosingModal] = useState(false);
-  const [editPerson, setEditPerson] = useState<Person | null>(null);
-  const [editTrip, setEditTrip] = useState<Trip | null>(null);
-  const [newDate, setNewDate] = useState("");
-  const [newPerson, setNewPerson] = useState("");
-  const [pendingTripDate, setPendingTripDate] = useState<string | null>(null);
-  const [tripStatus, setTripStatus] = useState("Planificado");
-  const [reservationOpen, setReservationOpen] = useState(false);
-  const [generateSelection, setGenerateSelection] = useState("all");
-  const [generateUntil, setGenerateUntil] = useState(() =>
-    addDays(localDate(), 90),
-  );
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
 
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person])),
@@ -432,48 +444,6 @@ function useStoreValue() {
     clearMessages();
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }
-
-  // El diálogo entra deslizándose y hasta ahora desaparecía de golpe. Para que
-  // salga por donde entró hay que darle esos milisegundos antes de desmontarlo:
-  // se marca "cerrando", el CSS lo saca, y recién después se limpia el estado.
-  // La salida es más corta que la entrada a propósito — al cerrar, el usuario ya
-  // decidió y lo que quiere es volver a su trabajo.
-  const cierreRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Abrir cancela cualquier cierre en curso. Sin esto, cerrar un diálogo y
-  // abrir otro dentro de esos 200 ms dejaba el nuevo marcado como "cerrando".
-  function abrirModal(nombre: ModalName) {
-    if (cierreRef.current) {
-      clearTimeout(cierreRef.current);
-      cierreRef.current = null;
-    }
-    setClosingModal(false);
-    setModal(nombre);
-  }
-
-  function limpiarModal() {
-    setModal(null);
-    setClosingModal(false);
-    setEditPerson(null);
-    setEditTrip(null);
-    setPendingTripDate(null);
-    setHistory([]);
-    setFormError("");
-  }
-
-  function closeModal() {
-    if (!modal) return limpiarModal();
-    if (closingModal) return;
-    setClosingModal(true);
-    if (cierreRef.current) clearTimeout(cierreRef.current);
-    cierreRef.current = setTimeout(limpiarModal, MS_CIERRE_DIALOGO);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (cierreRef.current) clearTimeout(cierreRef.current);
-    };
-  }, []);
 
   function openPerson(person: Person | null = null) {
     clearMessages();
@@ -1032,47 +1002,6 @@ function useStoreValue() {
       setHistoryLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (!modal) return;
-    const previous = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const frame = requestAnimationFrame(() => {
-      const preferred = document.querySelector<HTMLElement>(
-        ".dialog [data-autofocus]:not([disabled])",
-      );
-      const fallback = document.querySelector<HTMLElement>(
-        ".dialog input:not([disabled]):not([type=hidden]), .dialog select:not([disabled]), .dialog textarea:not([disabled]), .dialog button:not([disabled])",
-      );
-      (preferred ?? fallback)?.focus();
-    });
-    function handleKeydown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !busyRef.current) closeModal();
-      if (event.key !== "Tab") return;
-      const items = Array.from(
-        document.querySelectorAll<HTMLElement>(
-          ".dialog button:not([disabled]), .dialog input:not([disabled]):not([type=hidden]), .dialog select:not([disabled]), .dialog textarea:not([disabled]), .dialog summary",
-        ),
-      );
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    }
-    document.addEventListener("keydown", handleKeydown);
-    return () => {
-      cancelAnimationFrame(frame);
-      document.body.style.overflow = overflow;
-      document.removeEventListener("keydown", handleKeydown);
-      previous?.focus();
-    };
-  }, [modal]);
 
   return {
     theme,
