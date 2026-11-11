@@ -47,6 +47,7 @@ import { useTema } from "./estado/use-tema";
 import { useAvisos } from "./estado/use-avisos";
 import { useSesion } from "./estado/use-sesion";
 import { useDatos } from "./estado/use-datos";
+import { useNavegacion } from "./estado/use-navegacion";
 
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
@@ -56,6 +57,7 @@ function useStoreValue() {
   const avisos = useAvisos({ ...tema });
   const sesion = useSesion({ ...tema, ...avisos });
   const datos = useDatos({ ...tema, ...avisos, ...sesion });
+  const navegacion = useNavegacion({ ...tema, ...avisos, ...sesion, ...datos });
 
   const {
     theme,
@@ -94,28 +96,48 @@ function useStoreValue() {
     setPurchaseWindow,
     allRows,
     reload,
-  } = { ...tema, ...avisos, ...sesion, ...datos };
+    view,
+    setView,
+    query,
+    setQuery,
+    peopleQuery,
+    setPeopleQuery,
+    statusFilter,
+    setStatusFilter,
+    dateFilter,
+    setDateFilter,
+    personFilter,
+    setPersonFilter,
+    peopleFilter,
+    setPeopleFilter,
+    onlyUpcoming,
+    setOnlyUpcoming,
+    selectedTrips,
+    setSelectedTrips,
+    calendarMonth,
+    setCalendarMonth,
+    selectedDay,
+    setSelectedDay,
+    calendarShift,
+    setCalendarShift,
+    costMonth,
+    setCostMonth,
+    costStatus,
+    setCostStatus,
+    costCategory,
+    setCostCategory,
+    purchaseFilter,
+    setPurchaseFilter,
+    navigate,
+    showPersonTrips,
+    showTripGroup,
+    clearTripFilters,
+    showPurchaseQueue,
+  } = { ...tema, ...avisos, ...sesion, ...datos, ...navegacion };
 
   // Viajes del manifiesto que Katy o Tamara decidieron incluir aunque la persona
   // tenga documentos pendientes. Vale solo mientras el manifiesto está abierto.
   const [conAcreditacionAprobada, setConAcreditacionAprobada] = useState<string[]>([]);
-  const [view, setView] = useState("Agenda");
-  const [query, setQuery] = useState("");
-  const [peopleQuery, setPeopleQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  const [dateFilter, setDateFilter] = useState("");
-  const [personFilter, setPersonFilter] = useState("");
-  const [peopleFilter, setPeopleFilter] = useState("Activas");
-  const [onlyUpcoming, setOnlyUpcoming] = useState(true);
-  const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
-  const [calendarMonth, setCalendarMonth] = useState(() =>
-    localDate().slice(0, 7),
-  );
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [calendarShift, setCalendarShift] = useState("Todos");
-  const [costMonth, setCostMonth] = useState("");
-  const [costStatus, setCostStatus] = useState("Todos");
-  const [costCategory, setCostCategory] = useState("");
   const [modal, setModal] = useState<ModalName>(null);
   const [closingModal, setClosingModal] = useState(false);
   const [editPerson, setEditPerson] = useState<Person | null>(null);
@@ -131,11 +153,6 @@ function useStoreValue() {
   );
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [purchaseFilter, setPurchaseFilter] = useState("todos");
-
-  useEffect(() => {
-    if (!isAdmin) setView((actual) => (actual === "Accesos" ? "Agenda" : actual));
-  }, [isAdmin]);
 
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person])),
@@ -320,10 +337,6 @@ function useStoreValue() {
     );
   }
 
-  useEffect(() => {
-    setSelectedTrips([]);
-  }, [query, statusFilter, dateFilter, personFilter, onlyUpcoming]);
-
   const upcomingTrips = useMemo(
     () =>
       trips
@@ -420,12 +433,6 @@ function useStoreValue() {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }
 
-  function navigate(label: string) {
-    setView(label);
-    clearMessages();
-    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
-  }
-
   // El diálogo entra deslizándose y hasta ahora desaparecía de golpe. Para que
   // salga por donde entró hay que darle esos milisegundos antes de desmontarlo:
   // se marca "cerrando", el CSS lo saca, y recién después se limpia el estado.
@@ -515,29 +522,6 @@ function useStoreValue() {
     );
     setGenerateUntil(addDays(localDate(), 90));
     abrirModal("generate");
-  }
-
-  function showPersonTrips(person: Person) {
-    clearTripFilters();
-    navigate("Viajes");
-    setPersonFilter(person.id);
-  }
-
-  function showTripGroup(status: string) {
-    clearTripFilters();
-    navigate("Viajes");
-    setStatusFilter(status);
-    setOnlyUpcoming(true);
-  }
-
-  function clearTripFilters() {
-    setPurchaseFilter("todos");
-    setQuery("");
-    setStatusFilter("Todos");
-    setDateFilter("");
-    setPersonFilter("");
-    setOnlyUpcoming(true);
-    setSelectedTrips([]);
   }
 
   async function savePerson(event: FormEvent<HTMLFormElement>) {
@@ -892,19 +876,6 @@ function useStoreValue() {
       setPurchaseWindow(anterior);
       setNotice("No pudimos guardar la ventana de compra.");
     }
-  }
-
-  // La cola de compra: los viajes que hay que atender ahora, en la vista Viajes.
-  function showPurchaseQueue() {
-    clearMessages();
-    setQuery("");
-    setStatusFilter("Todos");
-    setDateFilter("");
-    setPersonFilter("");
-    setOnlyUpcoming(false);
-    setPurchaseFilter("abiertos");
-    setView("Viajes");
-    setSelectedTrips([]);
   }
 
   // El manifiesto: los viajes por solicitar de la vista, agrupados por día y
