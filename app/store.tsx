@@ -10,7 +10,7 @@ import { addDays } from "../lib/calendar";
 import { localDate } from "../lib/format";
 import { db } from "../lib/supabase";
 import { csvDeViajes } from "../lib/trips-csv";
-import { Person, Trip } from "../lib/types";
+import { Trip } from "../lib/types";
 import { useTema } from "./estado/use-tema";
 import { useAvisos } from "./estado/use-avisos";
 import { useSesion } from "./estado/use-sesion";
@@ -21,6 +21,7 @@ import { useDerivados } from "./estado/use-derivados";
 import { useAcreditacion } from "./estado/use-acreditacion";
 import { useAccionesSesion } from "./estado/use-acciones-sesion";
 import { useAccionesViajes } from "./estado/use-acciones-viajes";
+import { useAccionesPersonas } from "./estado/use-acciones-personas";
 
 function useStoreValue() {
   const tema = useTema();
@@ -33,6 +34,7 @@ function useStoreValue() {
   const acreditacion = useAcreditacion({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados });
   const acciones_sesion = useAccionesSesion({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion });
   const acciones_viajes = useAccionesViajes({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion });
+  const acciones_personas = useAccionesPersonas({ ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes });
 
   const {
     theme,
@@ -175,14 +177,9 @@ function useStoreValue() {
     saveTrip,
     savePurchaseWindow,
     showHistory,
-  } = { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes };
-
-  function openPerson(person: Person | null = null) {
-    clearMessages();
-    setPendingTripDate(null);
-    setEditPerson(person);
-    abrirModal("person");
-  }
+    openPerson,
+    savePerson,
+  } = { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes, ...acciones_personas };
 
   function openGenerate(personId?: string) {
     clearMessages();
@@ -200,92 +197,6 @@ function useStoreValue() {
     );
     setGenerateUntil(addDays(localDate(), 90));
     abrirModal("generate");
-  }
-
-  async function savePerson(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await runAction(async () => {
-      const person = {
-        name: String(form.get("name")).trim(),
-        origin: String(form.get("origin")).trim(),
-        destination: String(form.get("destination")).trim(),
-        shift: String(form.get("shift")),
-        start_date: String(form.get("start_date")),
-        end_date: String(form.get("end_date")) || null,
-        // Solo el 4×3 usa días de la semana. El resto conserva valores válidos
-        // para la base y el motor los ignora.
-        up_weekday: Number(form.get("up_weekday") ?? 1) || 1,
-        down_weekday: Number(form.get("down_weekday") ?? 4) || 4,
-        baggage: String(form.get("baggage")),
-        active: form.get("active") === "on",
-      };
-      if (person.end_date && person.end_date < person.start_date) {
-        throw new Error("La fecha de término debe ser posterior al inicio.");
-      }
-      if (person.shift === "4×3" && person.up_weekday === person.down_weekday) {
-        throw new Error("La subida y la bajada no pueden ser el mismo día.");
-      }
-      let savedId = editPerson?.id ?? "";
-      let avisoDeDocumentos = "";
-      if (demo) {
-        savedId ||= crypto.randomUUID();
-        setPeople((current) =>
-          editPerson
-            ? current.map((row) =>
-                row.id === editPerson.id ? { ...person, id: row.id } : row,
-              )
-            : [...current, { ...person, id: savedId }].sort((a, b) =>
-                a.name.localeCompare(b.name, "es"),
-              ),
-        );
-        const cambios = fechasDeDocumentosCambiadas(form, savedId);
-        if (cambios.length) {
-          setDocuments((current) => [
-            ...current.filter(
-              (documento) =>
-                !cambios.some(
-                  (cambio) =>
-                    cambio.person_id === documento.person_id &&
-                    cambio.type_id === documento.type_id,
-                ),
-            ),
-            ...cambios,
-          ]);
-        }
-      } else {
-        const result = editPerson
-          ? await db().from("people").update(person).eq("id", editPerson.id)
-          : await db().from("people").insert(person).select("id").single();
-        if (result.error) throw result.error;
-        if (!editPerson) savedId = String(result.data?.id ?? "");
-        // Los documentos van aparte de la persona. Si fallan, la persona ya
-        // quedó guardada: se avisa, no se deja el diálogo abierto, porque
-        // guardar de nuevo crearía una persona repetida.
-        const cambios = fechasDeDocumentosCambiadas(form, savedId);
-        if (cambios.length) {
-          const documentos = await db()
-            .from("person_documents")
-            .upsert(cambios, { onConflict: "person_id,type_id" });
-          if (documentos.error) {
-            avisoDeDocumentos =
-              "La persona se guardó, pero no pudimos guardar sus documentos. Ábrela de nuevo e inténtalo otra vez.";
-          }
-        }
-        await reload();
-      }
-      const resumeDate = pendingTripDate;
-      closeModal();
-      setPendingTripDate(null);
-      if (!editPerson && resumeDate && savedId) {
-        openTrip(null, resumeDate, savedId);
-      } else {
-        setNotice(
-          avisoDeDocumentos ||
-            "Persona guardada. Sus viajes existentes conservaron sus fechas.",
-        );
-      }
-    }, "form");
   }
 
   async function generateTrips(event: FormEvent<HTMLFormElement>) {
