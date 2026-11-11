@@ -533,8 +533,3 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 - Usa TypeScript 7 y `@types/node` 26 — versiones muy nuevas. Si aparecen errores raros de tipos,
   mirar ahí antes de dar vueltas.
 - `AGENTS.md` lo regenera `next dev`; no lo edites a mano.
-- **La celda de la casilla en modo tarjeta mide 46 px de ancho** aunque ocupa la fila
-  entera, así que la franja gris llega solo hasta ahí. Se ve como un descuido y lo es, pero
-  es de antes: en el CSS viejo `.selection-cell { width: 46px }` le ganaba por especificidad
-  al `td { width: 100% }` de la media query. La migración lo copió tal cual a propósito.
-  Arreglarlo es un cambio de diseño, no de migración: va aparte.
