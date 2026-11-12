@@ -65,6 +65,10 @@ Todo esto está implementado en SQL y es deliberado:
    quien solo cambió accesos. Si la 013 no está aplicada, se ve el número corto de antes.
 3. **Editar un viaje exige motivo.** El trigger `validate_trip()` rechaza un UPDATE con `notes`
    vacío. Es lo que hace posible reconstruir por qué se compró algo.
+   Además la pantalla exige un motivo de **al menos 5 letras** (`lib/motivo.ts`): en producción
+   había viajes anulados con el motivo ".". Es de letras y no de palabras porque «Duplicado» o
+   «No viajó» son motivos buenos. La base no puede exigirlo sola: guarda el motivo pegado a las
+   notas acumuladas y no sabe cuál es el nuevo; para eso haría falta una columna aparte.
 4. **La persona y el sentido de un viaje no se cambian.** Se anula y se crea otro.
 5. **Estado Emitido/Completado/No presentado exige PNR.** Constraint en la tabla.
 6. **Un viaje debe caer dentro de la vigencia de una persona activa.**

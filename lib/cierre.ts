@@ -15,6 +15,7 @@
 // Completado (trips_status_pnr_check). Aquí se valida antes, para dar un mensaje
 // claro en vez del error de la base.
 import type { Trip } from "./types.ts";
+import { problemaDeMotivo } from "./motivo.ts";
 
 export type ModoDeCierre = "anular" | "reserva";
 
@@ -37,7 +38,8 @@ export function problemaDeCierre(
   pnr: string,
 ): string | null {
   if (!viajes.length) return "Selecciona los viajes que quieres cerrar.";
-  if (!motivo.trim()) return "Escribe el motivo del cierre.";
+  const motivoMalo = problemaDeMotivo(motivo);
+  if (motivoMalo) return motivoMalo;
   if (modo === "reserva") {
     if (!mismoVuelo(viajes)) {
       return "Una misma reserva solo sirve para viajes del mismo día y la misma ruta. Si cada uno tiene su código, ábrelos de a uno.";
