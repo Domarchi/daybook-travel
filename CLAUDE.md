@@ -557,6 +557,12 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
   bloque (con el reloj de la página adelantado 40 días **después** de entrar, porque la demo arma
   sus viajes desde la fecha de hoy). Buscan los botones por su texto, no por clases. Si cambias
   el texto de un botón o de un aviso que la prueba usa, hay que cambiarlo ahí también.
+- **Cómo carga los datos.** Primero se comprueba el acceso (`is_member`); después personas,
+  viajes, ajustes, acreditación y rol van **en paralelo** (`app/estado/use-datos.ts`). Antes
+  iban en cadena y eran ~1,3 s de espera en producción. Se trae toda la historia: en
+  noviembre de 2026 eran 179 viajes en unas diez semanas (~1.000 al año), y Costos, los
+  viajes sin cerrar y la actividad necesitan el pasado. Cargar por rango se justifica recién
+  con varios miles de viajes; `allRows` ya pide de a 1.000, así que no hay un tope silencioso.
 - **El CI corre una sola vez por cambio.** `.github/workflows/ci.yml` escucha `pull_request` y
   `push` solo a `main` (antes escuchaba `push` sin filtro y todo corría dos veces; el `verify` del
   push era el que fallaba de forma intermitente, casi siempre con "Chrome no expuso CDP", que es
