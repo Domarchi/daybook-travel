@@ -17,9 +17,9 @@ const navItems = [
 // Solo la ve quien administra los accesos.
 const accesosItem = { label: "Accesos", icon: ShieldCheck };
 
-// El hover va con `[&:hover]:` y no con `hover:` a propósito: en Tailwind 4,
-// `hover:` solo aplica donde hay mouse, y la barra lo aplicaba siempre. Traducir,
-// no rediseñar; si se quiere cambiar, es un paso aparte.
+// El hover solo donde hay mouse de verdad (`raton:`), como el resto de la
+// aplicación. En la traducción a Tailwind quedó con `[&:hover]:`, que en un
+// teléfono deja el resaltado pegado después de tocar.
 const FOCO = "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-rail-focus";
 
 // Debajo de 820 px el riel pasa a ser una franja superior y el enlace ya no se
@@ -27,14 +27,14 @@ const FOCO = "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-v
 const ENLACE = cn(
   "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-sm border-none px-3 text-left",
   "text-rail-link transition-[translate,scale,color,background-color] duration-[160ms] ease-out",
-  "min-[820px]:[&:hover:not(:active)]:translate-x-[2px] min-[820px]:active:scale-[0.98]",
+  "min-[820px]:raton:hover:[&:not(:active)]:translate-x-[2px] min-[820px]:active:scale-[0.98]",
   "max-[820px]:flex-1 max-[820px]:justify-center max-[820px]:gap-1.5 max-[820px]:px-1.5",
   FOCO,
 );
 
 const BOTON_RIEL = cn(
   "grid size-[34px] flex-none cursor-pointer place-items-center rounded-sm border-none bg-transparent",
-  "text-rail-link [&:hover]:bg-rail-hover [&:hover]:text-rail-link-hover",
+  "text-rail-link raton:hover:bg-rail-hover raton:hover:text-rail-link-hover",
   FOCO,
 );
 
@@ -100,7 +100,7 @@ export default function SideNav() {
                 // El marcado le gana al hover: la pestaña actual no cambia de color al pasarle encima.
                 actual
                   ? "bg-rail-active text-rail-foreground"
-                  : "bg-transparent [&:hover]:bg-rail-hover [&:hover]:text-rail-link-hover",
+                  : "bg-transparent raton:hover:bg-rail-hover raton:hover:text-rail-link-hover",
               )}
               aria-current={actual ? "page" : undefined}
               onClick={() => navigate(label)}

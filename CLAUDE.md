@@ -314,9 +314,8 @@ rota. Nada de reescritura de una sentada.
      `text-rail-link`, `border-rail-line`, etc.
    - El logo y el isotipo eligen su dibujo con la variante `claro:` (ver abajo).
      `tono="oscuro"` fija la variante para fondo oscuro; lo usa la barra.
-   - El hover de la barra va con `[&:hover]:` y no con `hover:`: en Tailwind 4 `hover:` solo
-     aplica donde hay mouse, y el CSS viejo lo aplicaba siempre. Traducción literal; si se
-     quiere `raton:` como el resto, es un cambio aparte.
+   - El hover de la barra se tradujo primero literal (`[&:hover]:`, que aplica también en un
+     teléfono) y después, en un paso aparte, se pasó a `raton:hover:` como el resto.
    - Se midió a 1440, 800 y 400 px en los dos temas, más el hover. Coincide todo salvo el
      estilo y el color de bordes de **ancho 0** (`border-right: 0` también los reiniciaba) y
      la transición, que ahora anima `translate`/`scale` en vez de `transform`. Como la regla

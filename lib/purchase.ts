@@ -84,16 +84,6 @@ export function estadoDeCompra(
   return "proximo";
 }
 
-/** Si el viaje espera una gestión de alguien: comprarlo o cerrarlo. */
-export function esperaGestion(estado: EstadoCompra) {
-  return (
-    estado === "sin_cerrar" ||
-    estado === "vencido" ||
-    estado === "urgente" ||
-    estado === "proximo"
-  );
-}
-
 /** Lo que entra en "Por comprar ahora": lo urgente y lo vencido hace poco. */
 export function porComprarAhora(estado: EstadoCompra) {
   return estado === "vencido" || estado === "urgente";
