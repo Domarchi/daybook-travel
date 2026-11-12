@@ -22,6 +22,8 @@ test("una reserva es un vuelo: mismo día y misma ruta", () => {
 test("anular pide motivo y nada más", () => {
   const varios = [viaje(), viaje({ date: "2026-10-08", origin: "Copiapó", destination: "Santiago" })];
   assert.match(problemaDeCierre(varios, "anular", "  ", "") ?? "", /motivo/);
+  // El mismo mínimo que al editar un viaje: un punto no explica nada.
+  assert.match(problemaDeCierre(varios, "anular", ".", "") ?? "", /al menos 5 letras/);
   assert.equal(problemaDeCierre(varios, "anular", "No viajó: dejó la obra", ""), null);
 });
 

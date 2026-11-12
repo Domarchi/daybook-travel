@@ -8,6 +8,7 @@ import { FormEvent } from "react";
 import { localDate } from "../../lib/format";
 import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
+import { problemaDeMotivo } from "../../lib/motivo";
 import { db } from "../../lib/supabase";
 import { HistoryItem, Person, Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
@@ -88,8 +89,9 @@ export function useAccionesViajes(e: Entrada) {
       const direction = String(form.get("direction"));
       const changeReason = String(form.get("change_reason") ?? "").trim();
       const observations = String(form.get("notes") ?? "").trim();
-      if (editTrip && !changeReason) {
-        throw new Error("Indica el motivo de este cambio.");
+      if (editTrip) {
+        const problema = problemaDeMotivo(changeReason);
+        if (problema) throw new Error(problema);
       }
       const notes = editTrip
         ? [observations, `Motivo del cambio: ${changeReason}`]
