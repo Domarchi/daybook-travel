@@ -14,6 +14,7 @@ export default function AgendaView({
   purchaseSummary,
   purchaseWindow,
   onPurchase,
+  onUnclosed,
   onWindowChange,
   requestedCount,
   activeCount,
@@ -26,12 +27,14 @@ export default function AgendaView({
 }: {
   nextTrip?: Trip;
   purchaseSummary: {
+    sinCerrar: number;
     urgentes: number;
     vencidos: number;
     fechasAbiertas: string[];
   };
   purchaseWindow: number;
   onPurchase: () => void;
+  onUnclosed: () => void;
   onWindowChange: (dias: number) => void;
   requestedCount: number;
   activeCount: number;
@@ -43,7 +46,8 @@ export default function AgendaView({
   children: React.ReactNode;
 }) {
   // Lo que espera una gestion hoy: lo que vuela dentro de la ventana mas lo que
-  // ya volo sin comprarse.
+  // volo hace poco sin comprarse. Lo que paso hace semanas no entra: ya no se
+  // compra, se cierra (ver "sin cerrar" en lib/purchase.ts).
   const porComprar = purchaseSummary.urgentes + purchaseSummary.vencidos;
   const opciones = VENTANAS_SUGERIDAS.includes(purchaseWindow)
     ? VENTANAS_SUGERIDAS
@@ -111,7 +115,25 @@ export default function AgendaView({
           <ChevronRight size={18} />
         </OverviewCard>
       </section>
-      <p className="mb-2 text-[12px]">Resumen del proyecto completo. El filtro de turno aplica al calendario.</p>
+      <p className="mb-2 text-[12px]">
+        Resumen del proyecto completo. El filtro de turno aplica al calendario.
+        {purchaseSummary.sinCerrar > 0 && (
+          <>
+            {" "}
+            <button
+              type="button"
+              className="cursor-pointer font-[650] text-foreground-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
+              onClick={onUnclosed}
+            >
+              {purchaseSummary.sinCerrar}{" "}
+              {purchaseSummary.sinCerrar === 1
+                ? "viaje pasado quedó sin reserva"
+                : "viajes pasados quedaron sin reserva"}
+            </button>
+            : ya no se compran, hay que cerrarlos.
+          </>
+        )}
+      </p>
       <div className="mb-3 flex min-h-[52px] flex-wrap items-center justify-between gap-2">
         <Button
           type="button"

@@ -34,7 +34,8 @@ export default function AgendaPanel() {
       nextTrip={nextTrip}
       purchaseSummary={resumenCompra}
       purchaseWindow={purchaseWindow}
-      onPurchase={showPurchaseQueue}
+      onPurchase={() => showPurchaseQueue()}
+      onUnclosed={() => showPurchaseQueue("sin_cerrar")}
       onWindowChange={(dias) => void savePurchaseWindow(dias)}
       requestedCount={requestedCount}
       activeCount={activePeople.length}

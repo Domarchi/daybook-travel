@@ -15,9 +15,17 @@
 //   Un viaje ANULADO está cerrado: no se va a comprar nunca.
 //
 //   Lo pendiente se ordena por cuánto falta para volar:
-//     vencido   ya pasó la fecha y nadie compró nada
-//     urgente   vuela dentro de la ventana de compra
-//     próximo   todavía hay tiempo
+//     sin cerrar  la fecha pasó hace más de DIAS_VENCIDO días y quedó sin
+//                 reserva: ya no hay nada que comprar, hay que cerrarlo
+//     vencido     la fecha pasó hace poco y nadie registró la compra
+//     urgente     vuela dentro de la ventana de compra
+//     próximo     todavía hay tiempo
+//
+//   "Sin cerrar" existe porque "vencido" no tenía fin: un viaje importado en
+//   septiembre que nadie actualizó seguía contando como "por comprar ahora" en
+//   noviembre, y la tarjeta de la agenda llegó a decir 96 cuando no había nada
+//   que comprar. Lo que pasó hace más de dos semanas no se compra; se cierra
+//   (con su reserva, o anulándolo), y eso es otra tarea.
 //
 // Nada de esto lee el reloj: la fecha de hoy entra por parámetro, para que las
 // pruebas puedan pararse en cualquier día.
@@ -26,12 +34,23 @@ import type { Trip } from "./types.ts";
 export type EstadoCompra =
   | "resuelto"
   | "cerrado"
+  | "sin_cerrar"
   | "vencido"
   | "urgente"
   | "proximo";
 
 /** Días de anticipación por omisión, si la obra todavía no eligió los suyos. */
 export const VENTANA_POR_OMISION = 21;
+
+/**
+ * Cuántos días después de su fecha un viaje sin reserva sigue contando como
+ * vencido (y en el aviso por correo). Pasado eso queda "sin cerrar".
+ *
+ * Tiene que ser el mismo número que usa `purchase_alert_data()` en la
+ * migración 012 (`t.date >= a.hoy - 14`): así la tarjeta de la agenda y el
+ * correo cuentan lo mismo. Una prueba lo compara.
+ */
+export const DIAS_VENCIDO = 14;
 
 /** Límites de lo que se puede configurar, para que nadie escriba un disparate. */
 export const VENTANA_MINIMA = 1;
@@ -59,17 +78,30 @@ export function estadoDeCompra(
   if ((trip.pnr ?? "").trim()) return "resuelto";
 
   const faltan = diasParaVolar(trip.date, hoy);
+  if (faltan < -DIAS_VENCIDO) return "sin_cerrar";
   if (faltan < 0) return "vencido";
   if (faltan <= ventanaDias) return "urgente";
   return "proximo";
 }
 
-/** Si el viaje espera una gestión de alguien. */
+/** Si el viaje espera una gestión de alguien: comprarlo o cerrarlo. */
 export function esperaGestion(estado: EstadoCompra) {
-  return estado === "vencido" || estado === "urgente" || estado === "proximo";
+  return (
+    estado === "sin_cerrar" ||
+    estado === "vencido" ||
+    estado === "urgente" ||
+    estado === "proximo"
+  );
+}
+
+/** Lo que entra en "Por comprar ahora": lo urgente y lo vencido hace poco. */
+export function porComprarAhora(estado: EstadoCompra) {
+  return estado === "vencido" || estado === "urgente";
 }
 
 export type ResumenCompra = {
+  /** Pasados hace más de DIAS_VENCIDO días sin reserva. No están "por comprar". */
+  sinCerrar: number;
   vencidos: number;
   urgentes: number;
   proximos: number;
@@ -91,6 +123,7 @@ export function resumenDeCompra(
   ventanaDias: number = VENTANA_POR_OMISION,
 ): ResumenCompra {
   const resumen: ResumenCompra = {
+    sinCerrar: 0,
     vencidos: 0,
     urgentes: 0,
     proximos: 0,
@@ -102,13 +135,14 @@ export function resumenDeCompra(
 
   for (const trip of trips) {
     const estado = estadoDeCompra(trip, hoy, ventanaDias);
-    if (estado === "vencido") resumen.vencidos++;
+    if (estado === "sin_cerrar") resumen.sinCerrar++;
+    else if (estado === "vencido") resumen.vencidos++;
     else if (estado === "urgente") resumen.urgentes++;
     else if (estado === "proximo") resumen.proximos++;
     else if (estado === "resuelto") resumen.resueltos++;
     else resumen.cerrados++;
 
-    if (estado === "vencido" || estado === "urgente") fechas.add(trip.date);
+    if (porComprarAhora(estado)) fechas.add(trip.date);
   }
 
   resumen.fechasAbiertas = [...fechas].sort();

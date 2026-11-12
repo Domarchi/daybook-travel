@@ -39,7 +39,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
 | `app/globals.css` | ~435 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el velo y la caja de los diálogos y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
-| `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |
+| `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, sin cerrar, vencido, urgente o próximo. 18 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
@@ -126,6 +126,13 @@ se agrega una nueva con el número siguiente.
      cambia Katy lo ve Tamara.
    - Las **fechas abiertas** son fechas distintas, no viajes: los pasajes se compran por bloque.
    - Cada fila de Viajes lleva "Faltan N días" coloreado, y hay un filtro "Solo por comprar".
+   - **Vencido dura 14 días** (`DIAS_VENCIDO`). Pasado eso, un viaje sin reserva queda
+     **«sin cerrar»**: ya no se compra, se cierra (con su reserva o anulándolo), y no cuenta en
+     «Por comprar ahora». La Agenda lo muestra aparte, como un enlace bajo las tarjetas que
+     abre Viajes filtrado. Salió de revisar producción el 12-nov-2026: la tarjeta decía 96 por
+     comprar y eran viajes de septiembre y octubre importados de «VUELOS A SOLICITAR.ods» que
+     nadie actualizó. Los 14 días son los mismos que usa `purchase_alert_data()` (migración
+     012) para el correo; una prueba compara los dos números.
 
 4. **Costos. HECHO** (rama `costos`). Vista "Costos" con gasto por mes, por ruta y por persona.
 

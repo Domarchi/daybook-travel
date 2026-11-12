@@ -15,7 +15,7 @@ import {
 } from "../../lib/costs";
 import { movimientos } from "../../lib/cycles";
 import { localDate, normalize } from "../../lib/format";
-import { estadoDeCompra, resumenDeCompra } from "../../lib/purchase";
+import { estadoDeCompra, porComprarAhora, resumenDeCompra } from "../../lib/purchase";
 import { esTurnoRotativo, Person, Trip } from "../../lib/types";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
@@ -116,9 +116,9 @@ export function useDerivados(e: Entrada) {
           (!onlyUpcoming || trip.date >= localDate()) &&
           (purchaseFilter === "todos" ||
             (purchaseFilter === "abiertos" &&
-              ["urgente", "vencido"].includes(
-                estadoDeCompra(trip, localDate(), purchaseWindow),
-              )))
+              porComprarAhora(estadoDeCompra(trip, localDate(), purchaseWindow))) ||
+            (purchaseFilter === "sin_cerrar" &&
+              estadoDeCompra(trip, localDate(), purchaseWindow) === "sin_cerrar"))
         );
       })
       .sort((a, b) => a.date.localeCompare(b.date));

@@ -195,6 +195,7 @@ export default function TripsView() {
           {statusFilter !== "Todos" ? ` · ${statusFilter}` : ""}
           {dateFilter ? ` · ${formatDate(dateFilter)}` : ""}
           {purchaseFilter === "abiertos" ? " · por comprar" : ""}
+          {purchaseFilter === "sin_cerrar" ? " · pasados sin reserva" : ""}
         </span>
         {hasTripFilters && visibleTrips.length > 0 && (
           <Button
@@ -336,6 +337,7 @@ export default function TripsView() {
                         const estado = compraDe(trip);
                         if (estado === "resuelto") return "Con reserva";
                         if (estado === "cerrado") return "Anulado";
+                        if (estado === "sin_cerrar") return "Sin cerrar";
                         const faltan = diasParaVolar(trip.date, localDate());
                         if (faltan < 0) return "Fecha vencida";
                         if (faltan === 0) return "Vuela hoy";
