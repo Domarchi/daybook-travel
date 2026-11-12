@@ -14,7 +14,7 @@ test("el Excel con logo conserva encabezados importables, identificadores y acen
   const workbook = await writeXlsxFile([
     ...cabeceraExcel("Personas", "2026-09-14", true),
     PERSON_EXCEL_FIELDS.map((value) => ({ value })),
-    [{ value: "id-conservar" }, { value: "FCC-001" }, { value: "Joaquín Muñoz" }],
+    [{ value: "id-conservar" }, { value: "EMP-001" }, { value: "Joaquín Muñoz" }],
   ], {
     buffer: true,
     images: [{ ...image, content: Buffer.from(image.content) }],
@@ -24,7 +24,7 @@ test("el Excel con logo conserva encabezados importables, identificadores y acen
   const headerIndex = rows.findIndex((row) => row[0] === PERSON_EXCEL_FIELDS[0]);
   assert.ok(headerIndex >= 0 && headerIndex < 10);
   assert.deepEqual(rows[headerIndex].slice(0, PERSON_EXCEL_FIELDS.length), [...PERSON_EXCEL_FIELDS]);
-  assert.deepEqual(rows[headerIndex + 1].slice(0, 3), ["id-conservar", "FCC-001", "Joaquín Muñoz"]);
+  assert.deepEqual(rows[headerIndex + 1].slice(0, 3), ["id-conservar", "EMP-001", "Joaquín Muñoz"]);
   assert.ok(workbook.includes(Buffer.from("xl/media/")), "el libro debe incorporar la imagen, sin depender de una URL");
 });
 

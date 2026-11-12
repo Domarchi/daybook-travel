@@ -90,7 +90,7 @@ test("acepta encabezados legibles y conserva IDs y versiones", () => {
     {
       "ID FCC": personId,
       Versión: 3,
-      "Código trabajador": "fcc-17",
+      "Código trabajador": "emp-17",
       "Nombre completo": "Beatriz Soto",
       Origen: "Concepción",
       Destino: "Copiapó",
@@ -124,7 +124,7 @@ test("acepta encabezados legibles y conserva IDs y versiones", () => {
   assert.equal(person.errors.length, 0);
   assert.equal(person.value?.id, personId);
   assert.equal(person.value?.version, 3);
-  assert.equal(person.value?.employee_code, "FCC-17");
+  assert.equal(person.value?.employee_code, "EMP-17");
   assert.equal(person.value?.active, false);
   assert.equal(trip.errors.length, 0);
   assert.equal(trip.value?.person_id, personId);

@@ -8,7 +8,7 @@
 // saber cual de los dos rompio algo.
 //
 // Mientras dure la migracion convive con la regla `button { ... }` de la capa
-// fcc: esa sigue vistiendo a los botones que todavia no se migraron, y estas
+// daybook: esa sigue vistiendo a los botones que todavia no se migraron, y estas
 // clases le ganan porque las utilidades de Tailwind van por encima de la capa.
 // Cuando no quede ningun boton sin migrar, esa regla se borra.
 import * as React from "react";

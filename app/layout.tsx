@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 const themeInitializer = `
   try {
-    const savedTheme = window.localStorage.getItem("fcc-travel-theme");
+    const savedTheme = window.localStorage.getItem("daybook-travel-theme");
     document.documentElement.dataset.theme =
       savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
   } catch {}

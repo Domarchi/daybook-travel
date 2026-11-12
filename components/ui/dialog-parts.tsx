@@ -66,7 +66,7 @@ export function Hint({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-/** La ruedita de "cargando". El giro sigue siendo el keyframe de la capa fcc. */
+/** La ruedita de "cargando". El giro sigue siendo el keyframe de la capa daybook. */
 export function LoadingMark({
   className,
   ...props
