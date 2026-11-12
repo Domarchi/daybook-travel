@@ -76,14 +76,16 @@ export function useNavegacion(e: Entrada) {
   }
 
   // La cola de compra: los viajes que hay que atender ahora, en la vista Viajes.
-  function showPurchaseQueue() {
+  // Con "sin_cerrar" muestra en cambio los que pasaron hace semanas sin reserva:
+  // no hay nada que comprar, hay que cerrarlos.
+  function showPurchaseQueue(filtro: "abiertos" | "sin_cerrar" = "abiertos") {
     clearMessages();
     setQuery("");
     setStatusFilter("Todos");
     setDateFilter("");
     setPersonFilter("");
     setOnlyUpcoming(false);
-    setPurchaseFilter("abiertos");
+    setPurchaseFilter(filtro);
     setView("Viajes");
     setSelectedTrips([]);
   }
