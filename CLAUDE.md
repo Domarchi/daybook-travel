@@ -68,8 +68,12 @@ Todo esto está implementado en SQL y es deliberado:
    vacío. Es lo que hace posible reconstruir por qué se compró algo.
    Además la pantalla exige un motivo de **al menos 5 letras** (`lib/motivo.ts`): en producción
    había viajes anulados con el motivo ".". Es de letras y no de palabras porque «Duplicado» o
-   «No viajó» son motivos buenos. La base no puede exigirlo sola: guarda el motivo pegado a las
-   notas acumuladas y no sabe cuál es el nuevo; para eso haría falta una columna aparte.
+   «No viajó» son motivos buenos.
+   **Las notas guardan las observaciones y solo el último motivo** (`lib/notas.ts`). Antes cada
+   edición sumaba su motivo y volvía a guardar los anteriores, y «Información útil» se llenaba
+   de motivos; los anteriores están en el historial. Una columna aparte para el motivo (para que
+   la base exija el mínimo) se descartó por ahora: obliga a reescribir en producción las
+   funciones del importador de Excel (003/004) y de propuestas (008), que también editan viajes.
 4. **La persona y el sentido de un viaje no se cambian.** Se anula y se crea otro.
 5. **Estado Emitido/Completado/No presentado exige PNR.** Constraint en la tabla.
 6. **Un viaje debe caer dentro de la vigencia de una persona activa.**
@@ -150,8 +154,8 @@ se agrega una nueva con el número siguiente.
      para marcar como solicitados, y las dos no se mezclan. «No se volaron» los anula con un
      motivo. «Se volaron con una misma reserva» les pone el código y los deja Completado, y
      solo se ofrece si todos son del mismo día y la misma ruta: un código es un vuelo. Si cada
-     uno tiene su código, se abren de a uno. El motivo se agrega a las notas, como en «Marcar
-     como solicitados».
+     uno tiene su código, se abren de a uno. El motivo queda como último motivo de las notas,
+     igual que al editar o al marcar como solicitados.
 
 4. **Costos. HECHO** (rama `costos`). Vista "Costos" con gasto por mes, por ruta y por persona.
 

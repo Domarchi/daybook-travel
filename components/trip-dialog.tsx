@@ -5,6 +5,7 @@ import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-
 import { Checkbox, Input, Label, Select, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { observacionesDe } from "../lib/notas";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
 import { ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
@@ -313,7 +314,7 @@ export default function TripDialog() {
             Información útil <small className="text-muted">(opcional)</small>
             <Textarea
               name="notes"
-              defaultValue={editTrip?.notes}
+              defaultValue={observacionesDe(editTrip?.notes)}
               placeholder="Restricciones horarias, equipaje o acuerdos."
             />
           </Label>

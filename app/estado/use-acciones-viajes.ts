@@ -9,6 +9,7 @@ import { localDate } from "../../lib/format";
 import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
 import { problemaDeMotivo } from "../../lib/motivo";
+import { notasConMotivo } from "../../lib/notas";
 import { db } from "../../lib/supabase";
 import { HistoryItem, Person, Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
@@ -94,11 +95,9 @@ export function useAccionesViajes(e: Entrada) {
         const problema = problemaDeMotivo(changeReason);
         if (problema) throw new Error(problema);
       }
-      const notes = editTrip
-        ? [observations, `Motivo del cambio: ${changeReason}`]
-            .filter(Boolean)
-            .join("\n")
-        : observations;
+      // Las observaciones y solo el motivo nuevo: los anteriores están en el
+      // historial (ver lib/notas.ts).
+      const notes = editTrip ? notasConMotivo(observations, changeReason) : observations;
       const trip = {
         person_id: person.id,
         date: String(form.get("date")),

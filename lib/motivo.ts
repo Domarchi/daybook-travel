@@ -8,10 +8,10 @@
 // buenos y cortos, y "." o "ok" no. Se cuentan letras de cualquier idioma, con
 // tildes, y no signos ni números.
 //
-// Vive en la pantalla y no en la base porque la base guarda el motivo pegado a
-// las notas acumuladas del viaje ("…\nMotivo del cambio: X"), y desde ahí no
-// puede saber cuál es el motivo nuevo. Exigirlo en SQL pediría una columna
-// aparte para el motivo.
+// Vive en la pantalla y no en la base porque la base guarda el motivo dentro de
+// las notas del viaje ("…\nMotivo del cambio: X", ver lib/notas.ts). Exigirlo
+// en SQL pediría una columna aparte para el motivo, y eso obliga a reescribir
+// las funciones del importador y de las propuestas, que también editan viajes.
 export const MINIMO_LETRAS = 5;
 
 export function letrasDe(texto: string) {

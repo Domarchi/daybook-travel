@@ -53,3 +53,11 @@ test("registrar la reserva deja el viaje Completado, con el código en mayúscul
     notes: "Motivo del cambio: Comprado por fuera",
   });
 });
+
+test("al cerrar, los motivos viejos no se repiten en las notas: quedan en el historial", () => {
+  const acumuladas = viaje({ notes: "Importado.\nMotivo del cambio: Solicitud enviada." });
+  assert.equal(
+    cambioDeCierre(acumuladas, "anular", "No viajó", "").notes,
+    "Importado.\nMotivo del cambio: No viajó",
+  );
+});
