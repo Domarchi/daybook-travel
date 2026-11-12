@@ -96,6 +96,15 @@ Todo esto está implementado en SQL y es deliberado:
 Antes de tocar `supabase/*.sql`: las migraciones ya aplicadas en producción **no se editan**,
 se agrega una nueva con el número siguiente.
 
+**La base de RELEVO la comparte Daybook Asistencia** (sus tablas son `asistencia_*` y sus
+migraciones se registran como `001_asistencia`, `002_padron`…). Por eso las de Travel se
+registran en Supabase con el prefijo `travel_`: `travel_013_historial_con_correo`. Desde el
+12-nov-2026 están registradas la 009 a la 013. La 009 a la 012 se habían aplicado por el editor
+SQL sin quedar en el registro; se verificaron (funciones, tablas y permisos) y se registraron
+solo como constancia, sin volver a ejecutarlas. De antes quedan tres con otro nombre
+(`dias_de_viaje_por_persona`, `excel_sin_regla_del_lunes`, `ventana_de_compra`) y la 001 a 004,
+007 y 008 sin registrar.
+
 ## Pendientes, en orden
 
 1. **Partir `app/page.tsx`. HECHO** (rama `partir-page-en-componentes`, nueve commits).
