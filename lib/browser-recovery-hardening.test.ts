@@ -382,7 +382,7 @@ function t4BrowserStep(steps: string[], script: string) {
 }
 
 function t4BrowserTimeout(browser: string, script: string) {
-  const expected: Record<string,string>={'test:browser':'5','test:browser:recovery':'10'};
+  const expected: Record<string,string>={'test:browser':'5','test:browser:flujos':'5','test:browser:recovery':'10'};
   assert.equal(t4Value(browser,'timeout-minutes',8),expected[script],
     `T4 timeout verify/${script} exacto: ${expected[script]} minutos`);
 }
@@ -395,7 +395,7 @@ test('T4 CI usa sólo Chrome del sistema ya permitido y timeout de job', async (
   t4JobTimeout(job);
 });
 
-for (const script of ['test:browser','test:browser:recovery']) {
+for (const script of ['test:browser','test:browser:flujos','test:browser:recovery']) {
   test(`T4 ${script}: Chrome del sistema y timeout propio`, async () => {
     const {job,steps}=await t4Workflow();
     const browser=t4BrowserStep(steps,script);
@@ -432,7 +432,7 @@ for (const mutation of [
     function guard(workflow: string) {
       const {job,steps}=t4WorkflowSource(workflow);
       t4JobTimeout(job);
-      for (const script of ['test:browser','test:browser:recovery']) {
+      for (const script of ['test:browser','test:browser:flujos','test:browser:recovery']) {
         t4BrowserTimeout(t4BrowserStep(steps,script),script);
       }
     }

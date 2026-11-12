@@ -27,5 +27,7 @@ jobs:
       - run: npm run build
       - run: npm run test:browser
         timeout-minutes: 5
+      - run: npm run test:browser:flujos
+        timeout-minutes: 5
       - run: npm run test:browser:recovery
         timeout-minutes: 10
