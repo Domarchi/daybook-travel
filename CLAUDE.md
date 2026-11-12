@@ -56,6 +56,10 @@ Todo esto está implementado en SQL y es deliberado:
    (estado `Anulado`), no se eliminan. No agregues borrado.
 2. **Toda escritura queda auditada.** El trigger `audit_change()` guarda antes/después y actor
    en `history`. No lo desactives ni escribas saltándotelo.
+   El actor es un uuid; la pantalla muestra el **correo** gracias a `history_actors()`
+   (migración 013), que lo busca en `auth.users`. Solo responde a un miembro y solo por quien
+   aparece en un historial que ese miembro ya puede leer: a un miembro común no le revela a
+   quien solo cambió accesos. Si la 013 no está aplicada, se ve el número corto de antes.
 3. **Editar un viaje exige motivo.** El trigger `validate_trip()` rechaza un UPDATE con `notes`
    vacío. Es lo que hace posible reconstruir por qué se compró algo.
 4. **La persona y el sentido de un viaje no se cambian.** Se anula y se crea otro.

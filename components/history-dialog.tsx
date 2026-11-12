@@ -6,6 +6,17 @@ import { DialogBody, LoadingMark } from "@/components/ui/dialog-parts";
 import { ArrowDownLeft, Clock } from "lucide-react";
 import { formatDateTime } from "../lib/format";
 import { useApp } from "../app/store";
+import type { HistoryItem } from "../lib/types";
+
+// Quién hizo el cambio. El correo, si la base lo tradujo; si no, el número
+// corto de la cuenta, que al menos permite distinguir a dos personas. Sin
+// autor es un cambio hecho por fuera de la aplicación (una migración, la
+// consola de Supabase).
+function autorDe(item: HistoryItem) {
+  if (item.actor_email) return item.actor_email;
+  if (item.actor) return `Usuario ${item.actor.slice(0, 8)}`;
+  return "Cambio interno";
+}
 
 export default function HistoryDialog() {
   const {
@@ -63,8 +74,7 @@ export default function HistoryDialog() {
                       : "Viaje actualizado"}
                   </strong>
                   <small className="text-muted">
-                    {formatDateTime(item.created_at)} · Usuario{" "}
-                    {item.actor?.slice(0, 8)}
+                    {formatDateTime(item.created_at)} · {autorDe(item)}
                   </small>
                   <p className="mt-1 rounded-sm bg-surface-soft px-3 py-[10px] text-[12px] whitespace-pre-wrap text-foreground-soft">
                     {String(item.after_data?.notes || "Sin observaciones")} ·{" "}

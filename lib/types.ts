@@ -69,7 +69,9 @@ export type HistoryItem = {
   id: number;
   action: string;
   created_at: string;
-  actor: string;
+  actor: string | null;
+  /** El correo del autor, si la base lo pudo traducir (migración 013). */
+  actor_email?: string | null;
   after_data: Record<string, unknown>;
 };
 
