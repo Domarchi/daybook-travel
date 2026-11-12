@@ -22,10 +22,10 @@ export default function OperationalHandoff() {
     <section className="mt-6 border-t border-line pt-5" aria-labelledby="handoff-title">
       <header className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="handoff-title" className="text-[19px]">Entrega de coordinación</h2>
-          <p className="mt-1 text-[13px]">Hoy y mañana · {rows.length} movimientos del proyecto completo, {pendientes} con datos pendientes.</p>
+          <h2 id="handoff-title" className="text-heading">Entrega de coordinación</h2>
+          <p className="mt-1 text-meta">Hoy y mañana · {rows.length} movimientos del proyecto completo, {pendientes} con datos pendientes.</p>
         </div>
-        <span className="text-[13px] text-muted">Para coordinar el próximo relevo</span>
+        <span className="text-meta text-muted">Para coordinar el próximo relevo</span>
       </header>
       {rows.length ? <div className="divide-y divide-line rounded-md border border-line bg-surface">
         {rows.map((trip) => {
@@ -34,14 +34,14 @@ export default function OperationalHandoff() {
             <span className="grid min-w-0 gap-2">
               <span className="flex flex-wrap items-center gap-2"><strong>{personName(trip.person_id)}</strong><StatusPill status={trip.status} /></span>
               <small>{formatDate(trip.date)} · {trip.requested_time?.slice(0, 5) || "Hora por confirmar"} · {trip.direction === "SUBIDA" ? "Subida" : "Bajada"} · {trip.origin} → {trip.destination}</small>
-              <span className={faltan.length ? "text-[12px] text-warning" : "text-[12px] text-success"}>
+              <span className={faltan.length ? "text-caption text-warning" : "text-caption text-success"}>
                 {faltan.length ? faltan.join(" · ") : `Reserva ${trip.pnr} · hora y equipaje registrados`}
               </span>
             </span>
             <ChevronRight className="shrink-0 text-muted" size={18} />
           </Button>;
         })}
-      </div> : <p className="py-3 text-[13px]">No hay movimientos activos para hoy ni mañana. Revisa el calendario para preparar la siguiente guardia.</p>}
+      </div> : <p className="py-3 text-meta">No hay movimientos activos para hoy ni mañana. Revisa el calendario para preparar la siguiente guardia.</p>}
     </section>
   );
 }

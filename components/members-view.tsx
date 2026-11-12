@@ -123,8 +123,8 @@ export default function MembersView() {
         aria-busy={ocupado === "nuevo"}
         className="mb-5 grid gap-3 rounded-lg border border-line bg-surface p-4"
       >
-        <h2 className="text-[16px]">Dar acceso</h2>
-        <p className="text-[13px] leading-relaxed text-muted">
+        <h2 className="text-emphasis">Dar acceso</h2>
+        <p className="text-meta leading-relaxed text-muted">
           La cuenta es la misma de Daybook Asistencia y se crea fuera de esta
           aplicación. Aquí solo se decide cuáles cuentas pueden entrar a Travel.
         </p>
@@ -158,7 +158,7 @@ export default function MembersView() {
           </Button>
         </div>
         {avisoDelFormulario && (
-          <p id="accesos-aviso" role="alert" className="text-[13px] text-danger">
+          <p id="accesos-aviso" role="alert" className="text-meta text-danger">
             {avisoDelFormulario}
           </p>
         )}
@@ -167,7 +167,7 @@ export default function MembersView() {
       {error && (
         <p
           role="alert"
-          className="mb-5 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-[13px] text-danger"
+          className="mb-5 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger"
         >
           {error}
         </p>

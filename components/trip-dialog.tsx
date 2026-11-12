@@ -286,7 +286,7 @@ export default function TripDialog() {
                 {precio && precio.referencia !== null && (
                   <small
                     className={cn(
-                      "mt-[6px] text-[11px] leading-[1.4] text-foreground-soft",
+                      "mt-[6px] text-overline leading-[1.4] text-foreground-soft",
                       precio.nivel === "caro" && "font-bold text-warning",
                       precio.nivel === "barato" && "font-bold",
                     )}

@@ -41,8 +41,8 @@ export default function PasswordRequest() {
         <Button type="submit" variant="primary" disabled={!ready || blocked}>{busy ? 'Enviando…' : 'Enviar enlace'}</Button>
       </form>
       <noscript><p>Activa JavaScript para solicitar el enlace. No se ha enviado ninguna solicitud.</p></noscript>
-      {message && <p role={message === REQUEST_SENT ? 'status' : 'alert'} className="mt-3 text-[13px] text-foreground-soft">{message}</p>}
-      {blocked && !busy && <p className="mt-2 text-[13px] text-muted">Espera un minuto antes de solicitar otro enlace.</p>}
+      {message && <p role={message === REQUEST_SENT ? 'status' : 'alert'} className="mt-3 text-meta text-foreground-soft">{message}</p>}
+      {blocked && !busy && <p className="mt-2 text-meta text-muted">Espera un minuto antes de solicitar otro enlace.</p>}
       <a href="/" data-back-login className={passwordLink}>Volver a iniciar sesión</a>
     </PasswordFrame>
   );

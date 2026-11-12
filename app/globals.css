@@ -105,9 +105,22 @@
   --color-rail-avatar-foreground: var(--rail-avatar-fg);
   --color-rail-name: var(--rail-name);
   --color-rail-sub: var(--rail-sub);
+  --radius-xs: var(--db-radius-small);
   --radius-sm: var(--rad-sm);
   --radius-md: var(--rad);
   --radius-lg: var(--rad-lg);
+  --radius-pill: var(--db-radius-pill);
+  /* Los tamaños de texto de @daybook/design como clases: text-overline (11),
+     text-caption (12), text-meta (13), text-body (14), text-emphasis (16),
+     text-heading (18), text-title (22) y text-display (28). */
+  --text-overline: var(--db-text-overline);
+  --text-caption: var(--db-text-caption);
+  --text-meta: var(--db-text-meta);
+  --text-body: var(--db-text-body);
+  --text-emphasis: var(--db-text-emphasis);
+  --text-heading: var(--db-text-heading);
+  --text-title: var(--db-text-title);
+  --text-display: var(--db-text-display);
 }
 
 /* ---------------------------------------------------------------------------
@@ -160,11 +173,11 @@
   --danger: #ee7b83;
   --info: #8cb7df;
   --shadow: 0 16px 48px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
-  /* Radios y curva de @daybook/design; --rad-lg (diálogos) sigue propio hasta
-     el paso 2 de la escala. */
+  /* Radios y curva de @daybook/design. --rad-lg (diálogos) pasó de 18 px al
+     radio de diálogo de la familia (12 px). */
   --rad-sm: var(--db-radius-control);
   --rad: var(--db-radius-card);
-  --rad-lg: 18px;
+  --rad-lg: var(--db-radius-overlay);
   --ease-out: var(--db-ease-out);
   /* Para lo que se mueve dentro de la pantalla, no lo que entra o sale. */
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -242,10 +255,10 @@ body {
   background: var(--bg);
   color: var(--text);
   /* Geist, la fuente de la familia Daybook (@daybook/design). Inter nunca se
-     cargaba: se veía la del sistema. El tamaño base pasa a la escala común
-     en el paso 2 de la tipografía. */
+     cargaba: se veía la del sistema. El tamaño base es el de la familia,
+     14 px (antes 15). */
   font-family: var(--db-font-sans);
-  font-size: 15px;
+  font-size: var(--db-text-body);
   line-height: var(--db-leading-body);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -292,7 +305,7 @@ strong {
 h1,
 h2,
 h3 {
-  font-weight: 700;
+  font-weight: var(--db-weight-bold);
 }
 
 p {
@@ -308,7 +321,7 @@ summary:focus-visible {
 
 small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--db-text-caption);
   line-height: 1.45;
 }
 

@@ -55,13 +55,13 @@ export default function PasswordUpdate() {
       {status === 'ready' && (
         <form ref={form} onSubmit={submit} aria-busy={busy} className="grid gap-[15px]">
           <Label>Nueva contraseña<Input name="new-password" type="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} aria-describedby="password-policy" autoFocus disabled={busy} /></Label>
-          <p id="password-policy" className="text-[13px] text-muted">Al menos {MIN_PASSWORD_LENGTH} caracteres. Usa una contraseña larga y única; el servicio puede exigir mayor seguridad.</p>
+          <p id="password-policy" className="text-meta text-muted">Al menos {MIN_PASSWORD_LENGTH} caracteres. Usa una contraseña larga y única; el servicio puede exigir mayor seguridad.</p>
           <Label>Confirmar contraseña<Input name="confirm-password" type="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} disabled={busy} /></Label>
           <Button type="submit" variant="primary" disabled={busy}>{busy ? 'Actualizando…' : 'Guardar nueva contraseña'}</Button>
         </form>
       )}
       {status === 'invalid' && <><p role="alert">El enlace no es válido o ha vencido. Solicita uno nuevo.</p><a href="/recuperar-clave" className={passwordLink}>Pedir un nuevo enlace</a></>}
-      {result && messages[result] && status !== 'invalid' && <p role="alert" className="mt-3 text-[13px] text-foreground-soft">{messages[result]}</p>}
+      {result && messages[result] && status !== 'invalid' && <p role="alert" className="mt-3 text-meta text-foreground-soft">{messages[result]}</p>}
       {status === 'consumed' && result !== 'signout-error' && <p role="status">Contraseña actualizada. Cerrando sesión…</p>}
       {result === 'signout-error' && <Button data-retry-signout type="button" onClick={retrySignOut} disabled={busy}>Reintentar cierre de sesión</Button>}
       {status !== 'consumed' && <a href="/" data-back-login className={passwordLink}>Volver a iniciar sesión</a>}

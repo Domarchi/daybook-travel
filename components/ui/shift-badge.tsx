@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 // cualquier `leading-*` anterior. Puesto en la base, se perdia: las pastillas
 // quedaban con interlineado 1,2 en vez de 1, y la pastilla crecia un pixel.
 const shiftVariants = cva(
-  "inline-flex w-fit items-center gap-1 rounded-[999px] border font-extrabold whitespace-nowrap",
+  "inline-flex w-fit items-center gap-1 rounded-pill border font-extrabold whitespace-nowrap",
   {
     variants: {
       tono: {
@@ -24,7 +24,7 @@ const shiftVariants = cva(
       },
       tamano: {
         // .shift-badge
-        normal: "min-h-[25px] px-2 py-[5px] text-[10px] leading-none",
+        normal: "min-h-[25px] px-2 py-[5px] text-overline leading-none",
         // .shift-tag, la que va dentro de un dia del calendario. En pantalla
         // angosta se estrecha y encoge, porque el dia mide 44 px de ancho.
         chica: [

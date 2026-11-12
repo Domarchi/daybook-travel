@@ -70,7 +70,7 @@ export function Label({ className, ...props }: React.ComponentProps<"label">) {
   return (
     <label
       className={cn(
-        "grid gap-[7px] text-[13px] font-[650] text-foreground-soft",
+        "grid gap-[7px] text-meta font-semibold text-foreground-soft",
         className,
       )}
       {...props}

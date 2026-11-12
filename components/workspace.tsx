@@ -65,7 +65,7 @@ export default function Workspace() {
 
         <main className="mx-auto min-h-screen w-[min(100%,1480px)] px-[clamp(18px,3vw,44px)] pt-7 pb-6 max-[820px]:pt-[22px] max-[760px]:px-[14px]">
           {demo && (
-            <div className="mb-4 border-l-2 border-line-strong pl-3 text-[13px] text-foreground-soft">
+            <div className="mb-4 border-l-2 border-line-strong pl-3 text-meta text-foreground-soft">
               <span>
                 Demostración con datos ficticios. Los cambios duran hasta que
                 cierres esta sesión.
@@ -75,7 +75,7 @@ export default function Workspace() {
 
           {notice && (
             <div
-              className="mb-[22px] flex min-h-12 translate-y-0 items-center justify-between gap-4 rounded-md border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] bg-surface py-[7px] pr-2 pl-[14px] text-[13px] text-foreground-soft opacity-100 transition-[opacity,transform] duration-[220ms] ease-[var(--ease-out)] starting:-translate-y-[6px] starting:opacity-0"
+              className="mb-[22px] flex min-h-12 translate-y-0 items-center justify-between gap-4 rounded-md border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] bg-surface py-[7px] pr-2 pl-[14px] text-meta text-foreground-soft opacity-100 transition-[opacity,transform] duration-[220ms] ease-[var(--ease-out)] starting:-translate-y-[6px] starting:opacity-0"
               role="status"
             >
               <span>{notice}</span>
@@ -109,7 +109,7 @@ export default function Workspace() {
               )}
             </>
           )}
-          <footer className="mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]">
+          <footer className="mt-9 flex items-center justify-between gap-5 border-t border-line pt-[18px] text-overline font-bold tracking-[0.06em] text-muted uppercase max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]">
             <span>Daybook Travel / Copiapó</span>
             <span>Personas · Planificación · Pasajes</span>
           </footer>

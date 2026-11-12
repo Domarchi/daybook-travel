@@ -30,10 +30,10 @@ export default function DocumentTypesPanel() {
       className="mb-4 grid gap-3 rounded-lg border border-line bg-surface p-4"
     >
       <div className="grid gap-1">
-        <h2 id="document-types-title" className="text-[16px]">
+        <h2 id="document-types-title" className="text-emphasis">
           Documentos exigidos
         </h2>
-        <p className="text-[13px] leading-relaxed text-muted">
+        <p className="text-meta leading-relaxed text-muted">
           {documentTypes.length
             ? "Quien tenga uno de estos documentos faltante o vencido para la fecha del viaje aparece marcado, con el motivo, al armar el manifiesto."
             : "Todavía no se exige ningún documento. Agrega los que cuentan para viajar y cada persona tendrá su fecha de vencimiento."}
@@ -46,7 +46,7 @@ export default function DocumentTypesPanel() {
               key={tipo.id}
               className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-line bg-surface-soft px-3 py-2"
             >
-              <span className="flex items-center gap-2 text-[14px] text-foreground">
+              <span className="flex items-center gap-2 text-body text-foreground">
                 <strong>{tipo.name}</strong>
                 <StatusPill status={tipo.active ? "Activo" : "Desactivado"} />
               </span>

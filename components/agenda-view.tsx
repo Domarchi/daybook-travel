@@ -115,14 +115,14 @@ export default function AgendaView({
           <ChevronRight size={18} />
         </OverviewCard>
       </section>
-      <p className="mb-2 text-[12px]">
+      <p className="mb-2 text-caption">
         Resumen del proyecto completo. El filtro de turno aplica al calendario.
         {purchaseSummary.sinCerrar > 0 && (
           <>
             {" "}
             <button
               type="button"
-              className="cursor-pointer font-[650] text-foreground-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
+              className="cursor-pointer font-semibold text-foreground-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
               onClick={onUnclosed}
             >
               {purchaseSummary.sinCerrar}{" "}
@@ -141,7 +141,7 @@ export default function AgendaView({
         >
           <CalendarDays size={17} /> Planificar turnos
         </Button>
-        <label className="m-0 inline-flex items-center gap-2 text-[12px] font-[650] text-foreground-soft">
+        <label className="m-0 inline-flex items-center gap-2 text-caption font-semibold text-foreground-soft">
           Anticipación
           <Select
             className="min-h-11 w-auto px-2 py-1 font-bold"

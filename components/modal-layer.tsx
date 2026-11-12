@@ -70,7 +70,7 @@ export default function ModalLayer() {
             </SectionKicker>
             <h2
               id="dialog-title"
-              className="text-[25px] leading-[1.1] tracking-[-0.035em] text-foreground"
+              className="text-display leading-[1.1] tracking-[-0.035em] text-foreground"
             >
               {modal === "excel"
                 ? "Gestionar con Excel"
@@ -94,7 +94,7 @@ export default function ModalLayer() {
             </h2>
             <p
               id="dialog-description"
-              className="mt-[7px] max-w-[520px] text-[12px] text-muted"
+              className="mt-[7px] max-w-[520px] text-caption text-muted"
             >
               {modal === "excel"
                 ? "Descarga, revisa y aplica cambios sin reemplazar información a ciegas."
@@ -130,7 +130,7 @@ export default function ModalLayer() {
           <p
             role="alert"
             tabIndex={-1}
-            className="mx-6 mt-[14px] shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-[13px] text-danger max-[760px]:mx-4 max-[760px]:mt-3"
+            className="mx-6 mt-[14px] shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger max-[760px]:mx-4 max-[760px]:mt-3"
           >
             {formError}
           </p>

@@ -44,7 +44,7 @@ export default function PageHead() {
         <h1 className="text-[clamp(22px,1.9vw,27px)] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
           {titulo}
         </h1>
-        <p className="mt-1.5 max-w-[660px] text-[13px] leading-[1.5] text-muted">
+        <p className="mt-1.5 max-w-[660px] text-meta leading-[1.5] text-muted">
           {bajada}
         </p>
       </div>
@@ -52,7 +52,7 @@ export default function PageHead() {
         <Button
           type="button"
           variant="primary"
-          className="shrink-0 max-[430px]:px-3 max-[430px]:text-[12px] max-[430px]:[&_svg]:hidden"
+          className="shrink-0 max-[430px]:px-3 max-[430px]:text-caption max-[430px]:[&_svg]:hidden"
           onClick={() => (view === "Personas" ? openPerson() : openTrip(null))}
         >
           <Plus size={18} />

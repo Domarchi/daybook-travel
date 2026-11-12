@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva(
   [
     "inline-flex cursor-pointer items-center justify-center gap-2",
-    "rounded-sm border py-0 text-[13px] leading-[1.2]",
+    "rounded-sm border py-0 text-meta leading-[1.2]",
     "transition-[transform,background-color,border-color,color,opacity]",
     "duration-[140ms] ease-[var(--ease-out)]",
     "active:not-focus-visible:not-disabled:scale-[0.97]",
@@ -36,14 +36,14 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "min-h-11 border-line bg-surface-raised px-[14px] font-[650] text-foreground-soft",
+          "min-h-11 border-line bg-surface-raised px-[14px] font-semibold text-foreground-soft",
         primary: [
-          "min-h-[46px] border-primary bg-primary px-[18px] font-[750] text-primary-foreground",
+          "min-h-[46px] border-primary bg-primary px-[18px] font-bold text-primary-foreground",
           "raton:hover:not-disabled:border-[var(--action-hover)]",
           "raton:hover:not-disabled:bg-[var(--action-hover)]",
           "raton:hover:not-disabled:text-primary-foreground",
         ].join(" "),
-        icon: "size-11 min-h-11 min-w-11 border-line bg-surface-raised p-0 font-[650] text-foreground-soft",
+        icon: "size-11 min-h-11 min-w-11 border-line bg-surface-raised p-0 font-semibold text-foreground-soft",
       },
     },
     defaultVariants: { variant: "default" },

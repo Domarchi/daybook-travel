@@ -98,7 +98,7 @@ export default function TripsView() {
   return (
     <section aria-labelledby="trip-results">
       {personFilter && peopleById.get(personFilter) && (
-        <div className="mb-[10px] flex min-h-12 items-center justify-between gap-4 rounded-md border border-line bg-surface py-[7px] pr-[9px] pl-[14px] text-[13px] text-foreground-soft max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:p-3">
+        <div className="mb-[10px] flex min-h-12 items-center justify-between gap-4 rounded-md border border-line bg-surface py-[7px] pr-[9px] pl-[14px] text-meta text-foreground-soft max-[760px]:flex-col max-[760px]:items-stretch max-[760px]:p-3">
           <span>
             Viajes de <strong>{personName(personFilter)}</strong>
           </span>
@@ -118,7 +118,7 @@ export default function TripsView() {
         </div>
       )}
       <div className="mb-[10px] flex flex-wrap items-center gap-2 max-[760px]:flex-col max-[760px]:items-stretch">
-        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-[13px] font-[650] text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
+        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-meta font-semibold text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
           <Search size={18} aria-hidden="true" />
           <input
             className="min-h-[42px] w-full min-w-0 border-0 bg-transparent p-0 text-foreground shadow-none outline-0 placeholder:text-muted placeholder:opacity-80"
@@ -198,7 +198,7 @@ export default function TripsView() {
         )}
       </div>
       <div
-        className="mb-[6px] flex min-h-7 items-center justify-between gap-[14px] text-[12px] text-muted"
+        className="mb-[6px] flex min-h-7 items-center justify-between gap-[14px] text-caption text-muted"
         id="trip-results"
         aria-live="polite"
       >
@@ -443,7 +443,7 @@ export default function TripsView() {
           }
         />
       )}
-      <div className="mt-3 flex items-start gap-[10px] rounded-md border border-line bg-surface px-[15px] py-[13px] text-[12px] text-muted max-[760px]:mt-[10px]">
+      <div className="mt-3 flex items-start gap-[10px] rounded-md border border-line bg-surface px-[15px] py-[13px] text-caption text-muted max-[760px]:mt-[10px]">
         <Plane size={17} />
         <span>
           <strong className="text-foreground-soft">

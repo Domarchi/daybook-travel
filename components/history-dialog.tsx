@@ -65,7 +65,7 @@ export default function HistoryDialog() {
               >
                 <span
                   aria-hidden="true"
-                  className="mt-[5px] size-[11px] rounded-[999px] border-2 border-surface bg-foreground-soft shadow-[0_0_0_1px_var(--border-strong)]"
+                  className="mt-[5px] size-[11px] rounded-pill border-2 border-surface bg-foreground-soft shadow-[0_0_0_1px_var(--border-strong)]"
                 />
                 <div className="grid gap-1">
                   <strong className="text-foreground">
@@ -76,7 +76,7 @@ export default function HistoryDialog() {
                   <small className="text-muted">
                     {formatDateTime(item.created_at)} · {autorDe(item)}
                   </small>
-                  <p className="mt-1 rounded-sm bg-surface-soft px-3 py-[10px] text-[12px] whitespace-pre-wrap text-foreground-soft">
+                  <p className="mt-1 rounded-sm bg-surface-soft px-3 py-[10px] text-caption whitespace-pre-wrap text-foreground-soft">
                     {String(item.after_data?.notes || "Sin observaciones")} ·{" "}
                     {String(item.after_data?.status || "")}
                   </p>

@@ -77,7 +77,7 @@ export default function SideNav() {
         {/* El riel es oscuro aunque el tema sea claro: siempre la variante para fondo oscuro. */}
         <BrandLogo tono="oscuro" className="w-[168px] max-[820px]:hidden" />
         <BrandMark tono="oscuro" className="max-[820px]:block max-[820px]:w-10" />
-        <span className="ml-[5px] text-[11px] leading-[1.4] font-[650] tracking-[0.12em] text-rail-caption uppercase max-[820px]:hidden">
+        <span className="ml-[5px] text-overline leading-[1.4] font-semibold tracking-[0.12em] text-rail-caption uppercase max-[820px]:hidden">
           Traslados · Copiapó
         </span>
       </div>
@@ -106,7 +106,7 @@ export default function SideNav() {
               onClick={() => navigate(label)}
             >
               <Icon size={18} aria-hidden="true" className="max-[430px]:hidden" />
-              <span className="flex-1 text-[13px] leading-[1.4] font-medium max-[430px]:text-center max-[430px]:text-[12px]">
+              <span className="flex-1 text-meta leading-[1.4] font-medium max-[430px]:text-center max-[430px]:text-caption">
                 {label}
               </span>
             </button>
@@ -117,16 +117,16 @@ export default function SideNav() {
       <div className="flex-none px-3 py-4 max-[820px]:ml-auto max-[820px]:p-0">
         <div className="flex items-center gap-2 border-t border-t-rail-divider pt-3 max-[820px]:border-t-0 max-[820px]:pt-0">
           <div
-            className="grid size-[34px] flex-[0_0_34px] place-items-center rounded-sm bg-rail-avatar text-[12px] font-bold text-rail-avatar-foreground"
+            className="grid size-[34px] flex-[0_0_34px] place-items-center rounded-sm bg-rail-avatar text-caption font-bold text-rail-avatar-foreground"
             aria-hidden="true"
           >
             {inicial}
           </div>
           <div className="flex min-w-0 flex-1 flex-col max-[820px]:hidden">
-            <strong title={quien} className="overflow-hidden text-[12px] leading-[1.4] text-ellipsis whitespace-nowrap text-rail-name">
+            <strong title={quien} className="overflow-hidden text-caption leading-[1.4] text-ellipsis whitespace-nowrap text-rail-name">
               {quien}
             </strong>
-            <small className="mt-[2px] text-[12px] leading-[1.4] text-rail-sub">
+            <small className="mt-[2px] text-caption leading-[1.4] text-rail-sub">
               {demo ? "Datos ficticios" : "Sesión activa"}
             </small>
           </div>

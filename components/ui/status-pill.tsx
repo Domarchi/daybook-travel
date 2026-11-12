@@ -10,7 +10,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const pillVariants = cva(
-  "inline-flex w-fit min-h-[25px] items-center gap-[5px] whitespace-nowrap rounded-[999px] border px-2 py-1 text-[10px] font-[750]",
+  "inline-flex w-fit min-h-[25px] items-center gap-[5px] whitespace-nowrap rounded-pill border px-2 py-1 text-overline font-bold",
   {
     variants: {
       tono: {

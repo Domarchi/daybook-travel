@@ -80,7 +80,7 @@ export function Th({ className, ...props }: React.ComponentProps<"th">) {
     <th
       className={cn(
         "h-11 border-b border-line bg-table-head px-[13px] py-[9px]",
-        "text-left align-middle text-[10px] font-extrabold tracking-[0.05em]",
+        "text-left align-middle text-overline font-extrabold tracking-[0.05em]",
         "text-muted uppercase",
         "transition-[background-color] duration-[120ms] ease-[ease]",
         className,
@@ -95,7 +95,7 @@ export function Td({ className, ...props }: React.ComponentProps<"td">) {
     <td
       className={cn(
         "border-b border-line px-[13px] py-[14px]",
-        "text-left align-middle text-[13px] text-foreground-soft",
+        "text-left align-middle text-meta text-foreground-soft",
         "transition-[background-color] duration-[120ms] ease-[ease]",
         // Tarjeta: la celda pasa a ser una fila con su titulo a la izquierda.
         "max-[760px]:flex max-[760px]:min-h-12 max-[760px]:w-full max-[760px]:min-w-0",

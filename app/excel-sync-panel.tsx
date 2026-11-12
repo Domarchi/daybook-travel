@@ -52,10 +52,10 @@ const ZONA = "grid gap-[18px] p-6 max-[760px]:gap-[14px] max-[760px]:px-4 max-[7
 const PANEL = "flex min-h-0 flex-1 flex-col overflow-y-auto bg-surface";
 
 // Los titulos de las tres pantallas del panel.
-const TITULO = "text-[18px] tracking-[-0.025em] text-foreground";
+const TITULO = "text-heading tracking-[-0.025em] text-foreground";
 
 // Las tres cajitas de aviso: seguridad, mensaje suelto y nota de demostracion.
-const AVISO = "rounded-sm border border-line bg-surface-soft text-[12px] text-foreground-soft";
+const AVISO = "rounded-sm border border-line bg-surface-soft text-caption text-foreground-soft";
 
 // Las celdas de la tabla de revision. En tarjeta esta tabla NO se parte en dos
 // columnas como la de Viajes: cada dato va en su propia linea, con el titulo
@@ -462,7 +462,7 @@ export default function ExcelSyncPanel({
         aria-live="polite"
       >
         <span
-          className="mb-[6px] inline-flex size-14 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--success)_38%,var(--border))] bg-[color-mix(in_srgb,var(--success)_10%,var(--surface))] text-success"
+          className="mb-[6px] inline-flex size-14 items-center justify-center rounded-md border border-[color-mix(in_srgb,var(--success)_38%,var(--border))] bg-[color-mix(in_srgb,var(--success)_10%,var(--surface))] text-success"
           aria-hidden="true"
         >
           <CheckCircle2 size={28} />
@@ -529,7 +529,7 @@ export default function ExcelSyncPanel({
               <h3 id="excel-download-title" className={TITULO}>
                 Descarga un libro preparado
               </h3>
-              <p className="mt-[5px] max-w-[530px] text-[12px] text-muted">
+              <p className="mt-[5px] max-w-[530px] text-caption text-muted">
                 Usa la plantilla para una carga nueva o el libro actual para
                 editar registros sin perder sus identificadores.
               </p>
@@ -568,7 +568,7 @@ export default function ExcelSyncPanel({
             </div>
           </section>
 
-          <label className="relative flex min-h-[184px] cursor-pointer flex-col items-center justify-center gap-[6px] overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-7 text-center text-[13px] font-[650] text-foreground transition-[border-color,background-color,scale] duration-[140ms] ease-[var(--ease-out)] active:scale-[0.99] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-[3px] has-[input:focus-visible]:outline-[var(--focus)] max-[760px]:min-h-[156px] max-[760px]:px-4 max-[760px]:py-[22px]">
+          <label className="relative flex min-h-[184px] cursor-pointer flex-col items-center justify-center gap-[6px] overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-7 text-center text-meta font-semibold text-foreground transition-[border-color,background-color,scale] duration-[140ms] ease-[var(--ease-out)] active:scale-[0.99] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-[3px] has-[input:focus-visible]:outline-[var(--focus)] max-[760px]:min-h-[156px] max-[760px]:px-4 max-[760px]:py-[22px]">
             <input
               className="absolute inset-0 size-full cursor-pointer opacity-0"
               ref={inputRef}
@@ -577,7 +577,7 @@ export default function ExcelSyncPanel({
               onChange={(event) => void analyzeFile(event.target.files?.[0])}
             />
             <span
-              className="mb-1 inline-flex size-12 items-center justify-center rounded-[13px] border border-line bg-surface-soft text-foreground-soft"
+              className="mb-1 inline-flex size-12 items-center justify-center rounded-md border border-line bg-surface-soft text-foreground-soft"
               aria-hidden="true"
             >
               <Upload size={22} />
@@ -618,7 +618,7 @@ export default function ExcelSyncPanel({
         <div className={ZONA}>
           <header className="grid min-h-16 grid-cols-[40px_minmax(0,1fr)_auto] items-center gap-[11px] rounded-md border border-line bg-surface-soft px-3 py-[11px] max-[430px]:grid-cols-[40px_minmax(0,1fr)]">
             <span
-              className="inline-flex size-10 items-center justify-center rounded-[10px] border border-line bg-surface-soft text-foreground-soft"
+              className="inline-flex size-10 items-center justify-center rounded-md border border-line bg-surface-soft text-foreground-soft"
               aria-hidden="true"
             >
               <FileSpreadsheet size={20} />
@@ -691,7 +691,7 @@ export default function ExcelSyncPanel({
                 {issues.slice(0, 12).map((issue, index) => (
                   <li
                     key={`${issue.entity}-${issue.row ?? 0}-${index}`}
-                    className="grid grid-cols-[130px_minmax(0,1fr)] gap-[14px] border-b border-line px-[14px] py-[10px] text-[12px] text-foreground-soft last:border-b-0 max-[760px]:grid-cols-1 max-[760px]:gap-[3px]"
+                    className="grid grid-cols-[130px_minmax(0,1fr)] gap-[14px] border-b border-line px-[14px] py-[10px] text-caption text-foreground-soft last:border-b-0 max-[760px]:grid-cols-1 max-[760px]:gap-[3px]"
                   >
                     <strong>
                       {issue.entity}
@@ -747,7 +747,7 @@ export default function ExcelSyncPanel({
                       >
                         <span
                           className={cn(
-                            "inline-flex min-h-[27px] w-fit items-center rounded-[999px] border border-line bg-surface-soft px-2 py-1 text-[10px] font-extrabold text-muted",
+                            "inline-flex min-h-[27px] w-fit items-center rounded-pill border border-line bg-surface-soft px-2 py-1 text-overline font-extrabold text-muted",
                             line.action !== "unchanged" &&
                               TONOS[line.action] + " text-inherit",
                           )}

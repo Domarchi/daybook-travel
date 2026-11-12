@@ -20,7 +20,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@daybook/design": "github:Domarchi/daybook-design#v0.2.0",
+    "@daybook/design": "github:Domarchi/daybook-design#v0.3.0",
     "@supabase/supabase-js": "^2.115.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

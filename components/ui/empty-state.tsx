@@ -20,7 +20,7 @@ export default function EmptyState({
 }) {
   return (
     <StatePanel>
-      <span className="mb-[3px] inline-flex size-11 items-center justify-center rounded-[12px] bg-surface-soft text-muted">
+      <span className="mb-[3px] inline-flex size-11 items-center justify-center rounded-md bg-surface-soft text-muted">
         {icon}
       </span>
       <StateTitle>{title}</StateTitle>

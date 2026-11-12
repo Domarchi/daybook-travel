@@ -37,7 +37,7 @@ export function StateTitle({
 }: React.ComponentProps<"h3"> & { as?: "h1" | "h2" | "h3" }) {
   return (
     <Etiqueta
-      className={cn("text-[19px] tracking-[-0.02em] text-foreground", className)}
+      className={cn("text-heading tracking-[-0.02em] text-foreground", className)}
       {...props}
     />
   );
@@ -47,7 +47,7 @@ export function StateTitle({
 export function StateText({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
-      className={cn("mb-[6px] max-w-[430px] text-[13px] text-muted", className)}
+      className={cn("mb-[6px] max-w-[430px] text-meta text-muted", className)}
       {...props}
     />
   );

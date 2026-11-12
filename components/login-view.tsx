@@ -12,7 +12,7 @@ import { SectionKicker } from "@/components/ui/section-kicker";
 
 // El pie es el mismo de la aplicación, así que las clases son las mismas.
 const PIE =
-  "mt-6 flex items-center justify-between gap-5 border-t border-line pt-[18px] max-[760px]:pt-3 text-[10px] font-[750] tracking-[0.06em] text-muted uppercase max-[430px]:mt-4 max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
+  "mt-6 flex items-center justify-between gap-5 border-t border-line pt-[18px] max-[760px]:pt-3 text-overline font-bold tracking-[0.06em] text-muted uppercase max-[430px]:mt-4 max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
 // Comparte el fondo estático de la entrada para evitar un cambio visual de fondo.
@@ -58,7 +58,7 @@ export function LoginView({
     <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px] max-[760px]:pb-4">
       <header className="relative z-[1] flex min-h-[76px] max-[760px]:min-h-16 items-center justify-between gap-5 border-b border-line py-3">
         <BrandIdentity />
-        <div className="flex items-center gap-[14px] text-[10px] font-[750] tracking-[0.09em] text-muted">
+        <div className="flex items-center gap-[14px] text-overline font-bold tracking-[0.09em] text-muted">
           <ThemeToggle theme={theme} onToggle={toggleTheme} compact />
         </div>
       </header>
@@ -68,13 +68,13 @@ export function LoginView({
           className="rounded-lg border border-line bg-surface p-[clamp(24px,3.5vw,34px)] text-center shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-4"
         >
           <BrandMark className="mb-4 inline-block w-14" />
-          <SectionKicker className="text-[12px] tracking-[0.08em] text-[color:var(--focus)]">
+          <SectionKicker className="text-caption tracking-[0.08em] text-[color:var(--focus)]">
             Acceso seguro
           </SectionKicker>
-          <h1 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
+          <h1 className="text-display leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
             Bienvenido a Daybook Travel
           </h1>
-          <p className="mt-2 mb-[22px] text-[13px] text-muted max-[760px]:mb-4">
+          <p className="mt-2 mb-[22px] text-meta text-muted max-[760px]:mb-4">
             Usa el mismo correo y contraseña de Daybook Asistencia.
           </p>
           <form onSubmit={login} aria-busy={busy} className="grid gap-[15px] text-left max-[760px]:gap-3">
@@ -116,13 +116,13 @@ export function LoginView({
               {!busy && <ArrowUpRight size={18} />}
             </Button>
           </form>
-          <a href="/recuperar-clave" data-recovery-action className="flex min-h-11 items-center justify-center text-[13px] text-foreground-soft underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
+          <a href="/recuperar-clave" data-recovery-action className="flex min-h-11 items-center justify-center text-meta text-foreground-soft underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]">
             ¿Olvidaste tu contraseña?
           </a>
           {notice && (
             <p
               role="alert"
-              className="mt-3 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-[13px] text-danger"
+              className="mt-3 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger"
             >
               {notice}
             </p>

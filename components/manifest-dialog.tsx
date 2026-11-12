@@ -101,9 +101,9 @@ export default function ManifestDialog() {
       <DialogBody className="flex flex-col">
         <div className="mb-4 flex shrink-0 items-center gap-3">
           <BrandLogo />
-          <span className="text-[12px] font-semibold text-muted">Solicitud de pasajes</span>
+          <span className="text-caption font-semibold text-muted">Solicitud de pasajes</span>
         </div>
-        <div className="mb-3 flex shrink-0 items-center justify-between gap-3 text-[13px] text-foreground-soft">
+        <div className="mb-3 flex shrink-0 items-center justify-between gap-3 text-meta text-foreground-soft">
           <span>
             <strong className="text-foreground">{pasajes}</strong>{" "}
             {pasajes === 1 ? "pasaje" : "pasajes"} en{" "}
@@ -137,10 +137,10 @@ export default function ManifestDialog() {
             aria-labelledby="acreditacion-pendiente"
             className="mb-3 max-h-[34vh] shrink-0 overflow-y-auto rounded-md border border-[color-mix(in_srgb,var(--warning)_45%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_8%,var(--surface))] px-3 py-[11px]"
           >
-            <h3 id="acreditacion-pendiente" className="text-[13px] text-foreground">
+            <h3 id="acreditacion-pendiente" className="text-meta text-foreground">
               Acreditación pendiente
             </h3>
-            <p className="mt-1 mb-2 text-[12px] text-muted">
+            <p className="mt-1 mb-2 text-caption text-muted">
               Estas personas no entran al manifiesto mientras les falte un
               documento al día para la fecha del viaje. Marca «Incluir igual»
               solo si ya lo confirmaste.
@@ -149,7 +149,7 @@ export default function ManifestDialog() {
               {manifestPendientesDeAcreditacion.map(({ trip, motivos, incluido }) => (
                 <li
                   key={trip.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-[13px] max-[430px]:grid-cols-1"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 text-meta max-[430px]:grid-cols-1"
                 >
                   <span className="grid min-w-0 gap-[2px]">
                     <strong className="text-foreground">
@@ -160,7 +160,7 @@ export default function ManifestDialog() {
                     </strong>
                     <small className="text-muted">{resumenDeMotivos(motivos)}</small>
                   </span>
-                  <Label className="grid-cols-[18px_auto] items-center gap-2 text-[12px]">
+                  <Label className="grid-cols-[18px_auto] items-center gap-2 text-caption">
                     <Checkbox
                       checked={incluido}
                       onChange={() => alternarAcreditacionAprobada(trip.id)}
@@ -174,23 +174,23 @@ export default function ManifestDialog() {
         )}
         {fallo && (
           <p
-            className="mb-3 shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[10px] text-[13px] text-danger"
+            className="mb-3 shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[10px] text-meta text-danger"
             role="alert"
           >
             No se pudo copiar solo. El texto quedó seleccionado: cópialo con ⌘C
             (o Ctrl+C).
           </p>
         )}
-        {pdfError && <p role="alert" className="mb-3 shrink-0 text-[13px] text-danger">{pdfError}</p>}
+        {pdfError && <p role="alert" className="mb-3 shrink-0 text-meta text-danger">{pdfError}</p>}
         <textarea
           ref={textoRef}
-          className="min-h-40 w-full min-w-0 flex-auto resize-none overflow-auto rounded-sm border border-line-strong bg-surface transition-[border-color,box-shadow,background-color] duration-[140ms] ease-[var(--ease-out)] px-4 py-[14px] font-mono text-[13px] leading-[1.55] tab-2 whitespace-pre text-foreground focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
+          className="min-h-40 w-full min-w-0 flex-auto resize-none overflow-auto rounded-sm border border-line-strong bg-surface transition-[border-color,box-shadow,background-color] duration-[140ms] ease-[var(--ease-out)] px-4 py-[14px] font-mono text-meta leading-[1.55] tab-2 whitespace-pre text-foreground focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
           aria-label="Manifiesto para la agencia"
           readOnly
           value={texto}
           rows={Math.min(24, texto.split("\n").length + 1)}
         />
-        <p className="mt-3 shrink-0 text-[12px] text-muted">
+        <p className="mt-3 shrink-0 text-caption text-muted">
           Pega este texto en el correo a la agencia. Cuando lo envíes, marca los
           viajes como solicitados para que la agenda lo refleje.
         </p>
