@@ -64,9 +64,35 @@ export function useDatos(e: Entrada) {
         setDocuments([]);
         return;
       }
-      const [peopleRows, tripRows] = await Promise.all([
+      // Todo lo que sigue es independiente entre sí, así que se pide junto.
+      // Antes iba en cadena (personas y viajes, ajustes, tipos de documento,
+      // documentos, rol): cada consulta tarda unos 200 ms, y en producción eran
+      // más de un segundo solo esperando. Lo opcional sigue siendo opcional:
+      // si los ajustes, la acreditación o el rol fallan, la aplicación carga igual.
+      const acreditacion = (async () => {
+        // Si las tablas todavía no existen (la migración 010 sin aplicar)
+        // nada se exige y la aplicación sigue como antes.
+        try {
+          const [tipos, filas] = await Promise.all([
+            db().from("document_types").select("id,name,active").order("name"),
+            allRows("person_documents"),
+          ]);
+          if (tipos.error) throw tipos.error;
+          return { tipos: (tipos.data ?? []) as TipoDeDocumento[], filas };
+        } catch {
+          return null;
+        }
+      })();
+      const [peopleRows, tripRows, ajustes, documentos, admin] = await Promise.all([
         allRows("people"),
         allRows("trips"),
+        // Si la tabla todavia no existe, se sigue con la ventana por omision en
+        // vez de dejar la aplicacion sin cargar.
+        db().from("settings").select("purchase_window_days").maybeSingle(),
+        acreditacion,
+        // El rol decide si aparece "Accesos". Si la función todavía no existe en
+        // la base (la migración 009 sin aplicar) simplemente no se es administrador.
+        db().rpc("is_admin"),
       ]);
       setPeople(
         (peopleRows as unknown as Person[]).sort((a, b) =>
@@ -78,35 +104,13 @@ export function useDatos(e: Entrada) {
           a.date.localeCompare(b.date),
         ),
       );
-      // Si la tabla todavia no existe, se sigue con la ventana por omision en
-      // vez de dejar la aplicacion sin cargar.
-      const ajustes = await db()
-        .from("settings")
-        .select("purchase_window_days")
-        .maybeSingle();
       if (!ajustes.error && ajustes.data) {
         setPurchaseWindow(
           Number(ajustes.data.purchase_window_days) || VENTANA_POR_OMISION,
         );
       }
-      // Acreditación. Si las tablas todavía no existen (la migración 010 sin
-      // aplicar) nada se exige y la aplicación sigue como antes.
-      try {
-        const tipos = await db()
-          .from("document_types")
-          .select("id,name,active")
-          .order("name");
-        if (tipos.error) throw tipos.error;
-        const filas = await allRows("person_documents");
-        setDocumentTypes((tipos.data ?? []) as TipoDeDocumento[]);
-        setDocuments(filas as unknown as DocumentoDePersona[]);
-      } catch {
-        setDocumentTypes([]);
-        setDocuments([]);
-      }
-      // El rol decide si aparece "Accesos". Si la función todavía no existe en
-      // la base (la migración 009 sin aplicar) simplemente no se es administrador.
-      const admin = await db().rpc("is_admin");
+      setDocumentTypes(documentos?.tipos ?? []);
+      setDocuments((documentos?.filas ?? []) as unknown as DocumentoDePersona[]);
       setIsAdmin(!admin.error && admin.data === true);
       setAccessStatus("allowed");
     } catch {
