@@ -83,4 +83,5 @@ export type ModalName =
   | "history"
   | "excel"
   | "manifest"
+  | "close"
   | null;

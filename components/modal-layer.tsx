@@ -1,5 +1,6 @@
 "use client";
 
+import CloseDialog from "@/components/close-dialog";
 import GenerateDialog from "@/components/generate-dialog";
 import HistoryDialog from "@/components/history-dialog";
 import ManifestDialog from "@/components/manifest-dialog";
@@ -63,7 +64,9 @@ export default function ModalLayer() {
                       ? "TRAZABILIDAD"
                       : modal === "manifest"
                         ? "SOLICITUD A LA AGENCIA"
-                        : "REGISTRO DE VIAJE"}
+                        : modal === "close"
+                          ? "VIAJES SIN CERRAR"
+                          : "REGISTRO DE VIAJE"}
             </SectionKicker>
             <h2
               id="dialog-title"
@@ -85,7 +88,9 @@ export default function ModalLayer() {
                       ? "Crear calendario de turnos"
                       : modal === "manifest"
                         ? "Manifiesto para solicitar"
-                        : "Historial del viaje"}
+                        : modal === "close"
+                          ? "Cerrar viajes pasados"
+                          : "Historial del viaje"}
             </h2>
             <p
               id="dialog-description"
@@ -103,7 +108,9 @@ export default function ModalLayer() {
                       ? "Crea las subidas y bajadas de cada turno sin duplicar viajes."
                       : modal === "manifest"
                         ? "Los viajes por solicitar, agrupados por día y ruta, listos para pegar en un correo."
-                        : editTrip
+                        : modal === "close"
+                          ? "Anula los que no se volaron o registra la reserva con que se volaron."
+                          : editTrip
                         ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
                         : "Cambios registrados en este viaje."}
             </p>
@@ -155,6 +162,8 @@ export default function ModalLayer() {
         {modal === "history" && <HistoryDialog />}
 
         {modal === "manifest" && <ManifestDialog />}
+
+        {modal === "close" && <CloseDialog />}
       </section>
     </div>
   );
