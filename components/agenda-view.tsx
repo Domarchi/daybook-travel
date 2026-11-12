@@ -122,7 +122,9 @@ export default function AgendaView({
             {" "}
             <button
               type="button"
-              className="cursor-pointer font-[650] text-foreground-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
+              // El área que recibe el toque crece hacia arriba y abajo sin mover el
+              // texto: el enlace mide 18 px de alto y un dedo necesita unos 44.
+              className="relative cursor-pointer font-[650] text-foreground-soft underline underline-offset-2 after:absolute after:-inset-x-1 after:-inset-y-[13px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
               onClick={onUnclosed}
             >
               {purchaseSummary.sinCerrar}{" "}

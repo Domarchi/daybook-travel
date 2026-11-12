@@ -326,7 +326,12 @@ export default function TripsView() {
             <TBody>
               {visibleTrips.map((trip) => (
                 <Tr key={trip.id}>
-                  <Td data-label="Seleccionar" className={CELDA_SELECCION}>
+                  {/* En tarjeta, un viaje que no se puede marcar no lleva la fila
+                      "Seleccionar —": eran 44 px de nada al comienzo de cada tarjeta. */}
+                  <Td
+                    data-label="Seleccionar"
+                    className={esSeleccionable(trip) ? CELDA_SELECCION : CELDA_SELECCION + " max-[760px]:hidden"}
+                  >
                     {esSeleccionable(trip) ? (
                       <label
                         className={
