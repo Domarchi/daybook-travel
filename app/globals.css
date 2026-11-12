@@ -122,22 +122,25 @@
 
 :root {
   color-scheme: dark;
-  /* Superficies de grafito, marfil y dorado. Los colores operativos de turnos
-     y estados conservan sus significados. */
-  --bg: #11120f;
-  --surface: #1b1c18;
-  --surface-raised: #24251f;
-  --surface-soft: #2c2d27;
-  --surface-hover: #363731;
-  --text: #f3efe4;
-  --fg-soft: #d5d0c3;
-  --muted: #b3aea2;
-  --border: #46463d;
-  --border-strong: #656359;
-  --action: #f3efe4;
-  --action-hover: #ffffff;
-  --action-text: #11120f;
-  --focus: #f0c96a;
+  /* Los colores compartidos vienen de @daybook/design (variables --db-*, ver
+     su README): cambian ahí y llegan igual a Parte Diario y Ticket. El paquete
+     ya cambia cada --db-* según data-theme, así que estos nombres valen para
+     los dos temas; el bloque claro de abajo solo repite lo que en claro es
+     distinto o propio de Travel. Tema oscuro: negro tipo Vercel. */
+  --bg: var(--db-bg);
+  --surface: var(--db-surface);
+  --surface-raised: var(--db-surface-raised);
+  --surface-soft: var(--db-surface-subtle);
+  --surface-hover: var(--db-surface-hover);
+  --text: var(--db-text);
+  --fg-soft: var(--db-text-soft);
+  --muted: var(--db-text-muted);
+  --border: var(--db-border);
+  --border-strong: var(--db-border-strong);
+  --action: var(--db-action);
+  --action-hover: var(--db-action-hover);
+  --action-text: var(--db-action-text);
+  --focus: var(--db-focus);
   --four: #f47a45;
   --four-soft: rgba(244, 122, 69, 0.14);
   --four-border: rgba(244, 122, 69, 0.42);
@@ -148,8 +151,8 @@
   --up-soft: rgba(91, 201, 154, 0.13);
   --down: #b39afb;
   --down-soft: rgba(179, 154, 251, 0.13);
-  --success: #5bc99a;
-  --warning: #e6c363;
+  --success: var(--db-success);
+  --warning: var(--db-warning);
   --danger: #ee7b83;
   --info: #8cb7df;
   --shadow: 0 16px 48px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
@@ -164,45 +167,35 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* La barra lateral, el mismo riel que Daybook Ticket y Parte Diario. Es
-     oscura en los dos temas, igual que allá, así que estos valores NO se
-     redefinen en el tema claro y no siguen a --text ni a --surface. */
-  --rail-bg: #11120f;
-  --rail-fg: #f3efe4;
-  --rail-line: #45443b;
+     oscura en los dos temas, igual que allá, y no sigue a --text ni a
+     --surface. En el tema oscuro es negra como el fondo, separada solo por
+     su borde; en el claro vuelve al grafito (ver el bloque de abajo). */
+  --rail-bg: var(--db-rail-bg);
+  --rail-fg: var(--db-rail-text);
+  --rail-line: var(--db-rail-border);
   --rail-divider: rgba(255, 255, 255, 0.06);
-  --rail-caption: #c2bdae;
-  --rail-link: #aeb5af;
-  --rail-link-hover: #f6f8f6;
-  --rail-hover: rgba(255, 255, 255, 0.06);
-  --rail-active: rgba(243, 239, 228, 0.14);
-  --rail-focus: #efc56e;
-  --rail-avatar: #34352d;
-  --rail-avatar-fg: #ded9cb;
-  --rail-name: #d8d7cf;
-  --rail-sub: #a9aaa0;
+  --rail-caption: var(--db-rail-text-muted);
+  --rail-link: var(--db-rail-text-muted);
+  --rail-link-hover: var(--db-rail-text);
+  --rail-hover: var(--db-rail-hover);
+  --rail-active: var(--db-rail-active);
+  --rail-focus: var(--db-rail-focus);
+  --rail-avatar: #1f1f1f;
+  --rail-avatar-fg: #c7c7c7;
+  --rail-name: #ededed;
+  --rail-sub: #a1a1a1;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  /* Fondo, superficies y bordes del tema claro de Daybook Ticket y Parte
-     Diario: lienzo gris frío y tarjetas blancas, en lugar del marfil de antes. */
-  --bg: #f7f8f9;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --surface-soft: #eef0f1;
-  --surface-hover: #e9ebec;
-  --text: #11120f;
-  --fg-soft: #34352d;
+  /* Fondo, superficies, texto, acción y foco del tema claro llegan solos desde
+     @daybook/design. Aquí queda lo que en claro Travel decide distinto. */
+  --surface-soft: var(--db-surface-muted);
   /* Oscurecido desde #687482, que daba 4.36 sobre el fondo de pagina y no
      alcanzaba el minimo AA de 4.5. Este da 5.0 sobre el fondo y 5.4 sobre las
      tarjetas blancas. El tema oscuro ya iba holgado y no se toca. */
   --muted: #5f6058;
-  --border: #d9dbdc;
   --border-strong: #bfc2c4;
-  --action: #11120f;
-  --action-hover: #292a25;
-  --action-text: #f3efe4;
-  --focus: #9a6b00;
   --four: #c95728;
   --four-soft: rgba(201, 87, 40, 0.1);
   --four-border: rgba(201, 87, 40, 0.32);
@@ -213,11 +206,18 @@
   --up-soft: rgba(24, 122, 85, 0.09);
   --down: #6f56b4;
   --down-soft: rgba(111, 86, 180, 0.09);
-  --success: #187a55;
-  --warning: #8a6608;
   --danger: #b83743;
   --info: #3e708f;
   --shadow: 0 16px 48px rgba(31, 43, 55, 0.08), 0 1px 3px rgba(31, 43, 55, 0.04);
+
+  /* El riel grafito del tema claro (fondo, texto, borde y activo vienen del
+     paquete); estos tonos de enlace y avatar son propios de Travel. */
+  --rail-link: #aeb5af;
+  --rail-link-hover: #f6f8f6;
+  --rail-avatar: #34352d;
+  --rail-avatar-fg: #ded9cb;
+  --rail-name: #d8d7cf;
+  --rail-sub: #a9aaa0;
 }
 
 * {
