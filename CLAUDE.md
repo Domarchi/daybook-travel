@@ -482,6 +482,7 @@ opinión.
 npm install
 npm run dev      # http://127.0.0.1:3000 (o el puerto que indique)
 npm test         # node --test sobre lib/*.test.ts
+npm run test:browser:flujos  # los flujos principales en Chrome, con la demostración
 npm run build
 ```
 
@@ -550,6 +551,12 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 
 ## Detalles a corregir cuando toque
 
+- **Pruebas de flujos en navegador** (`scripts/browser-flujos.mjs`, también en el CI). Con la
+  demostración: planificar turnos, el manifiesto con la acreditación pendiente e «Incluir igual»,
+  marcar como solicitado, el motivo mínimo al editar, el aviso de persona repetida y cerrar en
+  bloque (con el reloj de la página adelantado 40 días **después** de entrar, porque la demo arma
+  sus viajes desde la fecha de hoy). Buscan los botones por su texto, no por clases. Si cambias
+  el texto de un botón o de un aviso que la prueba usa, hay que cambiarlo ahí también.
 - **El CI corre una sola vez por cambio.** `.github/workflows/ci.yml` escucha `pull_request` y
   `push` solo a `main` (antes escuchaba `push` sin filtro y todo corría dos veces; el `verify` del
   push era el que fallaba de forma intermitente, casi siempre con "Chrome no expuso CDP", que es

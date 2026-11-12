@@ -11,6 +11,7 @@
     "test:browser:recovery": "node scripts/browser-recovery-tab-mutants.mjs",
     "test:browser:recovery:baseline": "node scripts/browser-recovery.mjs",
     "test:browser": "node scripts/browser-login.mjs",
+    "test:browser:flujos": "node scripts/browser-flujos.mjs",
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1"
