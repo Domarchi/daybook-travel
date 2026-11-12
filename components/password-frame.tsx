@@ -19,12 +19,12 @@ export default function PasswordFrame({ title, children }: { title: string; chil
   return (
     <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px]">
       <header className="relative z-[1] flex min-h-[92px] items-center justify-between gap-5 border-b border-line py-3">
-        <BrandIdentity className="login-header-identity" />
+        <BrandIdentity />
         <ThemeToggle theme={theme} onToggle={toggleTheme} compact />
       </header>
       <section className="relative z-[1] mx-auto my-8 grid w-[min(100%,430px)] content-center max-[760px]:my-4">
         <div className="rounded-lg border border-line bg-surface p-[clamp(28px,4vw,40px)] shadow-[var(--shadow)] max-[760px]:p-6">
-          <BrandMark className="login-card-mark" />
+          <BrandMark className="mb-4 inline-block w-14" />
           <h1 tabIndex={-1} className="text-[28px] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">{title}</h1>
           <p className="mt-2 mb-[22px] text-[13px] text-muted">La nueva contraseña también se usará en Daybook Asistencia. Recuperar tu cuenta no cambia tus permisos de acceso.</p>
           {children}

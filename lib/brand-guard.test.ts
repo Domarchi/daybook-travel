@@ -194,10 +194,16 @@ test("BrandMark referencia los dos isotipos de Daybook (tema oscuro y claro)", a
   assert.match(content, /daybook-mark-on-light\.svg/);
 });
 
-test("la identidad usa el isotipo en espacios compactos, el logo completo en los amplios", async () => {
-  const content = await readFile(path("components/ui/brand-identity.tsx"), "utf8");
-  assert.match(content, /BrandLogo/);
-  assert.match(content, /BrandMark/);
+// El isotipo escondido que tenía la identidad de la entrada nunca se veía (la
+// entrada lo anulaba en todos los anchos) y se quitó al pasar la marca a
+// Tailwind. El cambio de logo a isotipo lo hace la barra lateral.
+test("la barra lateral usa el isotipo en espacios compactos, el logo completo en los amplios", async () => {
+  const barra = await readFile(path("components/side-nav.tsx"), "utf8");
+  assert.match(barra, /<BrandLogo\b/);
+  assert.match(barra, /<BrandMark\b/);
+
+  const identidad = await readFile(path("components/ui/brand-identity.tsx"), "utf8");
+  assert.match(identidad, /<BrandLogo\b/);
 });
 
 test("el PNG de exportación es válido y conserva la proporción del SVG (328:96)", async () => {

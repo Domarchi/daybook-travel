@@ -57,7 +57,7 @@ export default function Workspace() {
   return (
     <div className="shell">
       <div
-        className="app-content"
+        className="app-content ml-[232px] max-[820px]:ml-0"
         inert={modal ? true : undefined}
         aria-hidden={modal ? true : undefined}
       >
