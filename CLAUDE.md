@@ -34,7 +34,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `components/document-types-panel.tsx` | El recuadro «Documentos exigidos» de Personas. Lo ven todos; solo un administrador agrega o desactiva tipos. |
 | `lib/accreditation.ts` | **La acreditación.** `motivosDeAcreditacion(persona, fecha, tipos, documentos)` dice qué documentos faltan o vencen antes de un viaje. Sin React ni Supabase. 9 pruebas, más `accreditation-postgres.test.ts` contra la migración 010. |
-| `lib/personas-repetidas.ts` | **Personas con el mismo nombre.** El diálogo de persona avisa mientras se escribe (no bloquea: dos personas pueden llamarse igual). Salió de una persona con dos fichas activas en producción. 5 pruebas. |
+| `lib/personas-repetidas.ts` | **Personas con el mismo nombre.** El diálogo de persona avisa mientras se escribe (no bloquea: dos personas pueden llamarse igual) y la lista marca «Nombre repetido» en las fichas que ya comparten nombre. Salió de una persona con dos fichas activas en producción. 6 pruebas. |
 | `app/excel-sync-panel.tsx` | La pantalla del importador Excel en 3 pasos (Preparar → Revisar → Aplicar), 818 líneas. Bien hecho, no romper. Sus cuentas están en `lib/excel-preview.ts` (leer hojas, comparar, armar la vista previa; 10 pruebas) y sus piezas chicas en `app/excel-sync-parts.tsx`. |
 | `app/year-view.tsx` | El calendario de la Agenda (vista Mes y Semana). El panel del día seleccionado está en `app/year-day-detail.tsx`. |
 | `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
@@ -43,7 +43,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/cierre.ts` | **Cerrar viajes sin cerrar.** Qué cambio le toca a cada viaje al anularlo o al registrarle una reserva común, y qué falta para poder hacerlo. 6 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, sin cerrar, vencido, urgente o próximo. 18 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
-| `lib/historial.ts` | **Qué cambió en cada entrada del historial.** Compara `before_data` y `after_data` y devuelve los campos que se reconocen (fecha, reserva, estado, turno, vigencia…) ya escritos para leer, y solo lo que la nota agregó en ese cambio. Lo usa el historial de viajes y el de personas (botón en la ficha). 6 pruebas. |
+| `lib/historial.ts` | **Qué cambió en cada entrada del historial.** Compara `before_data` y `after_data` y devuelve los campos que se reconocen (fecha, reserva, estado, turno, vigencia…) ya escritos para leer, y solo lo que la nota agregó en ese cambio. Lo usa el historial de viajes y el de personas (botón en la ficha), que incluye los cambios de vencimiento de sus documentos. 7 pruebas. |
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |

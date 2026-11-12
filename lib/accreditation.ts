@@ -17,6 +17,8 @@ export type TipoDeDocumento = {
 };
 
 export type DocumentoDePersona = {
+  /** Lo trae la base; los documentos de la demostración no lo tienen. */
+  id?: string;
   person_id: string;
   type_id: string;
   /** null = el documento todavía no está registrado. */

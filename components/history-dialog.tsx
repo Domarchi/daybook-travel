@@ -25,6 +25,7 @@ export default function HistoryDialog() {
   const {
     closeModal,
     demo,
+    documentTypes,
     editPerson,
     editTrip,
     history,
@@ -34,7 +35,7 @@ export default function HistoryDialog() {
   } = useApp();
 
   const entidad: Entidad = editTrip ? "trips" : "people";
-  const sujeto = editTrip ? "Viaje" : "Persona";
+  const deLaFicha = editTrip ? "del viaje" : "de la persona";
   const creado = editTrip ? "Viaje creado" : "Persona creada";
   const actualizado = editTrip ? "Viaje actualizado" : "Persona actualizada";
 
@@ -77,8 +78,17 @@ export default function HistoryDialog() {
           <div className="grid">
             {history.map((item) => {
               const esAlta = item.action === "INSERT";
-              const cambios = esAlta ? [] : cambiosDe(entidad, item.before_data, item.after_data);
-              const nota = notaDelCambio(esAlta ? null : item.before_data, item.after_data);
+              // En el historial de una persona también vienen sus documentos.
+              const esDocumento = item.entity === "person_documents";
+              const tipo = esDocumento
+                ? documentTypes.find((t) => t.id === item.after_data?.type_id)?.name ?? "Documento"
+                : "";
+              const cambios = esAlta
+                ? esDocumento
+                  ? cambiosDe("person_documents", { expires_on: null }, item.after_data)
+                  : []
+                : cambiosDe(esDocumento ? "person_documents" : entidad, item.before_data, item.after_data);
+              const nota = esDocumento ? "" : notaDelCambio(esAlta ? null : item.before_data, item.after_data);
               const estadoInicial = esAlta && editTrip ? String(item.after_data?.status ?? "") : "";
               return (
                 // La línea vertical que une los puntos es el ::before, y por eso
@@ -93,7 +103,11 @@ export default function HistoryDialog() {
                   />
                   <div className="grid gap-1">
                     <strong className="text-foreground">
-                      {esAlta ? creado : actualizado}
+                      {esDocumento
+                        ? `${tipo}: ${esAlta ? "registrado" : "actualizado"}`
+                        : esAlta
+                          ? creado
+                          : actualizado}
                     </strong>
                     <small className="text-muted">
                       {formatDateTime(item.created_at)} · {autorDe(item)}
@@ -119,7 +133,7 @@ export default function HistoryDialog() {
                     )}
                     {!esAlta && !cambios.length && !nota && (
                       <small className="text-muted">
-                        Sin cambios en los datos que muestra la ficha del {sujeto.toLowerCase()}.
+                        Sin cambios en los datos que muestra la ficha {deLaFicha}.
                       </small>
                     )}
                   </div>

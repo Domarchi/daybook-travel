@@ -3,7 +3,9 @@
 import DocumentTypesPanel from "@/components/document-types-panel";
 import EmptyState from "@/components/ui/empty-state";
 import { ArrowUpRight, CalendarDays, ChevronRight, FileSpreadsheet, Search, UserPlus, Users } from "lucide-react";
+import { useMemo } from "react";
 import { formatDate } from "../lib/format";
+import { idsConNombreRepetido } from "../lib/personas-repetidas";
 import { Button } from "@/components/ui/button";
 import { FilterPills } from "@/components/ui/filter-pills";
 import { ShiftBadge, tonoDeJornada } from "@/components/ui/shift-badge";
@@ -24,6 +26,10 @@ export default function PeopleView() {
     showPersonTrips,
     visiblePeople,
   } = useApp();
+
+  // Fichas que comparten nombre con otra. Se marcan en la lista para que se vean
+  // sin tener que abrirlas (ver lib/personas-repetidas.ts).
+  const repetidas = useMemo(() => idsConNombreRepetido(people), [people]);
 
   return (
     <section aria-labelledby="people-results">
@@ -115,7 +121,15 @@ export default function PeopleView() {
                     {person.active ? "Activa" : "Inactiva"}
                   </span>
                 </div>
-                <small>{person.baggage}</small>
+                {/* La marca va abajo y no junto al nombre, para no recortarlo. */}
+                <div className="flex flex-wrap items-center gap-[7px]">
+                  <small>{person.baggage}</small>
+                  {repetidas.has(person.id) && (
+                    <span className="shrink-0 rounded-[999px] border border-urgente-line bg-urgente-soft px-[6px] py-px text-[9px] font-extrabold tracking-[0.04em] text-warning uppercase">
+                      Nombre repetido
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="grid min-w-0 gap-[5px] max-[760px]:col-start-2">
                 <small>Ruta habitual</small>
@@ -132,7 +146,7 @@ export default function PeopleView() {
                 </ShiftBadge>
                 <small>Desde {formatDate(person.start_date)}</small>
               </div>
-              <div className="flex items-center justify-end gap-[6px] max-[760px]:col-start-2 max-[760px]:grid max-[760px]:w-full max-[760px]:grid-cols-2 max-[430px]:grid-cols-1">
+              <div className="flex items-center justify-end gap-[6px] max-[1120px]:col-[2/-1] max-[1120px]:justify-start max-[760px]:col-start-2 max-[760px]:grid max-[760px]:w-full max-[760px]:grid-cols-2 max-[430px]:grid-cols-1">
                 {person.active && (
                   <Button
                     type="button"
