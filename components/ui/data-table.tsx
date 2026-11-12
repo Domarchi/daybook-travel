@@ -79,9 +79,11 @@ export function Th({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-11 border-b border-line bg-table-head px-[13px] py-[9px]",
-        "text-left align-middle text-overline font-extrabold tracking-[0.05em]",
-        "text-muted uppercase",
+        // Encabezado común de @daybook/design (Fase 3): 12 px semibold, mayúsculas,
+        // espaciado .08em y sin banda de fondo.
+        "h-11 border-b border-line px-[13px] py-[9px]",
+        "text-left align-middle text-[length:var(--db-table-head-font-size)] [font-weight:var(--db-table-head-weight)]",
+        "tracking-[var(--db-table-head-tracking)] text-muted [text-transform:var(--db-table-head-transform)]",
         "transition-[background-color] duration-[120ms] ease-[ease]",
         className,
       )}

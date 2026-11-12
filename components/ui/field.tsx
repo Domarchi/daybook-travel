@@ -12,8 +12,11 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const base = [
-  "w-full min-w-0 min-h-11 rounded-sm border border-line-strong",
-  "bg-surface px-3 py-[10px] font-[inherit] text-foreground",
+  // Campo común de @daybook/design (Fase 3): 44 px, borde 3:1 y 14 px; en el
+  // teléfono 16 px, para que iOS no haga zoom al tocarlo (como Parte Diario y Ticket).
+  "w-full min-w-0 min-h-[var(--db-field-height)] rounded-[var(--db-field-radius)] border border-[var(--db-border-strong)]",
+  "bg-surface px-[var(--db-field-padding-x)] py-[10px] font-[inherit] text-[length:var(--db-field-font-size)] text-foreground",
+  "max-[760px]:text-[length:var(--db-text-emphasis)]",
   "transition-[border-color,box-shadow,background-color]",
   "duration-[140ms] ease-[var(--ease-out)]",
   "placeholder:text-muted placeholder:opacity-80",
