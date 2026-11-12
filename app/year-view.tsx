@@ -488,7 +488,7 @@ export default function YearView({
               <ChevronLeft size={18} />
             </Button>
             <Input
-              className="w-[190px] border-0 bg-transparent px-[9px] py-[6px] text-[13px] font-bold max-[760px]:w-[100px] max-[760px]:flex-1"
+              className="w-[190px] border-0 bg-transparent px-[9px] py-[6px] text-[13px] font-bold max-[760px]:w-[100px] max-[760px]:flex-1 max-[760px]:px-1"
               aria-label="Ir a mes y año"
               type="month"
               min="0001-01"
