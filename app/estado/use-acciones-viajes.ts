@@ -7,7 +7,7 @@ import { FormEvent } from "react";
 import { localDate } from "../../lib/format";
 import { ventanaValida } from "../../lib/purchase";
 import { db } from "../../lib/supabase";
-import { Trip } from "../../lib/types";
+import { HistoryItem, Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
@@ -214,7 +214,8 @@ export function useAccionesViajes(e: Entrada) {
         .eq("record_id", trip.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setHistory(data ?? []);
+      const items = (data ?? []) as HistoryItem[];
+      setHistory(await conCorreoDelAutor(items));
     } catch {
       setFormError("No se pudo cargar el historial. Inténtalo nuevamente.");
     } finally {
@@ -228,6 +229,28 @@ export function useAccionesViajes(e: Entrada) {
     savePurchaseWindow,
     showHistory,
   };
+}
+
+// El historial guarda al autor como uuid; la función de la migración 013 lo
+// traduce a correo. Si la migración todavía no está aplicada, o la llamada
+// falla, el historial se muestra igual, con el número corto de antes: no
+// saber el correo no es razón para no mostrar los cambios.
+async function conCorreoDelAutor(items: HistoryItem[]): Promise<HistoryItem[]> {
+  const ids = [...new Set(items.map((item) => item.actor).filter((id): id is string => Boolean(id)))];
+  if (!ids.length) return items;
+  try {
+    const { data, error } = await db().rpc("history_actors", { p_ids: ids });
+    if (error) return items;
+    const correos = new Map(
+      ((data ?? []) as { id: string; email: string }[]).map((fila) => [fila.id, fila.email]),
+    );
+    return items.map((item) => ({
+      ...item,
+      actor_email: item.actor ? correos.get(item.actor) ?? null : null,
+    }));
+  } catch {
+    return items;
+  }
 }
 
 export type AccionesViajes = ReturnType<typeof useAccionesViajes>;
