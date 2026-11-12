@@ -435,7 +435,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     );
     await waitUntil(
       cdp,
-      `[...document.querySelectorAll(".login-header-identity img, .login-card-mark img")]
+      `[...document.querySelectorAll("[data-brand-identity] img, [data-login-card] [data-brand-mark] img")]
         .filter((image) => getComputedStyle(image).display !== "none")
         .every((image) => image.complete && image.naturalWidth > 0)`,
       `activos de marca en ${label}`,
@@ -463,8 +463,8 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
           bodyScrollWidth: document.body.scrollWidth,
           bodyScrollHeight: document.body.scrollHeight,
         },
-        logo: rect(".login-header-identity .daybook-logo"),
-        mark: rect(".login-card-mark"),
+        logo: rect("[data-brand-identity] [data-brand-logo]"),
+        mark: rect("[data-login-card] [data-brand-mark]"),
         title: rect("h1"),
         card: rect("[data-login-card]"),
         email: rect('input[name="email"]'),

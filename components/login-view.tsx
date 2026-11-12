@@ -57,7 +57,7 @@ export function LoginView({
   return (
     <main className="relative isolate grid min-h-screen grid-rows-[auto_1fr_auto] bg-bg px-[clamp(22px,5vw,74px)] pb-[22px] max-[760px]:px-[18px] max-[760px]:pb-4">
       <header className="relative z-[1] flex min-h-[76px] max-[760px]:min-h-16 items-center justify-between gap-5 border-b border-line py-3">
-        <BrandIdentity className="login-header-identity" />
+        <BrandIdentity />
         <div className="flex items-center gap-[14px] text-[10px] font-[750] tracking-[0.09em] text-muted">
           <ThemeToggle theme={theme} onToggle={toggleTheme} compact />
         </div>
@@ -67,7 +67,7 @@ export function LoginView({
           data-login-card
           className="rounded-lg border border-line bg-surface p-[clamp(24px,3.5vw,34px)] text-center shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-4"
         >
-          <BrandMark className="login-card-mark" />
+          <BrandMark className="mb-4 inline-block w-14" />
           <SectionKicker className="text-[12px] tracking-[0.08em] text-[color:var(--focus)]">
             Acceso seguro
           </SectionKicker>

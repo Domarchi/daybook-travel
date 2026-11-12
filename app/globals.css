@@ -33,6 +33,11 @@
    clase, y Tailwind la genera mal si se le escapa un espacio. */
 @custom-variant raton (@media (hover: hover) and (pointer: fine));
 
+/* "claro" es el tema claro, que se elige con data-theme en <html>. Lo usa la
+   marca para mostrar la variante del logo que corresponde al fondo. No es el
+   `dark:` de Tailwind, que sigue a la preferencia del sistema y no al botón. */
+@custom-variant claro (&:where(:root[data-theme="light"] *));
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -81,6 +86,21 @@
   /* La tabla: la cabecera y el resaltado de la fila bajo el mouse. */
   --color-table-head: color-mix(in srgb, var(--surface-soft) 55%, var(--surface));
   --color-row-hover: color-mix(in srgb, var(--surface-soft) 52%, transparent);
+  /* La barra lateral, que es oscura en los dos temas (ver --rail-* abajo). */
+  --color-rail: var(--rail-bg);
+  --color-rail-foreground: var(--rail-fg);
+  --color-rail-line: var(--rail-line);
+  --color-rail-divider: var(--rail-divider);
+  --color-rail-caption: var(--rail-caption);
+  --color-rail-link: var(--rail-link);
+  --color-rail-link-hover: var(--rail-link-hover);
+  --color-rail-hover: var(--rail-hover);
+  --color-rail-active: var(--rail-active);
+  --color-rail-focus: var(--rail-focus);
+  --color-rail-avatar: var(--rail-avatar);
+  --color-rail-avatar-foreground: var(--rail-avatar-fg);
+  --color-rail-name: var(--rail-name);
+  --color-rail-sub: var(--rail-sub);
   --radius-sm: var(--rad-sm);
   --radius-md: var(--rad);
   --radius-lg: var(--rad-lg);
@@ -142,6 +162,24 @@
   /* La curva de los paneles laterales, tomada de iOS: sale rápido y frena
      largo, que es lo que hace que un cajón se sienta pesado y no elástico. */
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* La barra lateral, el mismo riel que Daybook Ticket y Parte Diario. Es
+     oscura en los dos temas, igual que allá, así que estos valores NO se
+     redefinen en el tema claro y no siguen a --text ni a --surface. */
+  --rail-bg: #11120f;
+  --rail-fg: #f3efe4;
+  --rail-line: #45443b;
+  --rail-divider: rgba(255, 255, 255, 0.06);
+  --rail-caption: #c2bdae;
+  --rail-link: #aeb5af;
+  --rail-link-hover: #f6f8f6;
+  --rail-hover: rgba(255, 255, 255, 0.06);
+  --rail-active: rgba(243, 239, 228, 0.14);
+  --rail-focus: #efc56e;
+  --rail-avatar: #34352d;
+  --rail-avatar-fg: #ded9cb;
+  --rail-name: #d8d7cf;
+  --rail-sub: #a9aaa0;
 }
 
 :root[data-theme="light"] {
@@ -281,65 +319,6 @@ small {
   isolation: isolate;
 }
 
-.daybook-logo,
-.daybook-mark {
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.daybook-logo { width: 164px; }
-.daybook-mark { display: none; width: 42px; }
-
-.daybook-logo img,
-.daybook-mark img { display: block; width: 100%; height: auto; }
-
-.daybook-logo-on-light,
-.daybook-mark-on-light { display: none !important; }
-
-:root[data-theme="light"] .daybook-logo-on-dark,
-:root[data-theme="light"] .daybook-mark-on-dark { display: none !important; }
-
-:root[data-theme="light"] .daybook-logo-on-light,
-:root[data-theme="light"] .daybook-mark-on-light { display: block !important; }
-
-.brand-identity {
-  display: grid;
-  width: 168px;
-  justify-items: center;
-  gap: 5px;
-}
-
-.brand-identity .daybook-logo { width: 100%; }
-
-.login-header-identity { width: 168px; justify-items: start; }
-
-.login-card-mark {
-  display: inline-block;
-  width: 56px;
-  margin-bottom: 16px;
-}
-
-.brand-identity-caption {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: 0.025em;
-  white-space: nowrap;
-}
-
-@media (max-width: 430px) {
-  .brand-identity { width: 42px; gap: 0; }
-  .brand-identity .daybook-logo,
-  .brand-identity-caption { display: none; }
-  .brand-identity .daybook-mark { display: block; }
-
-  .login-header-identity { width: 168px; gap: 5px; }
-  .login-header-identity .daybook-logo { display: inline-block; }
-  .login-header-identity .daybook-mark { display: none; }
-  .login-header-identity .brand-identity-caption { display: block; }
-}
-
 /* Solo el contenido. El velo de los diálogos NO va aquí: es position: fixed y
    ponerle position: relative lo devolvía al flujo del documento, así que dejaba
    de cubrir la pantalla y aparecía a media página. Ya tiene z-index 100, que
@@ -347,166 +326,6 @@ small {
 .shell > .app-content {
   position: relative;
   z-index: 1;
-}
-
-/* ---------------------------------------------------------------------------
-   Barra lateral, el mismo patrón que Daybook Ticket y Daybook Parte Diario:
-   un riel oscuro fijo de 232px con la marca arriba, la navegación en medio y
-   el usuario abajo. Es oscuro en los dos temas, igual que allá, así que los
-   colores van fijos y no siguen --text ni --surface.
-   --------------------------------------------------------------------------- */
-.shell > .app-content { margin-left: 232px; }
-
-.sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  width: 232px;
-  background: #11120f;
-  color: #f3efe4;
-  border-right: 1px solid #45443b;
-}
-
-.sidebar-brand {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-height: 108px;
-  padding: 18px 22px;
-  border-bottom: 1px solid #45443b;
-}
-
-.sidebar-brand .daybook-logo { width: 168px; }
-.sidebar-brand .daybook-mark { display: none; }
-
-/* El riel es oscuro aunque el tema sea claro: siempre la variante para fondo oscuro. */
-:root[data-theme="light"] .sidebar .daybook-logo-on-dark,
-:root[data-theme="light"] .sidebar .daybook-mark-on-dark { display: block !important; }
-:root[data-theme="light"] .sidebar .daybook-logo-on-light,
-:root[data-theme="light"] .sidebar .daybook-mark-on-light { display: none !important; }
-
-.sidebar-caption {
-  margin-left: 5px;
-  color: #c2bdae;
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.4;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.side-nav {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 12px 0;
-  overflow: auto;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #aeb5af;
-  cursor: pointer;
-  text-align: left;
-  transition:
-    transform 160ms var(--ease-out),
-    color 160ms var(--ease-out),
-    background-color 160ms var(--ease-out);
-}
-
-.nav-link span { flex: 1; font-size: 13px; font-weight: 500; line-height: 1.4; }
-.nav-link:hover { background: rgba(255, 255, 255, 0.06); color: #f6f8f6; transform: translateX(2px); }
-.nav-link:active { transform: scale(0.98); }
-.nav-link.active { background: rgba(243, 239, 228, 0.14); color: #f3efe4; }
-.nav-link:focus-visible,
-.rail-button:focus-visible { outline: 2px solid #efc56e; outline-offset: 3px; }
-
-.sidebar-footer { flex: none; padding: 16px 12px; }
-
-.user-rail {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.user-rail .avatar {
-  display: grid;
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border-radius: 8px;
-  background: #34352d;
-  color: #ded9cb;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.user-rail-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-.user-rail-text strong { overflow: hidden; color: #d8d7cf; font-size: 12px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
-.user-rail-text small { margin-top: 2px; color: #a9aaa0; font-size: 12px; line-height: 1.4; }
-
-.rail-button {
-  display: grid;
-  flex: none;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #aeb5af;
-  cursor: pointer;
-}
-
-.rail-button:hover { background: rgba(255, 255, 255, 0.06); color: #f6f8f6; }
-
-/* En pantallas angostas el riel pasa a ser una barra superior, como en Daybook. */
-@media (max-width: 820px) {
-  .shell > .app-content { margin-left: 0; }
-
-  .sidebar {
-    position: sticky;
-    inset: 0 0 auto 0;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    width: auto;
-    padding: 10px 14px;
-    border-right: 0;
-    border-bottom: 1px solid #45443b;
-  }
-
-  .sidebar-brand { min-height: 0; padding: 0; border-bottom: 0; }
-  .sidebar-brand .daybook-logo,
-  .sidebar-caption { display: none; }
-  .sidebar-brand .daybook-mark { display: block; width: 40px; }
-  .sidebar-footer { margin-left: auto; padding: 0; }
-  .user-rail { padding-top: 0; border-top: 0; }
-  .user-rail-text { display: none; }
-  .side-nav { order: 3; flex: 1 0 100%; flex-direction: row; gap: 4px; padding: 8px 0 0; overflow: visible; }
-  .nav-link { flex: 1; justify-content: center; gap: 6px; padding: 0 6px; }
-  .nav-link:hover { transform: none; }
-}
-
-@media (max-width: 430px) {
-  .nav-link svg { display: none; }
-  .nav-link span { text-align: center; font-size: 12px; }
 }
 
 @keyframes spin {

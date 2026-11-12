@@ -1,17 +1,20 @@
 import { cn } from "@/lib/utils";
+import type { Tono } from "@/components/ui/brand-logo";
 
-export default function BrandMark({ className }: { className?: string }) {
+// El isotipo parte escondido: quien lo usa dice cuándo se ve (la tarjeta de
+// entrada siempre, la barra lateral solo en pantalla angosta).
+export default function BrandMark({ className, tono = "tema" }: { className?: string; tono?: Tono }) {
   return (
-    <span className={cn("daybook-mark", className)}>
+    <span data-brand-mark className={cn("hidden w-[42px] shrink-0", className)}>
       <img
-        className="daybook-mark-on-dark"
+        className={cn("block h-auto w-full", tono === "tema" && "claro:hidden")}
         src="/brand/daybook-mark-on-dark.svg"
         alt="Daybook"
         width={96}
         height={96}
       />
       <img
-        className="daybook-mark-on-light"
+        className={cn("hidden h-auto w-full", tono === "tema" && "claro:block")}
         src="/brand/daybook-mark-on-light.svg"
         alt=""
         aria-hidden="true"

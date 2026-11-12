@@ -37,7 +37,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/excel-sync-panel.tsx` | La pantalla del importador Excel en 3 pasos (Preparar → Revisar → Aplicar), 818 líneas. Bien hecho, no romper. Sus cuentas están en `lib/excel-preview.ts` (leer hojas, comparar, armar la vista previa; 10 pruebas) y sus piezas chicas en `app/excel-sync-parts.tsx`. |
 | `app/year-view.tsx` | El calendario de la Agenda (vista Mes y Semana). El panel del día seleccionado está en `app/year-day-detail.tsx`. |
 | `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
-| `app/globals.css` | ~620 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el armazón (barra lateral, diálogos) y lo que Tailwind no cubre. |
+| `app/globals.css` | ~435 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el velo y la caja de los diálogos y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, vencido, urgente o próximo. 14 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
@@ -279,21 +279,34 @@ rota. Nada de reescritura de una sentada.
    de compra). El calendario (`app/year-view.tsx`) y el panel de Excel
    (`app/excel-sync-panel.tsx`) también están HECHOS. No queda ningún componente
    por migrar: lo que sigue es la limpieza.
-5. **Armazón. Casi HECHO** — la barra superior ya no existe (la reemplazó `side-nav`), y
-   `workspace`, `login-view` y `access-state` están en Tailwind (`access-state` con
-   `components/ui/state-panel.tsx`). Lo único del armazón que sigue en CSS es la **barra
-   lateral** (`.sidebar`, `.nav-link`, `.user-rail`, `.rail-button`) y la **marca**
-   (`.brand-identity`, `.daybook-logo`, `.daybook-mark`), unas 230 líneas. Se escribieron así
-   cuando llegó la barra de Daybook, después de la migración. Traducirlas pide tokens para los
-   colores fijos de la barra (es oscura en los dos temas) y resolver el cambio de logo según el
-   tema, que hoy son selectores con `:root[data-theme="light"]` y `!important`.
-6. **Limpieza. HECHO** — `app/globals.css` pasó de 3.286 líneas a 434. Lo que queda es lo
+5. **Armazón. HECHO** — la barra superior ya no existe (la reemplazó `side-nav`), y
+   `workspace`, `login-view`, `access-state`, la **barra lateral** y la **marca** están en
+   Tailwind (rama `barra-lateral-tailwind`). La barra lateral se escribió en CSS cuando llegó
+   el riel de Daybook, después de la migración, y fue lo último en pasar:
+
+   - Sus colores son los tokens `--rail-*`, solo en `:root`: el riel es oscuro en los dos
+     temas, así que el tema claro **no** los redefine. En Tailwind son `bg-rail`,
+     `text-rail-link`, `border-rail-line`, etc.
+   - El logo y el isotipo eligen su dibujo con la variante `claro:` (ver abajo).
+     `tono="oscuro"` fija la variante para fondo oscuro; lo usa la barra.
+   - El hover de la barra va con `[&:hover]:` y no con `hover:`: en Tailwind 4 `hover:` solo
+     aplica donde hay mouse, y el CSS viejo lo aplicaba siempre. Traducción literal; si se
+     quiere `raton:` como el resto, es un cambio aparte.
+   - Se midió a 1440, 800 y 400 px en los dos temas, más el hover. Coincide todo salvo el
+     estilo y el color de bordes de **ancho 0** (`border-right: 0` también los reiniciaba) y
+     la transición, que ahora anima `translate`/`scale` en vez de `transform`. Como la regla
+     de movimiento reducido apaga esas dos, ahora el corrimiento del enlace también se apaga
+     para quien pide menos movimiento; antes se le escapaba.
+   - Exactamente a 820 px: `max-[820px]` es «menos de 820», el CSS viejo era «820 o menos».
+     El `<main>` ya usaba `max-[820px]`, así que ahora barra y contenido cambian juntos.
+   - La identidad de la entrada tenía un isotipo escondido que nunca se veía (la entrada lo
+     anulaba en todos los anchos); se quitó. Los arneses de navegador buscan la marca por
+     `data-brand-identity`, `data-brand-logo` y `data-brand-mark`, no por clases.
+6. **Limpieza. HECHO** — `app/globals.css` pasó de 3.286 líneas a ~435, y lo que queda es lo
    que Tailwind no cubre: los tokens de los dos temas, la tipografía base de los elementos
    (`h1`–`h3`, `p`, `small`, `strong`), el armazón (`.shell`, `.app-content`), el velo y la
-   caja de los diálogos (`.overlay`, `.dialog`, `.excel-dialog`), los dos degradados de la
-   entrada (`.velo-entrada`, `.velo-carga`), un `@keyframes` y el bloque
-   de movimiento reducido. **Cero clases huérfanas.** Al final ese archivo debería
-   quedar solo con los tokens, `@keyframes` y lo que Tailwind no cubre.
+   caja de los diálogos (`.overlay`, `.dialog`, `.excel-dialog`), un `@keyframes` y el bloque
+   de movimiento reducido. **Cero clases huérfanas.**
 
 ### Lo que ya está montado
 
@@ -312,6 +325,9 @@ rota. Nada de reescritura de una sentada.
   CSS usa para los estados de hover. Escribirla a mano dentro de una clase (`[@media(...)]:`)
   no sirve: hay que poner guiones bajos donde van los espacios y, si se escapa uno, Tailwind
   genera CSS inválido y la aplicación entera se cae con "Parsing CSS source code failed".
+- `@custom-variant claro` es el tema claro elegido con el botón (`data-theme="light"` en
+  `<html>`). **No uses `dark:`** para el tema: el `dark:` de Tailwind sigue a la preferencia
+  del sistema operativo, no a la elección de la persona.
 - `@layer daybook` envuelve todo el CSS propio y lo deja **por debajo** de las utilidades de
   Tailwind. Sin eso, `button { ... }` le ganaba a `bg-primary` y los componentes de shadcn
   llegaban con el estilo viejo pegado.
