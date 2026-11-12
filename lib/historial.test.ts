@@ -72,3 +72,10 @@ test("la nota muestra solo lo que agregó este cambio", () => {
   // Al crear, la nota es la que se escribió.
   assert.equal(notaDelCambio(null, despues), despues.notes);
 });
+
+test("en un documento se ve el vencimiento", () => {
+  assert.deepEqual(
+    cambiosDe("person_documents", { type_id: "t", expires_on: null }, { type_id: "t", expires_on: "2027-03-01" }),
+    [{ campo: "Vencimiento", antes: "—", despues: "1 mar 2027" }],
+  );
+});

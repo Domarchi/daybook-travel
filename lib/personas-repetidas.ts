@@ -38,3 +38,18 @@ export function personasConMismoNombre<P extends Pick<Person, "id" | "name" | "a
     .filter((persona) => persona.id !== excepto && claveDeNombre(persona.name) === clave)
     .sort((a, b) => Number(b.active) - Number(a.active));
 }
+
+/**
+ * Las personas que comparten nombre con alguna otra, para marcarlas en la lista.
+ * El aviso del diálogo solo aparece al abrir una ficha; esto deja ver las que ya
+ * están repetidas sin tener que buscarlas.
+ */
+export function idsConNombreRepetido(personas: Pick<Person, "id" | "name">[]): Set<string> {
+  const porNombre = new Map<string, string[]>();
+  for (const persona of personas) {
+    const clave = claveDeNombre(persona.name);
+    if (clave.length < 2) continue;
+    porNombre.set(clave, [...(porNombre.get(clave) ?? []), persona.id]);
+  }
+  return new Set([...porNombre.values()].filter((ids) => ids.length > 1).flat());
+}

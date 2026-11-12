@@ -59,6 +59,9 @@ const CAMPOS = {
     ["baggage", "Equipaje habitual", texto],
     ["active", "Estado", activa],
   ],
+  // Los documentos de una persona: lo único que cambia es el vencimiento. Qué
+  // documento es (type_id) no cambia; el diálogo lo pone en el título.
+  person_documents: [["expires_on", "Vencimiento", fecha]],
 } satisfies Record<string, [string, string, Formato][]>;
 
 export type Entidad = keyof typeof CAMPOS;

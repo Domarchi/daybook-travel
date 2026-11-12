@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { claveDeNombre, personasConMismoNombre } from "./personas-repetidas.ts";
+import { claveDeNombre, idsConNombreRepetido, personasConMismoNombre } from "./personas-repetidas.ts";
 
 const persona = (id: string, name: string, active = true) => ({ id, name, active });
 
@@ -30,4 +30,15 @@ test("un nombre parecido no es el mismo, y uno vacío no avisa nada", () => {
   assert.deepEqual(personasConMismoNombre("María Soto Vera", personas), []);
   assert.deepEqual(personasConMismoNombre("", personas), []);
   assert.deepEqual(personasConMismoNombre(" a ", [persona("x", "A")]), []);
+});
+
+test("la lista marca a todas las que comparten nombre, y a nadie más", () => {
+  const personas = [
+    persona("a", "MARÍA SOTO"),
+    persona("b", "Maria  Soto", false),
+    persona("c", "JUAN ROJAS"),
+    persona("d", "PEDRO LARA"),
+  ];
+  assert.deepEqual([...idsConNombreRepetido(personas)].sort(), ["a", "b"]);
+  assert.equal(idsConNombreRepetido([]).size, 0);
 });

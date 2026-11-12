@@ -28,6 +28,7 @@ export function useAccionesViajes(e: Entrada) {
     closeModal,
     dateFilter,
     demo,
+    documents,
     editTrip,
     peopleById,
     personFilter,
@@ -211,16 +212,21 @@ export function useAccionesViajes(e: Entrada) {
   async function showHistory(trip: Trip) {
     setEditPerson(null);
     setEditTrip(trip);
-    await cargarHistorial(trip.id);
+    await cargarHistorial([trip.id]);
   }
 
   async function showPersonHistory(person: Person) {
     setEditTrip(null);
     setEditPerson(person);
-    await cargarHistorial(person.id);
+    // Los vencimientos de sus documentos quedan auditados aparte, cada uno con
+    // su propio id: se piden junto con la ficha para verlos en el mismo lugar.
+    const documentos = documents
+      .filter((documento) => documento.person_id === person.id && documento.id)
+      .map((documento) => documento.id!);
+    await cargarHistorial([person.id, ...documentos]);
   }
 
-  async function cargarHistorial(recordId: string) {
+  async function cargarHistorial(recordIds: string[]) {
     clearMessages();
     setHistory([]);
     setHistoryLoading(!demo);
@@ -230,7 +236,7 @@ export function useAccionesViajes(e: Entrada) {
       const { data, error } = await db()
         .from("history")
         .select("*")
-        .eq("record_id", recordId)
+        .in("record_id", recordIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const items = (data ?? []) as HistoryItem[];
