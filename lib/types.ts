@@ -67,11 +67,13 @@ export type Trip = {
 
 export type HistoryItem = {
   id: number;
+  entity?: string;
   action: string;
   created_at: string;
   actor: string | null;
   /** El correo del autor, si la base lo pudo traducir (migración 013). */
   actor_email?: string | null;
+  before_data?: Record<string, unknown> | null;
   after_data: Record<string, unknown>;
 };
 

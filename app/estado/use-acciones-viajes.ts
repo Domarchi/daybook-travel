@@ -9,7 +9,7 @@ import { localDate } from "../../lib/format";
 import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
 import { db } from "../../lib/supabase";
-import { HistoryItem, Trip } from "../../lib/types";
+import { HistoryItem, Person, Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
@@ -204,9 +204,22 @@ export function useAccionesViajes(e: Entrada) {
     }
   }
 
+  // El historial de un viaje o de una persona. El diálogo sabe de quién es por
+  // cuál de los dos queda puesto: editTrip o editPerson.
   async function showHistory(trip: Trip) {
-    clearMessages();
+    setEditPerson(null);
     setEditTrip(trip);
+    await cargarHistorial(trip.id);
+  }
+
+  async function showPersonHistory(person: Person) {
+    setEditTrip(null);
+    setEditPerson(person);
+    await cargarHistorial(person.id);
+  }
+
+  async function cargarHistorial(recordId: string) {
+    clearMessages();
     setHistory([]);
     setHistoryLoading(!demo);
     abrirModal("history");
@@ -215,7 +228,7 @@ export function useAccionesViajes(e: Entrada) {
       const { data, error } = await db()
         .from("history")
         .select("*")
-        .eq("record_id", trip.id)
+        .eq("record_id", recordId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const items = (data ?? []) as HistoryItem[];
@@ -302,6 +315,7 @@ export function useAccionesViajes(e: Entrada) {
     saveTrip,
     savePurchaseWindow,
     showHistory,
+    showPersonHistory,
     viajesPorCerrar,
     openCloseTrips,
     closeSelectedTrips,
