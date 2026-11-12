@@ -39,6 +39,10 @@
 @custom-variant claro (&:where(:root[data-theme="light"] *));
 
 @theme inline {
+  /* Las familias de letra de Tailwind (font-sans, font-mono) son las de
+     @daybook/design: Geist y Geist Mono. */
+  --font-sans: var(--db-font-sans);
+  --font-mono: var(--db-font-mono);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
@@ -156,10 +160,12 @@
   --danger: #ee7b83;
   --info: #8cb7df;
   --shadow: 0 16px 48px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
-  --rad-sm: 8px;
-  --rad: 12px;
+  /* Radios y curva de @daybook/design; --rad-lg (diálogos) sigue propio hasta
+     el paso 2 de la escala. */
+  --rad-sm: var(--db-radius-control);
+  --rad: var(--db-radius-card);
   --rad-lg: 18px;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: var(--db-ease-out);
   /* Para lo que se mueve dentro de la pantalla, no lo que entra o sale. */
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   /* La curva de los paneles laterales, tomada de iOS: sale rápido y frena
@@ -235,15 +241,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  /* Geist, la fuente de la familia Daybook (@daybook/design). Inter nunca se
+     cargaba: se veía la del sistema. El tamaño base pasa a la escala común
+     en el paso 2 de la tipografía. */
+  font-family: var(--db-font-sans);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: var(--db-leading-body);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
