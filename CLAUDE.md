@@ -528,8 +528,9 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
   tres «FCC» a propósito: los alias de `lib/excel-sync.ts` que leen planillas viejas con la
   columna de identificador antigua, los mensajes de las migraciones 003 y 004 (aplicadas, no se editan; el
   navegador los traduce con `mensajePublicoExcel`) y la lista de frases prohibidas de
-  `lib/brand-guard.test.ts`. El proyecto de Vercel sigue llamándose `relevo` y el repositorio
-  `fcc-travel`.
+  `lib/brand-guard.test.ts`. El proyecto de Vercel sigue llamándose `relevo`. El repositorio
+  se llama `daybook-travel` desde el 12-nov-2026 (antes `fcc-travel`; GitHub redirige el nombre
+  viejo). La carpeta local puede seguir llamándose `fcc/travel`: no importa.
 - Usa TypeScript 7 y `@types/node` 26 — versiones muy nuevas. Si aparecen errores raros de tipos,
   mirar ahí antes de dar vueltas.
 - `AGENTS.md` lo regenera `next dev`; no lo edites a mano.
