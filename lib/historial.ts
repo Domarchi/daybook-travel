@@ -10,6 +10,7 @@
 import { DIAS_SEMANA } from "./cycles.ts";
 import { formatoCLP } from "./costs.ts";
 import { formatDate } from "./format.ts";
+import { observacionesDe, ultimoMotivo, PREFIJO_MOTIVO } from "./notas.ts";
 
 export type Cambio = { campo: string; antes: string; despues: string };
 
@@ -81,15 +82,27 @@ export function cambiosDe(entidad: Entidad, antes: Fila, despues: Fila): Cambio[
 }
 
 /**
- * Lo que la nota agregó en este cambio. Las notas de un viaje se acumulan (cada
- * edición suma su "Motivo del cambio"), así que mostrar la nota entera en cada
- * entrada repetía todo lo anterior. Si la nota nueva continúa la anterior, se
- * muestra solo lo agregado; si se reescribió, entera.
+ * Lo que dicen las notas de este cambio: el motivo nuevo y, si cambiaron, las
+ * observaciones. Mostrar la nota entera repetía en cada entrada todo lo
+ * anterior (las notas viejas acumulaban un motivo por edición; ver
+ * lib/notas.ts). Al crear un viaje no hay motivo: se muestran sus
+ * observaciones tal cual.
  */
 export function notaDelCambio(antes: Fila, despues: Fila): string {
-  const nueva = String(despues?.notes ?? "").trim();
-  const vieja = String(antes?.notes ?? "").trim();
-  if (!nueva || nueva === vieja) return "";
-  if (vieja && nueva.startsWith(vieja)) return nueva.slice(vieja.length).trim();
-  return nueva;
+  const nueva = String(despues?.notes ?? "");
+  const motivo = ultimoMotivo(nueva);
+  const obs = observacionesDe(nueva);
+  if (!antes) return [obs, motivo ? `${PREFIJO_MOTIVO} ${motivo}` : ""].filter(Boolean).join("\n");
+
+  const vieja = String(antes.notes ?? "");
+  if (nueva.trim() === vieja.trim()) return "";
+  const lineas: string[] = [];
+  // El motivo es nuevo si cambió, o si las notas viejas tenían otro último motivo.
+  if (motivo && motivo !== ultimoMotivo(vieja)) lineas.push(`${PREFIJO_MOTIVO} ${motivo}`);
+  else if (motivo && nueva.split(PREFIJO_MOTIVO).length > vieja.split(PREFIJO_MOTIVO).length) {
+    // El mismo texto de motivo, agregado otra vez (dos cambios con el mismo motivo).
+    lineas.push(`${PREFIJO_MOTIVO} ${motivo}`);
+  }
+  if (obs !== observacionesDe(vieja)) lineas.push(obs ? `Observaciones: ${obs}` : "Se borraron las observaciones.");
+  return lineas.join("\n");
 }

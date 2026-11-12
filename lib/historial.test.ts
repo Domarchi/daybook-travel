@@ -65,8 +65,8 @@ test("la nota muestra solo lo que agregó este cambio", () => {
   const antes = viaje({ notes: "Importado desde la planilla." });
   const despues = viaje({ notes: "Importado desde la planilla.\nMotivo del cambio: Solicitud enviada." });
   assert.equal(notaDelCambio(antes, despues), "Motivo del cambio: Solicitud enviada.");
-  // Si se reescribió, va entera.
-  assert.equal(notaDelCambio(antes, viaje({ notes: "Otra cosa" })), "Otra cosa");
+  // Si cambiaron las observaciones, se dicen.
+  assert.equal(notaDelCambio(antes, viaje({ notes: "Otra cosa" })), "Observaciones: Otra cosa");
   // Si no cambió, no hay nota que mostrar.
   assert.equal(notaDelCambio(antes, antes), "");
   // Al crear, la nota es la que se escribió.
@@ -78,4 +78,13 @@ test("en un documento se ve el vencimiento", () => {
     cambiosDe("person_documents", { type_id: "t", expires_on: null }, { type_id: "t", expires_on: "2027-03-01" }),
     [{ campo: "Vencimiento", antes: "—", despues: "1 mar 2027" }],
   );
+});
+
+test("con las notas nuevas (observaciones y último motivo) se ve el motivo que cambió", () => {
+  const antes = viaje({ notes: "Prefiere la tarde.\nMotivo del cambio: Solicitud enviada." });
+  const despues = viaje({ notes: "Prefiere la tarde.\nMotivo del cambio: Pasaje emitido" });
+  assert.equal(notaDelCambio(antes, despues), "Motivo del cambio: Pasaje emitido");
+  // Las notas viejas que acumulaban motivos también se leen bien al pasar al formato nuevo.
+  const acumuladas = viaje({ notes: "Prefiere la tarde.\nMotivo del cambio: Uno\nMotivo del cambio: Dos" });
+  assert.equal(notaDelCambio(acumuladas, viaje({ notes: "Prefiere la tarde.\nMotivo del cambio: Tres" })), "Motivo del cambio: Tres");
 });

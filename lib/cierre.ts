@@ -16,6 +16,7 @@
 // claro en vez del error de la base.
 import type { Trip } from "./types.ts";
 import { problemaDeMotivo } from "./motivo.ts";
+import { notasConMotivo } from "./notas.ts";
 
 export type ModoDeCierre = "anular" | "reserva";
 
@@ -56,11 +57,9 @@ export function cambioDeCierre(
   motivo: string,
   pnr: string,
 ) {
-  // El motivo se agrega a las notas, igual que "Marcar como solicitados": lo que
-  // ya decían no se pierde, y el historial guarda el antes y el después.
-  const notes = [viaje.notes.trim(), `Motivo del cambio: ${motivo.trim()}`]
-    .filter(Boolean)
-    .join("\n");
+  // Las observaciones y el motivo del cierre, igual que al editar o al marcar
+  // como solicitado. Los motivos anteriores están en el historial.
+  const notes = notasConMotivo(viaje.notes, motivo);
   return modo === "anular"
     ? { status: "Anulado", notes }
     : { status: "Completado", pnr: pnr.trim().toUpperCase(), notes };
