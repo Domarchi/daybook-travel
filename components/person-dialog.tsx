@@ -4,7 +4,8 @@ import DialogActions from "@/components/ui/dialog-actions";
 import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
 import { Checkbox, Input, Label, Select } from "@/components/ui/field";
 import { BAGGAGE_OPTIONS as baggageOptions } from "../lib/types";
-import { localDate, nextWeekday } from "../lib/format";
+import { formatDate, localDate, nextWeekday } from "../lib/format";
+import { personasConMismoNombre } from "../lib/personas-repetidas";
 import { useState } from "react";
 import { DIAS_SEMANA } from "../lib/cycles";
 import { useApp } from "../app/store";
@@ -16,6 +17,7 @@ export default function PersonDialog() {
     documents,
     documentTypes,
     editPerson,
+    people,
     savePerson,
   } = useApp();
   const tiposActivos = documentTypes.filter((tipo) => tipo.active);
@@ -23,6 +25,11 @@ export default function PersonDialog() {
   // El turno decide si los días de viaje tienen sentido: el 10×10 no los usa,
   // porque su ciclo es de veinte días y no depende del día de la semana.
   const [shift, setShift] = useState(editPerson?.shift ?? "Por confirmar");
+
+  // Aviso, no bloqueo: dos personas distintas pueden llamarse igual. Ver
+  // lib/personas-repetidas.ts.
+  const [nombre, setNombre] = useState(editPerson?.name ?? "");
+  const repetidas = personasConMismoNombre(nombre, people, editPerson?.id);
 
   return (
     <form onSubmit={savePerson} aria-busy={busy}
@@ -39,9 +46,30 @@ export default function PersonDialog() {
               required
               minLength={2}
               maxLength={180}
-              defaultValue={editPerson?.name}
+              aria-describedby={repetidas.length ? "persona-repetida" : undefined}
+              value={nombre}
+              onChange={(event) => setNombre(event.target.value)}
             />
           </Label>
+          <div aria-live="polite">
+            {repetidas.length > 0 && (
+              <Hint id="persona-repetida" className="border-l-warning text-foreground-soft">
+                {editPerson ? "Hay otra persona" : "Ya hay una persona"} con este nombre:
+                {repetidas.map((otra) => (
+                  <span key={otra.id} className="mt-1 block">
+                    {otra.origin} → {otra.destination} · {otra.shift} · desde{" "}
+                    {formatDate(otra.start_date)}
+                    {otra.active ? "" : " · inactiva"}
+                  </span>
+                ))}
+                <span className="mt-1 block">
+                  {editPerson
+                    ? "Si es la misma persona repetida, desactiva una de las dos: con las dos activas, Planificar turnos le genera los viajes dos veces."
+                    : "Si es la misma, cierra esto y edita la que ya está: una ficha nueva le generaría los viajes dos veces. Si son personas distintas, guarda igual."}
+                </span>
+              </Hint>
+            )}
+          </div>
           <FormGrid>
             <Label>
               Origen habitual
