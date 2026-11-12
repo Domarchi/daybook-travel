@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Coins, LogOut, Moon, Plane, ShieldCheck, Sun, Users } from "lucide-react";
+import { CalendarDays, Coins, History, LogOut, Moon, Plane, ShieldCheck, Sun, Users } from "lucide-react";
 import BrandLogo from "@/components/ui/brand-logo";
 import BrandMark from "@/components/ui/brand-mark";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ const navItems = [
   { label: "Personas", icon: Users },
   { label: "Viajes", icon: Plane },
   { label: "Costos", icon: Coins },
+  { label: "Actividad", icon: History },
 ];
 
 // Solo la ve quien administra los accesos.

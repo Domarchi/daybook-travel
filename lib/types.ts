@@ -68,6 +68,7 @@ export type Trip = {
 export type HistoryItem = {
   id: number;
   entity?: string;
+  record_id?: string;
   action: string;
   created_at: string;
   actor: string | null;
