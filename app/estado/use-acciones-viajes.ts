@@ -334,7 +334,7 @@ export function useAccionesViajes(e: Entrada) {
 // traduce a correo. Si la migración todavía no está aplicada, o la llamada
 // falla, el historial se muestra igual, con el número corto de antes: no
 // saber el correo no es razón para no mostrar los cambios.
-async function conCorreoDelAutor(items: HistoryItem[]): Promise<HistoryItem[]> {
+export async function conCorreoDelAutor(items: HistoryItem[]): Promise<HistoryItem[]> {
   const ids = [...new Set(items.map((item) => item.actor).filter((id): id is string => Boolean(id)))];
   if (!ids.length) return items;
   try {

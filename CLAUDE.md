@@ -44,6 +44,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, sin cerrar, vencido, urgente o próximo. 18 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
 | `lib/historial.ts` | **Qué cambió en cada entrada del historial.** Compara `before_data` y `after_data` y devuelve los campos que se reconocen (fecha, reserva, estado, turno, vigencia…) ya escritos para leer, y solo lo que la nota agregó en ese cambio. Lo usa el historial de viajes y el de personas (botón en la ficha), que incluye los cambios de vencimiento de sus documentos. 7 pruebas. |
+| `lib/actividad.ts` y `components/activity-view.tsx` | **Actividad reciente.** Pantalla con los últimos cambios de viajes, personas y documentos de todo el proyecto, por día, con quién y qué cambió, y un botón para abrir cada uno. La ven todos los miembros; carga sus datos al abrirse (como Accesos), de a 50. Los cambios de accesos no aparecen: tienen su pantalla. 5 pruebas. |
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |

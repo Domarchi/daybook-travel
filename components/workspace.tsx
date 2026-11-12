@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
 import CostsView from "@/components/costs-view";
+import ActivityView from "@/components/activity-view";
 import AgendaPanel from "@/components/agenda-panel";
 import { LoadingView, LoginView } from "@/components/login-view";
 import MembersView from "@/components/members-view";
@@ -102,6 +103,8 @@ export default function Workspace() {
                 <PeopleView />
               ) : view === "Costos" ? (
                 <CostsView />
+              ) : view === "Actividad" ? (
+                <ActivityView />
               ) : view === "Accesos" && isAdmin ? (
                 <MembersView />
               ) : (
