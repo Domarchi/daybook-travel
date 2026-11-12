@@ -1,11 +1,13 @@
-// Abrir, guardar y ver el historial de un viaje, y la ventana de compra.
+// Abrir, guardar y ver el historial de un viaje, la ventana de compra y el
+// cierre en bloque de los viajes que pasaron sin reserva.
 //
 // El texto de las funciones es el mismo que tenían dentro de `store.tsx`; solo
 // cambió dónde viven. Lo que usan de los otros hooks lo reciben en `e`.
 
 import { FormEvent } from "react";
 import { localDate } from "../../lib/format";
-import { ventanaValida } from "../../lib/purchase";
+import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
+import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
 import { db } from "../../lib/supabase";
 import { HistoryItem, Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
@@ -32,6 +34,7 @@ export function useAccionesViajes(e: Entrada) {
     reload,
     runAction,
     selectedDay,
+    selectedTrips,
     setCalendarMonth,
     setEditPerson,
     setEditTrip,
@@ -45,6 +48,7 @@ export function useAccionesViajes(e: Entrada) {
     setPurchaseWindow,
     setReservationOpen,
     setSelectedDay,
+    setSelectedTrips,
     setTrips,
     setTripStatus,
     trips,
@@ -223,11 +227,84 @@ export function useAccionesViajes(e: Entrada) {
     }
   }
 
+  // Lo seleccionado que de verdad está sin cerrar. La tabla solo deja marcar
+  // esos en la vista de pasados sin reserva, pero se vuelve a filtrar aquí: si
+  // alguien registró una reserva entre medio, ese viaje ya no se toca.
+  function viajesPorCerrar() {
+    return selectedTrips
+      .map((id) => trips.find((trip) => trip.id === id))
+      .filter((trip): trip is Trip => Boolean(trip))
+      .filter((trip) => estadoDeCompra(trip, localDate(), purchaseWindow) === "sin_cerrar");
+  }
+
+  function openCloseTrips() {
+    clearMessages();
+    if (!viajesPorCerrar().length) {
+      setNotice("Selecciona viajes pasados sin reserva para continuar.");
+      return;
+    }
+    abrirModal("close");
+  }
+
+  async function closeSelectedTrips(modo: ModoDeCierre, motivo: string, pnr: string) {
+    const rows = viajesPorCerrar();
+    await runAction(async () => {
+      const problema = problemaDeCierre(rows, modo, motivo, pnr);
+      if (problema) throw new Error(problema);
+      const updatedAt = new Date().toISOString();
+      if (demo) {
+        const porId = new Map(rows.map((trip) => [trip.id, trip]));
+        setTrips((current) =>
+          current.map((trip) =>
+            porId.has(trip.id)
+              ? { ...trip, ...cambioDeCierre(trip, modo, motivo, pnr), updated_at: updatedAt }
+              : trip,
+          ),
+        );
+      } else {
+        // De a diez, y cada uno solo si nadie lo cambió desde que se cargó la
+        // lista: lo mismo que hace "Marcar como solicitados".
+        for (let index = 0; index < rows.length; index += 10) {
+          const results = await Promise.all(
+            rows.slice(index, index + 10).map((trip) =>
+              db()
+                .from("trips")
+                .update({ ...cambioDeCierre(trip, modo, motivo, pnr), updated_at: updatedAt })
+                .eq("id", trip.id)
+                .eq("updated_at", trip.updated_at!)
+                .select("id"),
+            ),
+          );
+          for (const result of results) {
+            if (result.error) throw result.error;
+            if (!result.data?.length) {
+              throw new Error(
+                "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
+              );
+            }
+          }
+        }
+        await reload();
+      }
+      setSelectedTrips([]);
+      closeModal();
+      const n = rows.length;
+      setNotice(
+        modo === "anular"
+          ? `${n} ${n === 1 ? "viaje anulado" : "viajes anulados"}.`
+          : `${n} ${n === 1 ? "viaje cerrado" : "viajes cerrados"} con la reserva ${pnr.trim().toUpperCase()}.`,
+      );
+    }, "form");
+  }
+
   return {
     openTrip,
     saveTrip,
     savePurchaseWindow,
     showHistory,
+    viajesPorCerrar,
+    openCloseTrips,
+    closeSelectedTrips,
   };
 }
 

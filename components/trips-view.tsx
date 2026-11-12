@@ -44,6 +44,7 @@ export default function TripsView() {
     markSelectedRequested,
     navigate,
     onlyUpcoming,
+    openCloseTrips,
     compraDe,
     purchaseFilter,
     setPurchaseFilter,
@@ -73,6 +74,18 @@ export default function TripsView() {
   const ultimaCuenta = useRef(0);
   if (selectedTrips.length) ultimaCuenta.current = selectedTrips.length;
   const cuentaSeleccion = selectedTrips.length || ultimaCuenta.current;
+
+  // En la lista de pasados sin reserva la selección sirve para cerrarlos; en el
+  // resto, para marcar como solicitados los planificados que vienen. Son dos
+  // usos que no se mezclan: cada lista deja marcar solo lo suyo.
+  const modoCierre = purchaseFilter === "sin_cerrar";
+  const seleccionables = modoCierre
+    ? visibleTrips.filter((trip) => compraDe(trip) === "sin_cerrar")
+    : requestableTrips;
+  const esSeleccionable = (trip: (typeof visibleTrips)[number]) =>
+    modoCierre
+      ? compraDe(trip) === "sin_cerrar"
+      : trip.status === "Planificado" && trip.date >= localDate();
 
   const hasTripFilters =
     Boolean(query) ||
@@ -156,11 +169,12 @@ export default function TripsView() {
               : BOTON_BARRA
           }
           aria-pressed={purchaseFilter === "abiertos"}
-          onClick={() =>
+          onClick={() => {
+            setSelectedTrips([]);
             setPurchaseFilter(
               purchaseFilter === "abiertos" ? "todos" : "abiertos",
-            )
-          }
+            );
+          }}
         >
           <Clock size={17} />
           {purchaseFilter === "abiertos" ? "Solo por comprar" : "Por comprar"}
@@ -235,16 +249,27 @@ export default function TripsView() {
               >
                 Quitar selección
               </Button>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => void markSelectedRequested()}
-                disabled={busy}
-              >
-                {busy
-                  ? "Actualizando…"
-                  : `Marcar ${cuentaSeleccion} como ${cuentaSeleccion === 1 ? "solicitado" : "solicitados"}`}
-              </Button>
+              {modoCierre ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={openCloseTrips}
+                  disabled={busy}
+                >
+                  {`Cerrar ${cuentaSeleccion} ${cuentaSeleccion === 1 ? "viaje" : "viajes"}`}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => void markSelectedRequested()}
+                  disabled={busy}
+                >
+                  {busy
+                    ? "Actualizando…"
+                    : `Marcar ${cuentaSeleccion} como ${cuentaSeleccion === 1 ? "solicitado" : "solicitados"}`}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -264,22 +289,26 @@ export default function TripsView() {
                   <label className={CASILLA_TOQUE}>
                     <Checkbox
                       className="mx-auto my-0"
-                      aria-label="Seleccionar todos los viajes planificados visibles"
+                      aria-label={
+                        modoCierre
+                          ? "Seleccionar todos los viajes sin cerrar visibles"
+                          : "Seleccionar todos los viajes planificados visibles"
+                      }
                       checked={
-                        requestableTrips.length > 0 &&
-                        requestableTrips.every((trip) =>
+                        seleccionables.length > 0 &&
+                        seleccionables.every((trip) =>
                           selectedTrips.includes(trip.id),
                         )
                       }
                       onChange={(event) => {
-                        const ids = requestableTrips.map((trip) => trip.id);
+                        const ids = seleccionables.map((trip) => trip.id);
                         setSelectedTrips((current) =>
                           event.target.checked
                             ? Array.from(new Set([...current, ...ids]))
                             : current.filter((id) => !ids.includes(id)),
                         );
                       }}
-                      disabled={!requestableTrips.length}
+                      disabled={!seleccionables.length}
                     />
                   </label>
                 </Th>
@@ -298,8 +327,7 @@ export default function TripsView() {
               {visibleTrips.map((trip) => (
                 <Tr key={trip.id}>
                   <Td data-label="Seleccionar" className={CELDA_SELECCION}>
-                    {trip.status === "Planificado" &&
-                    trip.date >= localDate() ? (
+                    {esSeleccionable(trip) ? (
                       <label
                         className={
                           CASILLA_TOQUE + " max-[760px]:ml-auto max-[760px]:mr-[-10px]"
