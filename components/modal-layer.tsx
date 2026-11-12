@@ -90,7 +90,9 @@ export default function ModalLayer() {
                         ? "Manifiesto para solicitar"
                         : modal === "close"
                           ? "Cerrar viajes pasados"
-                          : "Historial del viaje"}
+                          : editPerson
+                            ? "Historial de la persona"
+                            : "Historial del viaje"}
             </h2>
             <p
               id="dialog-description"
@@ -112,7 +114,9 @@ export default function ModalLayer() {
                           ? "Anula los que no se volaron o registra la reserva con que se volaron."
                           : editTrip
                         ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
-                        : "Cambios registrados en este viaje."}
+                        : editPerson
+                          ? editPerson.name
+                          : "Cambios registrados en este viaje."}
             </p>
           </div>
           <Button

@@ -43,6 +43,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/cierre.ts` | **Cerrar viajes sin cerrar.** Qué cambio le toca a cada viaje al anularlo o al registrarle una reserva común, y qué falta para poder hacerlo. 6 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, sin cerrar, vencido, urgente o próximo. 18 pruebas. |
 | `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
+| `lib/historial.ts` | **Qué cambió en cada entrada del historial.** Compara `before_data` y `after_data` y devuelve los campos que se reconocen (fecha, reserva, estado, turno, vigencia…) ya escritos para leer, y solo lo que la nota agregó en ese cambio. Lo usa el historial de viajes y el de personas (botón en la ficha). 6 pruebas. |
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |
