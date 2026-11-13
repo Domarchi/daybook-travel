@@ -1,8 +1,9 @@
 "use client";
 
 import EmptyState from "@/components/ui/empty-state";
+import { EsqueletoDeLista } from "@/components/ui/esqueleto";
 import { Button } from "@/components/ui/button";
-import { DialogBody, LoadingMark } from "@/components/ui/dialog-parts";
+import { DialogBody } from "@/components/ui/dialog-parts";
 import { ArrowDownLeft, Clock } from "lucide-react";
 import { formatDateTime } from "../lib/format";
 import { useApp } from "../app/store";
@@ -41,18 +42,13 @@ export default function HistoryDialog() {
           </Button>
         )}
         {historyLoading ? (
-          <div
-            className="flex min-h-[220px] items-center justify-center gap-[10px]"
-            aria-live="polite"
-          >
-            <LoadingMark />
-            <p className="text-muted">Cargando cambios…</p>
-          </div>
+          <EsqueletoDeLista etiqueta="Cargando cambios…" filas={3} />
         ) : demo ? (
           <EmptyState
             icon={<Clock />}
             title="Historial disponible en la operación"
             description="La demostración no guarda cambios permanentes."
+            bare
           />
         ) : history.length ? (
           <div className="grid">
@@ -89,6 +85,7 @@ export default function HistoryDialog() {
             icon={<Clock />}
             title="Sin cambios anteriores"
             description="Este viaje todavía no tiene cambios registrados."
+            bare
           />
         )}
       </DialogBody>

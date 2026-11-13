@@ -7,7 +7,10 @@
 // comprobar quién llama. Aquí no se borra a nadie: quitar un acceso lo
 // desactiva y se puede reactivar.
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
+import { EsqueletoDeTabla } from "@/components/ui/esqueleto";
 import { Input, Label, Select } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { StaticOverviewCard } from "@/components/ui/overview-card";
@@ -190,11 +193,24 @@ export default function MembersView() {
           <TBody>
             {miembros === null ? (
               <Tr>
-                <Td colSpan={4}>{error ? "No se pudo cargar la lista." : "Cargando…"}</Td>
+                <Td colSpan={4} className="p-0">
+                  {error ? (
+                    <p className="p-4 text-meta text-danger">No se pudo cargar la lista.</p>
+                  ) : (
+                    <EsqueletoDeTabla etiqueta="Cargando accesos…" filas={3} columnas={4} />
+                  )}
+                </Td>
               </Tr>
             ) : miembros.length === 0 ? (
               <Tr>
-                <Td colSpan={4}>Todavía no hay nadie en la lista.</Td>
+                <Td colSpan={4} className="p-0">
+                  <EmptyState
+                    bare
+                    icon={<Users />}
+                    title="Todavía no hay nadie en la lista"
+                    description="Da acceso con el correo de la persona en el formulario de arriba."
+                  />
+                </Td>
               </Tr>
             ) : (
               miembros.map((miembro) => {

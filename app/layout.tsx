@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SCRIPT_TEMA_INICIAL } from "@/lib/tema";
 
 import "@daybook/design/tokens.css";
+import "@daybook/design/estados.css";
 import "./globals.css";
 
 // La fuente de la familia Daybook (ver @daybook/design). Sus variables van en

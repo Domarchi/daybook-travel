@@ -2,7 +2,8 @@
 
 import { formatoCLP, registroDeCosto, cuentaParaCostos } from "../lib/costs";
 import { useMemo } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Route, Users, Wallet } from "lucide-react";
+import EmptyState from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Label, Select } from "@/components/ui/field";
 import { TRIP_STATUSES } from "@/lib/types";
@@ -116,7 +117,7 @@ export default function CostsView() {
             <span className="grid min-w-0 gap-1"><strong>{personName(trip.person_id)}</strong><small>{formatDate(trip.date)} · {trip.origin} → {trip.destination} · {trip.status}</small></span>
             <ChevronRight className="shrink-0 text-muted" size={18} />
           </Button>
-        ) : <p className="p-4 text-meta">No hay viajes de esta categoría con los filtros actuales.</p>}
+        ) : <EmptyState bare icon={<Wallet />} title="Nada pendiente en esta categoría" description="No hay viajes de esta categoría con los filtros actuales." />}
       </section>}
 
       <TableWrap className="mb-5" role="region" aria-label="Costos por mes" tabIndex={0}>
@@ -146,7 +147,7 @@ export default function CostsView() {
               ))
             ) : (
               <Tr>
-                <Td colSpan={4}>Todavía no hay viajes que costear.</Td>
+                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Wallet />} title="Todavía no hay viajes que costear" description="Los montos aparecen aquí cuando un viaje registra su reserva." /></Td>
               </Tr>
             )}
           </TBody>
@@ -192,7 +193,7 @@ export default function CostsView() {
               ))
             ) : (
               <Tr>
-                <Td colSpan={5}>Todavía no hay rutas registradas.</Td>
+                <Td colSpan={5} className="p-0"><EmptyState bare icon={<Route />} title="Todavía no hay rutas registradas" description="Cada ruta aparece aquí con su costo cuando un viaje la usa." /></Td>
               </Tr>
             )}
           </TBody>
@@ -232,7 +233,7 @@ export default function CostsView() {
                 ))
             ) : (
               <Tr>
-                <Td colSpan={4}>Todavía no hay personas con viajes.</Td>
+                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Users />} title="Todavía no hay personas con viajes" description="Cada persona aparece aquí con su gasto cuando tiene un viaje." /></Td>
               </Tr>
             )}
           </TBody>
