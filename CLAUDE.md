@@ -586,6 +586,13 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
   push era el que fallaba de forma intermitente, casi siempre con "Chrome no expuso CDP", que es
   del servidor de GitHub y no del código). Si aun así falla así, se relanza con
   `gh run rerun <id> --failed`. Una prueba (`lib/ci-workflow.test.ts`) fija los disparadores.
+- **Las fallas del arranque de Chrome en el CI** (revisadas el 13-nov-2026: 7 de 9 fallas eran
+  del primer paso de navegador) venían de plazos cortos en `scripts/browser-login.mjs`: Chrome
+  tenía 20 s para abrir su puerto («Chrome no expuso CDP») y 3 s, sin reintento, para crear una
+  pestaña (un `TimeoutError` suelto, sin decir de dónde). Ahora tiene los mismos 45 s que Next y
+  `openTarget` reintenta tres veces y falla diciendo qué no pudo hacer. Queda una falla rara en
+  el arnés de recuperación («M1 document boundary … false !== true»): mide el foco justo después
+  de una tecla. No se tocó: reintentar ahí haría esperar a cada uno de sus mutantes.
 - **La prueba B2 de PostgreSQL esperaba mal el arranque.** La imagen de Docker levanta primero un
   servidor temporal solo por socket y luego el definitivo; ahora `waitForPostgres` exige TCP y
   después el socket (PR #13). Si reaparece, mirar ahí antes de relanzar a ciegas.
