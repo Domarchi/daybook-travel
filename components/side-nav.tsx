@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarDays, Coins, LogOut, Moon, Plane, ShieldCheck, Sun, Users } from "lucide-react";
+import { CalendarDays, Coins, LogOut, Monitor, Moon, Plane, ShieldCheck, Sun, Users } from "lucide-react";
+import { OPCIONES_DE_TEMA, type PreferenciaDeTema } from "@/lib/tema";
 import BrandLogo from "@/components/ui/brand-logo";
 import BrandMark from "@/components/ui/brand-mark";
 import { cn } from "@/lib/utils";
@@ -25,7 +26,7 @@ const FOCO = "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-v
 // Debajo de 820 px el riel pasa a ser una franja superior y el enlace ya no se
 // corre al pasar el mouse ni se hunde al apretarlo: de ahí los `min-[820px]:`.
 const ENLACE = cn(
-  "flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-sm border-none px-3 text-left",
+  "flex min-h-[var(--db-rail-item-height)] w-full cursor-pointer items-center gap-3 rounded-sm border-none px-3 text-left",
   "text-rail-link transition-[translate,scale,color,background-color] duration-[160ms] ease-out",
   "min-[820px]:[&:hover:not(:active)]:translate-x-[2px] min-[820px]:active:scale-[0.98]",
   "max-[820px]:flex-1 max-[820px]:justify-center max-[820px]:gap-1.5 max-[820px]:px-1.5",
@@ -46,6 +47,8 @@ export default function SideNav() {
     navigate,
     theme,
     toggleTheme,
+    preferenciaTema,
+    elegirTema,
     demo,
     email,
     isAdmin,
@@ -62,7 +65,7 @@ export default function SideNav() {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-30 flex w-[232px] flex-col border-r border-r-rail-line bg-rail text-rail-foreground",
+        "fixed inset-y-0 left-0 z-30 flex w-[var(--db-rail-width)] flex-col border-r border-r-rail-line bg-rail text-rail-foreground",
         "max-[820px]:sticky max-[820px]:inset-x-0 max-[820px]:top-0 max-[820px]:bottom-auto",
         "max-[820px]:w-auto max-[820px]:flex-row max-[820px]:flex-wrap max-[820px]:items-center",
         "max-[820px]:border-r-0 max-[820px]:border-b max-[820px]:border-b-rail-line max-[820px]:px-[14px] max-[820px]:py-[10px]",
@@ -98,8 +101,10 @@ export default function SideNav() {
               className={cn(
                 ENLACE,
                 // El marcado le gana al hover: la pestaña actual no cambia de color al pasarle encima.
+                // El activo lleva además la barra dorada de la familia Daybook (no en
+                // el teléfono, donde el riel es una fila de pestañas).
                 actual
-                  ? "bg-rail-active text-rail-foreground"
+                  ? "bg-rail-active text-rail-foreground min-[820px]:[box-shadow:inset_var(--db-rail-indicator-width)_0_0_var(--db-rail-indicator)]"
                   : "bg-transparent [&:hover]:bg-rail-hover [&:hover]:text-rail-link-hover",
               )}
               aria-current={actual ? "page" : undefined}
@@ -130,9 +135,11 @@ export default function SideNav() {
               {demo ? "Datos ficticios" : "Sesión activa"}
             </small>
           </div>
+          {/* En el teléfono el riel es una fila y no cabe el selector: queda el
+              botón que alterna claro y oscuro. */}
           <button
             type="button"
-            className={BOTON_RIEL}
+            className={cn(BOTON_RIEL, "min-[821px]:hidden")}
             onClick={toggleTheme}
             aria-label={oscuro ? "Activar modo claro" : "Activar modo oscuro"}
           >
@@ -153,6 +160,27 @@ export default function SideNav() {
             <LogOut size={17} />
           </button>
         </div>
+        {/* El tema, en el pie del riel junto a la persona, como en Parte Diario y
+            Daybook Ticket: Sistema, Claro u Oscuro. */}
+        <label className="mt-3 flex items-center gap-2 text-rail-caption max-[820px]:hidden">
+          {preferenciaTema === "system" ? <Monitor size={15} aria-hidden="true" /> : oscuro ? <Moon size={15} aria-hidden="true" /> : <Sun size={15} aria-hidden="true" />}
+          <span className="sr-only">Tema</span>
+          <select
+            aria-label="Tema"
+            value={preferenciaTema}
+            onChange={(evento) => elegirTema(evento.target.value as PreferenciaDeTema)}
+            className={cn(
+              "min-h-9 flex-1 cursor-pointer rounded-sm border border-rail-line bg-transparent px-2 text-caption text-rail-foreground",
+              FOCO,
+            )}
+          >
+            {OPCIONES_DE_TEMA.map((opcion) => (
+              <option key={opcion.valor} value={opcion.valor} className="text-black">
+                {opcion.etiqueta}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
     </aside>
   );

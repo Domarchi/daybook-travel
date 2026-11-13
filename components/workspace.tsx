@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
 import CostsView from "@/components/costs-view";
@@ -57,13 +57,25 @@ export default function Workspace() {
   return (
     <div className="shell">
       <div
-        className="app-content ml-[232px] max-[820px]:ml-0"
+        className="app-content ml-[var(--db-rail-width)] max-[820px]:ml-0"
         inert={modal ? true : undefined}
         aria-hidden={modal ? true : undefined}
       >
         <SideNav />
 
-        <main className="mx-auto min-h-screen w-[min(100%,1480px)] px-[clamp(18px,3vw,44px)] pt-7 pb-6 max-[820px]:pt-[22px] max-[760px]:px-[14px]">
+        {/* La cabecera fija de la familia Daybook (64 px, negra en oscuro), con
+            el lugar donde uno está. En el teléfono el riel ya es la barra de
+            arriba, así que no se repite. */}
+        <header className="sticky top-0 z-20 flex h-[var(--db-topbar-height)] items-center border-b border-line bg-[color-mix(in_srgb,var(--bg)_91%,transparent)] px-[max(var(--db-content-gutter),calc((100%_-_var(--db-content-max))/2_+_var(--db-content-gutter)))] backdrop-blur-[18px] max-[820px]:hidden">
+          <nav aria-label="Ubicación" className="flex min-w-0 items-center gap-2 text-meta">
+            <span className="text-muted">Traslados · Copiapó</span>
+            <ChevronRight size={14} aria-hidden="true" className="flex-none text-muted" />
+            <span aria-current="page" className="truncate font-semibold text-foreground">{view}</span>
+          </nav>
+        </header>
+
+        {/* Contenido con el tope y el margen de la familia: 1360 px y 32 px. */}
+        <main className="mx-auto min-h-screen w-[min(100%,calc(var(--db-content-max)_+_2_*_var(--db-content-gutter)))] px-[var(--db-content-gutter)] pt-7 pb-6 max-[820px]:pt-[22px] max-[760px]:px-4">
           {demo && (
             <div className="mb-4 border-l-2 border-line-strong pl-3 text-meta text-foreground-soft">
               <span>

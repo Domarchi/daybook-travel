@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SCRIPT_TEMA_INICIAL } from "@/lib/tema";
 
 import "@daybook/design/tokens.css";
 import "./globals.css";
@@ -15,13 +16,6 @@ export const metadata: Metadata = {
   icons: { icon: "/brand/daybook-favicon.svg" },
 };
 
-const themeInitializer = `
-  try {
-    const savedTheme = window.localStorage.getItem("daybook-travel-theme");
-    document.documentElement.dataset.theme =
-      savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
-  } catch {}
-`;
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -32,7 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitializer }} />
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA_INICIAL }} />
       </head>
       <body>
         {children}
