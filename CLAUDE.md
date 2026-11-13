@@ -205,9 +205,10 @@ solo como constancia, sin volver a ejecutarlas. De antes quedan tres con otro no
      seleccionado. El navegador integrado bloquea el primero; en Chrome sobre HTTPS anda.
    - Cuando falta la hora o el equipaje se escribe "Por confirmar", **con mayúscula en ambos**.
      El equipaje que sí existe va en minúscula ("maleta en bodega").
-   - Dentro de un mismo día los bloques van por orden alfabético de origen, así que la bajada
-     sale antes que la subida. Está sin decidir si conviene: alfabético, subidas primero, o por
-     hora de vuelo.
+   - **Dentro de un mismo día los bloques van por hora de vuelo** (decidido en noviembre de 2026;
+     antes iban por orden alfabético de origen y la bajada salía antes que la subida). La hora de
+     un bloque es la más temprana de sus pasajeros; los bloques sin hora («Por confirmar») van al
+     final del día. Dentro de un bloque, los pasajeros van por hora y después por nombre.
    - **Ojo al probar en la demo**: los 13 viajes de ejemplo caen en 13 días y rutas distintos, así
      que todos los bloques dicen "1 pasajero" y el agrupamiento no se ve. Para verlo hacen falta
      dos personas el mismo día y la misma ruta.

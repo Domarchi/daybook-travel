@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { agruparManifiesto, textoDeManifiesto } from "./manifest.ts";
+import { agruparManifiesto, horaDelBloque, textoDeManifiesto } from "./manifest.ts";
 import type { Trip } from "./types.ts";
 
 const HOY = "2026-09-10";
@@ -199,4 +199,34 @@ test("sin viajes el texto igual tiene encabezado y un total en cero", () => {
   const texto = textoDeManifiesto([], HOY);
   assert.match(texto, /^SOLICITUD DE PASAJES/);
   assert.match(texto, /Total: 0 pasajes en 0 vuelos\./);
+});
+
+test("dentro de un día los bloques van por hora de vuelo, y los sin hora al final", () => {
+  const bloques = agruparManifiesto(
+    [
+      // Sin hora: va al final del día aunque su origen vaya primero en el abecedario.
+      viaje({ person_id: "p1", date: "2026-09-14", origin: "Antofagasta", requested_time: null }),
+      viaje({ person_id: "p2", date: "2026-09-14", origin: "Santiago", requested_time: "19:30:00" }),
+      viaje({ person_id: "p3", date: "2026-09-14", direction: "BAJADA", origin: "Copiapó", destination: "Santiago", requested_time: "07:05:00" }),
+    ],
+    nombreDe,
+  );
+  assert.deepEqual(bloques.map((b) => [b.origen, horaDelBloque(b)]), [
+    ["Copiapó", "07:05"],
+    ["Santiago", "19:30"],
+    ["Antofagasta", null],
+  ]);
+});
+
+test("la hora de un bloque es la más temprana, y sus pasajeros van por hora y nombre", () => {
+  const [bloque] = agruparManifiesto(
+    [
+      viaje({ person_id: "p2", date: "2026-09-14", requested_time: "10:00:00" }),
+      viaje({ person_id: "p1", date: "2026-09-14", requested_time: null }),
+      viaje({ person_id: "p3", date: "2026-09-14", requested_time: "08:15:00" }),
+    ],
+    nombreDe,
+  );
+  assert.equal(horaDelBloque(bloque), "08:15");
+  assert.deepEqual(bloque.pasajeros.map((p) => p.nombre), ["Andrés Rojas", "María Soto", "Juan Pérez"]);
 });
