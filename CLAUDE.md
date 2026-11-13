@@ -38,7 +38,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/excel-sync-panel.tsx` | La pantalla del importador Excel en 3 pasos (Preparar → Revisar → Aplicar), 818 líneas. Bien hecho, no romper. Sus cuentas están en `lib/excel-preview.ts` (leer hojas, comparar, armar la vista previa; 10 pruebas) y sus piezas chicas en `app/excel-sync-parts.tsx`. |
 | `app/year-view.tsx` | El calendario de la Agenda (vista Mes y Semana). El panel del día seleccionado está en `app/year-day-detail.tsx`. |
 | `lib/en-obra.ts` | **Quién está en obra un día**, según los viajes registrados (no el turno teórico): último movimiento hasta ese día = subida. Lo muestra el panel del día en la Agenda («En obra: N personas», plegable, con «Sube/Baja ese día»), con el filtro de turno. Si lo primero registrado de alguien es una bajada, se asume que ya estaba. 4 pruebas. |
-| `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
+| `lib/trips-csv.ts` | El CSV de la solicitud a la agencia y el de **Costos** («Descargar para Excel»: los viajes del período y estado elegidos, con el monto como número para que Excel sume), con la defensa contra fórmulas de Excel. 6 pruebas. |
 | `app/globals.css` | ~435 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el velo y la caja de los diálogos y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/cierre.ts` | **Cerrar viajes sin cerrar.** Qué cambio le toca a cada viaje al anularlo o al registrarle una reserva común, y qué falta para poder hacerlo. 6 pruebas. |
