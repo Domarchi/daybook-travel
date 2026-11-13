@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ENCABEZADOS_CSV, celdaCsv, csvDeViajes } from "./trips-csv.ts";
+import { ENCABEZADOS_CSV, celdaCsv, csvDeCostos, csvDeViajes } from "./trips-csv.ts";
 import type { Trip } from "./types.ts";
 
 const viaje = (extra: Partial<Trip> = {}): Trip => ({
@@ -44,4 +44,21 @@ test("la columna de acreditación solo aparece si se pide", () => {
 test("un nombre que empieza como fórmula no llega al libro como fórmula", () => {
   const csv = csvDeViajes([viaje()], () => "=HYPERLINK(\"x\")");
   assert.ok(csv.includes(`"'=HYPERLINK(""x"")"`));
+});
+
+test("el CSV de costos va por fecha, con el monto como número y vacío si falta", () => {
+  const csv = csvDeCostos(
+    [
+      viaje({ id: "b", date: "2026-11-09", pnr: "BBB222", amount: null, status: "Emitido", flight: "LA 112" }),
+      viaje({ id: "a", date: "2026-11-02", pnr: "=HYPERLINK(1)", amount: 85990, status: "Emitido", flight: "LA 112" }),
+    ],
+    () => "MARÍA SOTO",
+  );
+  assert.ok(csv.startsWith("\uFEFF"), "con BOM, para que Excel lea las tildes");
+  const filas = csv.slice(1).split("\r\n");
+  assert.equal(filas[0], '"Fecha";"Persona";"Sentido";"Origen";"Destino";"Estado";"Reserva";"Vuelo";"Monto CLP"');
+  assert.equal(filas[1].split(";")[0], '"2026-11-02"', "va por fecha");
+  assert.ok(filas[1].includes(`"'=HYPERLINK(1)"`), "la reserva que parece fórmula queda como texto");
+  assert.ok(filas[1].endsWith('"85990"'), "el monto es un número sin formato");
+  assert.ok(filas[2].endsWith(';""'), "sin monto, la celda queda vacía");
 });

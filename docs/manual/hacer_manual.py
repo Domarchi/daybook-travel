@@ -6,8 +6,8 @@ import html, sys
 SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
-VERSION = "2.0"
-FECHA = "10 de noviembre de 2026"
+VERSION = "2.1"
+FECHA = "12 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
 def e(t):
@@ -48,7 +48,7 @@ pagina("Para comenzar", "Para qué vamos a usar Daybook Travel",
   tarjetas([
     ("04", "Costos", "Cuánto se gasta por mes, por ruta y por persona, siempre con cuántos viajes tienen monto."),
     ("05", "Accesos", "Solo para administradores: quién puede entrar a la aplicación."),
-    ("06", "Historial", "Cada cambio queda guardado con quién lo hizo. Nada se borra."),
+    ("06", "Actividad", "Los últimos cambios de todo el proyecto, con quién los hizo y qué cambió. Nada se borra."),
   ]) +
   '<h2>Así vamos a trabajar</h2>' +
   '<div class="flujo">' + "".join(f'<div><span>{i}</span><strong>{t}</strong><small>{d}</small></div>' for i, (t, d) in enumerate([
@@ -82,8 +82,8 @@ pagina("Agenda", "Por dónde conviene empezar",
   "Al abrir la aplicación, estas cuatro tarjetas muestran lo que hay que revisar primero.",
   tarjetas([
     ("Próximo movimiento", "Fecha y hora", "Lleva al viaje más cercano."),
-    ("Por comprar ahora", "Un número", "Viajes sin código de reserva que vuelan pronto o que ya volaron. Abre la lista filtrada."),
-    ("Pendientes de confirmación", "Solicitudes enviadas", "Lo que ya pedimos y todavía no tiene respuesta."),
+    ("Por comprar ahora", "Un número", "Viajes sin código de reserva que vuelan pronto o que volaron hace menos de dos semanas. Abre la lista filtrada."),
+    ("Pendientes de confirmación", "Solicitudes enviadas", "Lo que ya pedimos y todavía no tiene respuesta, y hace cuánto se pidió lo más antiguo."),
     ("Personas activas", "En el proyecto", "Abre la nómina vigente."),
   ]) +
   '<h2>La anticipación de compra</h2>' +
@@ -91,7 +91,7 @@ pagina("Agenda", "Por dónde conviene empezar",
     col("Cómo se decide qué es urgente", lista([
       "Un viaje está <strong>resuelto</strong> cuando tiene código de reserva (PNR). Pedirlo a la agencia no basta: hasta que no hay código, nadie tiene asiento.",
       "Es <strong>urgente</strong> si vuela dentro de la anticipación elegida y no tiene PNR.",
-      "Está <strong>vencido</strong> si la fecha ya pasó y no se compró nada.",
+      "Está <strong>vencido</strong> si la fecha pasó hace menos de 14 días y nadie registró la compra. Después queda <strong>sin cerrar</strong> (ver «Viajes sin cerrar»).",
       "Un viaje anulado no se vuelve a comprar.",
     ])),
     col("Dónde se cambia", lista([
@@ -120,6 +120,7 @@ pagina("Agenda mensual y semanal", "Cómo leer el calendario",
   nota("También funciona con teclado", "Las flechas cambian de día, Inicio y Fin recorren la semana, y Re Pág o Av Pág cambian de mes. En la vista semanal, las flechas cruzan de una semana a la siguiente.") +
   '<h2>Qué pasa al abrir un día</h2>' +
   pasos([
+    "Arriba dice <strong>En obra: N personas</strong>. Ábrelo para ver quiénes están ese día y quién sube o baja. Sale de los viajes registrados.",
     "Selecciona una fila para abrir el viaje y revisar todos sus datos.",
     "Usa <strong>Agregar viaje</strong> si falta un viaje en esa fecha.",
     "Cierra el detalle para volver al calendario.",
@@ -133,12 +134,13 @@ pagina("Personas", "La ficha de cada integrante",
       "Se puede buscar por nombre, ciudad o turno.",
       "Los filtros son Activas, 4×3, 10×10, Sin turno, Por confirmar, Inactivas y Todas.",
       "Cada ficha resume la ruta, el turno, el inicio y el equipaje.",
+      "Si dos fichas tienen el mismo nombre, la lista las marca y la ficha avisa al escribirlo.",
     ])),
     col("Acciones por persona", lista([
       "<strong>Nuevo viaje</strong> toma como base su ruta habitual.",
       "<strong>Ver viajes</strong> muestra solamente los de esa persona.",
       "<strong>Editar</strong> cambia la información para los viajes que se creen después.",
-      "Si queda inactiva, sus viajes anteriores se mantienen.",
+      "En la ficha, <strong>Ver historial de la persona</strong> muestra sus cambios y los de sus documentos.",
     ]))) +
   '<h2>Cómo completar una ficha</h2>' +
   dos(
@@ -155,7 +157,7 @@ pagina("Personas", "La ficha de cada integrante",
       "Cambiar su ruta no modifica los viajes que ya existen.",
       "Si hay documentos exigidos, la ficha trae una sección <strong>Documentos</strong> con su vencimiento.",
     ]))) +
-  nota("Si alguien sale del proyecto", "Desactiva su ficha en vez de borrarla. De esa forma seguimos teniendo sus viajes anteriores y el historial de cambios."))
+  nota("Si alguien sale del proyecto", "Desactiva su ficha en vez de borrarla. Al desmarcar <strong>Persona activa</strong>, la ficha ofrece anular sus viajes futuros sin reserva; los que tienen reserva hay que revisarlos."))
 
 pagina("Turnos", "Cómo se crean los viajes",
   "La aplicación calcula las fechas desde el turno de cada persona: no hace falta digitarlas una por una.",
@@ -189,7 +191,7 @@ pagina("Viajes", "Dónde revisar cada pasaje",
       "<strong>Por comprar</strong> deja solo lo que espera una gestión; el botón cambia a <strong>Solo por comprar</strong> mientras está activo.",
     ])),
     col("Lectura y acciones", lista([
-      "Cada fila muestra ruta, fecha, subida o bajada, hora, estado y los días que faltan.",
+      "Cada fila muestra ruta, fecha, subida o bajada, hora, estado y los días que faltan. Lo solicitado dice además hace cuánto se pidió.",
       "Abrir permite editar. El reloj muestra el historial de ese viaje.",
       "En el celular, la misma información aparece en tarjetas.",
       "Se pueden marcar varios viajes para operar sobre ellos a la vez.",
@@ -203,9 +205,9 @@ pagina("Viajes", "Dónde revisar cada pasaje",
       "La fecha tiene que estar dentro de la vigencia de la persona.",
     ])),
     col("Reserva y control", lista([
-      "Código de reserva (PNR), vuelo, monto y observaciones.",
+      "Código de reserva (PNR), vuelo, monto y observaciones. Al poner el código, el diálogo pide el monto si falta.",
       "No se puede repetir la misma persona, fecha y sentido.",
-      "Al modificar un viaje existente hay que anotar el motivo.",
+      "Al modificar un viaje existente hay que anotar el motivo, de al menos 5 letras.",
       "Si el monto se aparta mucho del precio de referencia de esa ruta, el diálogo lo avisa, pero no lo impide.",
     ]))))
 
@@ -224,18 +226,52 @@ pagina("Seguimiento", "Qué significa cada estado",
   '<h2>Reglas que vamos a seguir</h2>' +
   lista([
     "<strong>No borramos viajes.</strong> Si se cancela, queda como Anulado para conservar el historial.",
-    "Cuando editamos un viaje, anotamos el <strong>motivo del cambio</strong>.",
+    "Cuando editamos un viaje, anotamos el <strong>motivo del cambio</strong>: algo que se entienda después, como «No viajó» o «Duplicado». Un punto no sirve.",
     "El código de reserva (PNR) es obligatorio en Emitido, Completado y No presentado.",
     "Para cambiar la persona o el sentido, se anula el viaje y se crea uno nuevo.",
-    "Cada cambio queda en el historial con quién lo hizo: se ve con el reloj de cada viaje.",
+    "Cada cambio queda en el historial con quién lo hizo y qué cambió: se ve con el reloj de cada viaje.",
   ]))
+
+pagina("Viajes sin cerrar", "Lo que ya pasó y quedó sin reserva",
+  "Un viaje sin código de reserva cuya fecha pasó hace más de dos semanas ya no se compra: hay que cerrarlo.",
+  dos(
+    col("Dónde están", lista([
+      "Bajo las tarjetas de la Agenda aparece «N viajes pasados quedaron sin reserva». Abre la lista.",
+      "No cuentan en <strong>Por comprar ahora</strong> ni en el aviso por correo.",
+      "Cada uno lleva la marca <strong>Sin cerrar</strong>.",
+    ])),
+    col("Cómo se cierran", pasos([
+      "Marca los viajes, de a uno o todos con la casilla de arriba.",
+      "Pulsa <strong>Cerrar N viajes</strong> y elige qué pasó.",
+      "Escribe el motivo y confirma.",
+    ]))) +
+  '<h2>Las dos opciones</h2>' +
+  dos(
+    col("No se volaron", '<p>Quedan <strong>Anulados</strong>, con el motivo. Nada se borra.</p>'),
+    col("Se volaron con una misma reserva", '<p>Quedan <strong>Completados</strong> con su código y, si lo tienes, el monto por pasajero. Solo se puede si todos son del mismo día y la misma ruta: un código es un vuelo. Si cada uno tiene su código, ábrelos de a uno.</p>')) +
+  nota("Antes de anular", "Si alguno se voló con un pasaje comprado por fuera, no lo anules: regístrale la reserva. Anular dejaría un registro que no es cierto.", "aviso"))
+
+pagina("Actividad e historial", "Quién cambió qué, y cuándo",
+  "Cada cambio queda guardado con su autor. Hay dos formas de verlo: todo el proyecto, o un viaje o una persona.",
+  dos(
+    col("Actividad", lista([
+      "En la barra lateral. Muestra los últimos cambios de viajes, personas y documentos de todo el proyecto, agrupados por día.",
+      "Cada entrada dice quién lo hizo, qué cambió (por ejemplo «Reserva: — → ABC123») y el motivo.",
+      "<strong>Abrir</strong> lleva al viaje o a la ficha. <strong>Ver cambios anteriores</strong> trae más.",
+    ])),
+    col("Historial de un viaje o una persona", lista([
+      "El reloj de cada viaje, o <strong>Ver historial de la persona</strong> en su ficha.",
+      "Muestra lo mismo, solo de ese viaje o esa persona, desde que se creó.",
+      "En una persona también aparecen los cambios de vencimiento de sus documentos.",
+    ]))) +
+  nota("Para qué sirve", "Para entender por qué un viaje está como está antes de corregirlo, y para revisar al final del día qué se movió. Los cambios de accesos no aparecen aquí: los ve un administrador en Accesos."))
 
 pagina("Solicitud de pasajes", "Cómo preparar la lista para la agencia",
   "La aplicación arma el texto; nosotros lo revisamos y lo enviamos por el canal que acordemos.",
   pasos([
     "En <strong>Viajes</strong>, filtra la fecha o las personas que vas a solicitar.",
     "Marca los viajes planificados que quieres incluir. Si no marcas ninguno, entran todos los pendientes.",
-    "Pulsa <strong>Lista para solicitar</strong>: se abre una ventana con el texto, agrupado por día y ruta.",
+    "Pulsa <strong>Lista para solicitar</strong>: se abre una ventana con el texto, agrupado por día y ruta y, dentro de cada día, por hora de vuelo.",
     "Revisa y pulsa <strong>Copiar</strong>, o descarga el <strong>PDF</strong> o el <strong>CSV</strong>.",
     "Pega el texto en el correo a la agencia y envíalo.",
     "Después de enviarlo, pulsa <strong>Marcar N como solicitados</strong> sobre esa misma lista.",
@@ -283,13 +319,14 @@ pagina("Costos", "Cuánto se gasta y en qué",
       "El monto registrado por mes, por ruta y por persona.",
       "<strong>Siempre cuántos viajes tienen monto.</strong> Un total que cubre 3 de 41 viajes no es el gasto completo, y la pantalla lo dice.",
       "Un precio de referencia por ruta, para comparar.",
+      "<strong>Descargar para Excel</strong> baja los viajes del período elegido, con su monto, para contabilidad.",
     ])),
     col("Cómo se calcula", lista([
       "<strong>El monto es por pasajero.</strong> Dos personas en la misma reserva son dos montos que se suman.",
       "La referencia de una ruta es la <strong>mediana</strong>, no el promedio: una tarifa de última hora carísima no la mueve.",
       "Al escribir un monto que se aparta más de un 40 % de esa referencia, el diálogo avisa. No bloquea: una tarifa cara puede ser legítima.",
     ]))) +
-  nota("Por ahora el monto se escribe a mano", "El monto se anota cuando llega la confirmación. La aplicación todavía no consulta precios de aerolíneas en tiempo real."))
+  nota("Anotemos el monto al registrar la reserva", "Es el momento en que tenemos el precio delante, y el diálogo lo pide. Costos solo suma lo que tiene monto. La aplicación todavía no consulta precios de aerolíneas en tiempo real."))
 
 pagina("Excel", "Qué archivo usar",
   "Hay dos libros distintos. Cada uno sirve para un momento específico y no conviene mezclarlos.",
@@ -345,6 +382,7 @@ pagina("Trabajo diario", "Cómo proponemos organizarnos",
       "Cuando llegue la confirmación, registremos PNR, vuelo, monto y estado Emitido.",
       "Después del viaje, cambiemos el estado a Completado, Anulado o No presentado.",
       "Si algo no calza, revisemos el historial antes de corregirlo.",
+      "Una vez por semana, cerremos los <strong>viajes sin cerrar</strong> y miremos <strong>Actividad</strong>.",
     ])),
     col("Para coordinarnos", lista([
       "Antes de editar un viaje, revisemos que nadie más esté trabajando en él.",
@@ -363,9 +401,10 @@ pagina("Para terminar", "Qué está listo y qué viene después",
       "Ventana de compra: lo urgente y lo vencido a la vista.",
       "Lista de solicitud con control de acreditación.",
       "Sincronización con Excel y administración de accesos.",
+      "Actividad reciente, viajes sin cerrar, cierre en bloque y costos para Excel.",
     ])),
     col("Lo que queda para otra etapa", lista([
-      "Avisos por correo de viajes urgentes sin PNR.",
+      "Avisos por correo de viajes urgentes sin PNR: ya está hecho, falta configurar el correo.",
       "Consulta de precios de aerolíneas en tiempo real.",
       "Compra o emisión directa de pasajes.",
       "Envío automático a la agencia.",
