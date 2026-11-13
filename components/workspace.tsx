@@ -148,6 +148,19 @@ export default function Workspace() {
               {notice.tono === "error" ? <TriangleAlert size={18} /> : <Check size={18} />}
             </span>
             {notice.mensaje}
+            {notice.deshacer && (
+              <button
+                type="button"
+                className="toast-undo"
+                onClick={() => {
+                  const deshacer = notice.deshacer;
+                  setNotice(null);
+                  deshacer?.();
+                }}
+              >
+                Deshacer
+              </button>
+            )}
             {notice.tono === "error" && (
               <button type="button" className="toast-close" aria-label="Cerrar aviso" onClick={() => setNotice(null)}>
                 <X size={16} />

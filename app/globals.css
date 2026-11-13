@@ -478,6 +478,31 @@ small {
   outline-offset: 2px;
 }
 
+/* «Deshacer»: la salida de una acción que se hizo sin preguntar (Fase 5), igual
+   que en Parte Diario y Ticket. El aviso que lo trae dura 10 s. */
+.toast-undo {
+  flex: 0 0 auto;
+  min-height: 36px;
+  margin-left: auto;
+  padding: 0 var(--db-space-3);
+  border: 1px solid var(--db-toast-border);
+  border-radius: var(--db-radius-control);
+  background: transparent;
+  color: var(--db-toast-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toast-undo:hover {
+  background: rgba(255, 255, 255, .08);
+}
+
+.toast-undo:focus-visible {
+  outline: 2px solid var(--db-focus);
+  outline-offset: 2px;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

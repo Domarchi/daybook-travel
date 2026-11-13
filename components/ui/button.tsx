@@ -44,6 +44,14 @@ const buttonVariants = cva(
           "raton:hover:not-disabled:bg-[var(--action-hover)]",
           "raton:hover:not-disabled:text-primary-foreground",
         ].join(" "),
+        // Fase 5: el botón que confirma lo que no tiene vuelta atrás, dentro de
+        // su diálogo, y que nombra la acción («Anular 3 viajes»).
+        danger: [
+          "min-h-[var(--db-button-height)] border-[var(--db-danger-action)] bg-[var(--db-danger-action)] px-[var(--db-button-padding-x)] text-[var(--db-danger-action-text)]",
+          "raton:hover:not-disabled:border-[var(--db-danger-action-hover)]",
+          "raton:hover:not-disabled:bg-[var(--db-danger-action-hover)]",
+          "raton:hover:not-disabled:text-[var(--db-danger-action-text)]",
+        ].join(" "),
         icon: "size-[var(--db-button-height)] min-h-[var(--db-button-height)] min-w-[var(--db-button-height)] border-line bg-surface-raised p-0 text-foreground-soft",
       },
     },

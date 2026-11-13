@@ -32,7 +32,7 @@ import {
 } from "../lib/members";
 import { db } from "../lib/supabase";
 import { useApp } from "../app/store";
-import { avisoDeExito } from "@/lib/avisos";
+import { avisoConDeshacer, avisoDeExito } from "@/lib/avisos";
 
 export default function MembersView() {
   const { email: miCorreo, setNotice } = useApp();
@@ -63,6 +63,7 @@ export default function MembersView() {
     clave: string,
     llamada: PromiseLike<{ error: { message?: string } | null }>,
     exito: string,
+    deshacer?: () => void,
   ): Promise<boolean> {
     setOcupado(clave);
     setError("");
@@ -70,7 +71,7 @@ export default function MembersView() {
     if (fallo) {
       setError(mensajeDeError(fallo));
     } else {
-      setNotice(avisoDeExito(exito));
+      setNotice(deshacer ? avisoConDeshacer(exito, deshacer) : avisoDeExito(exito));
       await cargar();
     }
     setOcupado("");
@@ -233,6 +234,16 @@ export default function MembersView() {
                                     miembro.role === "admin"
                                       ? `${miembro.email} ya no administra los accesos.`
                                       : `${miembro.email} ahora administra los accesos.`,
+                                    // Quitar el rol se revierte desde el mismo
+                                    // aviso (Fase 5); darlo no necesita salida.
+                                    miembro.role === "admin"
+                                      ? () =>
+                                          void ejecutar(
+                                            miembro.email,
+                                            db().rpc("set_member_role", { p_email: miembro.email, p_role: "admin" }),
+                                            `${miembro.email} vuelve a administrar los accesos.`,
+                                          )
+                                      : undefined,
                                   )
                                 }
                               >
@@ -250,8 +261,16 @@ export default function MembersView() {
                                     p_active: !miembro.active,
                                   }),
                                   miembro.active
-                                    ? `${miembro.email} ya no puede entrar. Puedes reactivarlo cuando quieras.`
+                                    ? `${miembro.email} ya no puede entrar.`
                                     : `${miembro.email} puede volver a entrar.`,
+                                  miembro.active
+                                    ? () =>
+                                        void ejecutar(
+                                          miembro.email,
+                                          db().rpc("set_member_active", { p_email: miembro.email, p_active: true }),
+                                          `${miembro.email} puede volver a entrar.`,
+                                        )
+                                    : undefined,
                                 )
                               }
                             >

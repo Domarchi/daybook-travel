@@ -11,13 +11,24 @@
 
 export type TonoDeAviso = "exito" | "error";
 
-export type Aviso = { mensaje: string; tono: TonoDeAviso };
+// `deshacer` es la otra mitad de la regla de la Fase 5 para las acciones
+// delicadas: lo que se puede revertir se hace sin preguntar y el aviso ofrece
+// «Deshacer» durante 10 s; lo que no, pasa por un diálogo con el botón rojo.
+export type Aviso = { mensaje: string; tono: TonoDeAviso; deshacer?: () => void };
 
 /** Lo que dura un aviso de éxito: `--db-toast-duration` de @daybook/design. */
 export const DURACION_DEL_AVISO_MS = 4000;
 
+/** Con «Deshacer»: `--db-toast-duration-undo`, para alcanzar a leer y decidir. */
+export const DURACION_DEL_AVISO_CON_DESHACER_MS = 10000;
+
 export function avisoDeExito(mensaje: string): Aviso {
   return { mensaje, tono: "exito" };
+}
+
+/** Algo que ya se hizo y se puede revertir: quitar el acceso a alguien. */
+export function avisoConDeshacer(mensaje: string, deshacer: () => void): Aviso {
+  return { mensaje, tono: "exito", deshacer };
 }
 
 /** Un fallo del servidor o una validación que no deja seguir. */
@@ -27,5 +38,6 @@ export function avisoDeError(mensaje: string): Aviso {
 
 /** Cuánto vive el aviso antes de irse solo; `null` = hasta que lo cierren. */
 export function duracionDelAviso(aviso: Aviso): number | null {
-  return aviso.tono === "error" ? null : DURACION_DEL_AVISO_MS;
+  if (aviso.tono === "error") return null;
+  return aviso.deshacer ? DURACION_DEL_AVISO_CON_DESHACER_MS : DURACION_DEL_AVISO_MS;
 }
