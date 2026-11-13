@@ -7,6 +7,7 @@ import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Se
 import { formatDate, localDate } from "../lib/format";
 import { TRIP_STATUSES as statuses } from "../lib/types";
 import { diasParaVolar } from "../lib/purchase";
+import { ESPERA_LARGA, diasEsperando, textoDeEspera } from "../lib/solicitudes";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label, Select } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -392,7 +393,25 @@ export default function TripsView() {
                     {trip.requested_time?.slice(0, 5) || "Por confirmar"}
                   </Td>
                   <Td data-label="Estado">
+                    {/* Un solo bloque: en tarjeta la celda es una fila con su título a la izquierda. */}
+                    <div className="grid justify-items-start max-[760px]:justify-items-end">
                     <StatusPill status={trip.status} />
+                    {(() => {
+                      // Cuánto lleva esperando a la agencia; desde 3 días se destaca.
+                      const dias = diasEsperando(trip, localDate());
+                      if (dias === null) return null;
+                      return (
+                        <small
+                          className={
+                            "mt-1 block text-[11px] whitespace-nowrap " +
+                            (dias >= ESPERA_LARGA ? "font-bold text-warning" : "text-muted")
+                          }
+                        >
+                          Pedido {textoDeEspera(dias)}
+                        </small>
+                      );
+                    })()}
+                    </div>
                   </Td>
                   <Td data-label="Reserva">{trip.pnr || "—"}</Td>
                   <Td data-label="Acciones" className={CELDA_ACCIONES}>

@@ -2,6 +2,7 @@
 
 import { CalendarDays, ChevronRight } from "lucide-react";
 import { formatDate } from "../lib/format";
+import { textoDeEspera } from "../lib/solicitudes";
 import type { Trip } from "../lib/types";
 import { Button } from "@/components/ui/button";
 import { OverviewCard } from "@/components/ui/overview-card";
@@ -17,6 +18,7 @@ export default function AgendaView({
   onUnclosed,
   onWindowChange,
   requestedCount,
+  esperaMasLarga,
   activeCount,
   personName,
   onTrip,
@@ -37,6 +39,7 @@ export default function AgendaView({
   onUnclosed: () => void;
   onWindowChange: (dias: number) => void;
   requestedCount: number;
+  esperaMasLarga: number | null;
   activeCount: number;
   personName: (id: string) => string;
   onTrip: (trip: Trip) => void;
@@ -105,7 +108,11 @@ export default function AgendaView({
         <OverviewCard type="button" onClick={onRequested}>
           <span>Pendientes de confirmación</span>
           <strong>{requestedCount}</strong>
-          <small>Solicitudes enviadas</small>
+          <small>
+            {requestedCount && esperaMasLarga !== null
+              ? `La más antigua, ${textoDeEspera(esperaMasLarga)}`
+              : "Solicitudes enviadas"}
+          </small>
           <ChevronRight size={18} />
         </OverviewCard>
         <OverviewCard type="button" onClick={onPeople}>
