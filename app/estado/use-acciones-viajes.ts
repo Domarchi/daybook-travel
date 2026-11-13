@@ -266,46 +266,52 @@ export function useAccionesViajes(e: Entrada) {
     abrirModal("close");
   }
 
+  // Aplica el mismo tipo de cambio a varios viajes: de a diez, y cada uno solo
+  // si nadie lo cambió desde que se cargó la lista, igual que "Marcar como
+  // solicitados". No recarga: quien llama decide cuándo.
+  async function aplicarEnTandas(rows: Trip[], cambio: (trip: Trip) => Partial<Trip>) {
+    const updatedAt = new Date().toISOString();
+    if (demo) {
+      const porId = new Map(rows.map((trip) => [trip.id, trip]));
+      setTrips((current) =>
+        current.map((trip) => (porId.has(trip.id) ? { ...trip, ...cambio(trip), updated_at: updatedAt } : trip)),
+      );
+      return;
+    }
+    for (let index = 0; index < rows.length; index += 10) {
+      const results = await Promise.all(
+        rows.slice(index, index + 10).map((trip) =>
+          db()
+            .from("trips")
+            .update({ ...cambio(trip), updated_at: updatedAt })
+            .eq("id", trip.id)
+            .eq("updated_at", trip.updated_at!)
+            .select("id"),
+        ),
+      );
+      for (const result of results) {
+        if (result.error) throw result.error;
+        if (!result.data?.length) {
+          throw new Error(
+            "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
+          );
+        }
+      }
+    }
+  }
+
+  /** Anula varios viajes con un mismo motivo. Lo usa también desactivar a una persona. */
+  async function anularViajes(rows: Trip[], motivo: string) {
+    await aplicarEnTandas(rows, (trip) => cambioDeCierre(trip, "anular", motivo, ""));
+  }
+
   async function closeSelectedTrips(modo: ModoDeCierre, motivo: string, pnr: string, monto = "") {
     const rows = viajesPorCerrar();
     await runAction(async () => {
       const problema = problemaDeCierre(rows, modo, motivo, pnr, monto);
       if (problema) throw new Error(problema);
-      const updatedAt = new Date().toISOString();
-      if (demo) {
-        const porId = new Map(rows.map((trip) => [trip.id, trip]));
-        setTrips((current) =>
-          current.map((trip) =>
-            porId.has(trip.id)
-              ? { ...trip, ...cambioDeCierre(trip, modo, motivo, pnr, monto), updated_at: updatedAt }
-              : trip,
-          ),
-        );
-      } else {
-        // De a diez, y cada uno solo si nadie lo cambió desde que se cargó la
-        // lista: lo mismo que hace "Marcar como solicitados".
-        for (let index = 0; index < rows.length; index += 10) {
-          const results = await Promise.all(
-            rows.slice(index, index + 10).map((trip) =>
-              db()
-                .from("trips")
-                .update({ ...cambioDeCierre(trip, modo, motivo, pnr, monto), updated_at: updatedAt })
-                .eq("id", trip.id)
-                .eq("updated_at", trip.updated_at!)
-                .select("id"),
-            ),
-          );
-          for (const result of results) {
-            if (result.error) throw result.error;
-            if (!result.data?.length) {
-              throw new Error(
-                "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
-              );
-            }
-          }
-        }
-        await reload();
-      }
+      await aplicarEnTandas(rows, (trip) => cambioDeCierre(trip, modo, motivo, pnr, monto));
+      if (!demo) await reload();
       setSelectedTrips([]);
       closeModal();
       const n = rows.length;
@@ -326,6 +332,7 @@ export function useAccionesViajes(e: Entrada) {
     viajesPorCerrar,
     openCloseTrips,
     closeSelectedTrips,
+    anularViajes,
   };
 }
 

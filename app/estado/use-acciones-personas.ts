@@ -5,6 +5,8 @@
 
 import { FormEvent } from "react";
 import { db } from "../../lib/supabase";
+import { localDate } from "../../lib/format";
+import { MOTIVO_PERSONA_INACTIVA, viajesFuturosDe } from "../../lib/cierre";
 import { Person } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
@@ -18,6 +20,7 @@ type Entrada = Avisos & Sesion & Datos & Dialogos & Acreditacion & AccionesViaje
 export function useAccionesPersonas(e: Entrada) {
   const {
     abrirModal,
+    anularViajes,
     clearMessages,
     closeModal,
     demo,
@@ -32,6 +35,7 @@ export function useAccionesPersonas(e: Entrada) {
     setNotice,
     setPendingTripDate,
     setPeople,
+    trips,
   } = e;
 
   function openPerson(person: Person | null = null) {
@@ -113,6 +117,17 @@ export function useAccionesPersonas(e: Entrada) {
         }
         await reload();
       }
+      // Al desactivarla, si se pidió, sus viajes futuros sin reserva se anulan
+      // con un motivo fijo. Los que tienen reserva no se tocan (ver lib/cierre.ts).
+      let anulados = 0;
+      if (editPerson && editPerson.active && !person.active && form.get("anular_futuros") === "on") {
+        const { sinReserva } = viajesFuturosDe(editPerson.id, trips, localDate());
+        if (sinReserva.length) {
+          await anularViajes(sinReserva, MOTIVO_PERSONA_INACTIVA);
+          anulados = sinReserva.length;
+          if (!demo) await reload();
+        }
+      }
       const resumeDate = pendingTripDate;
       closeModal();
       setPendingTripDate(null);
@@ -121,7 +136,9 @@ export function useAccionesPersonas(e: Entrada) {
       } else {
         setNotice(
           avisoDeDocumentos ||
-            "Persona guardada. Sus viajes existentes conservaron sus fechas.",
+            (anulados
+              ? `Persona guardada como inactiva. Se ${anulados === 1 ? "anuló 1 viaje futuro" : `anularon ${anulados} viajes futuros`}.`
+              : "Persona guardada. Sus viajes existentes conservaron sus fechas."),
         );
       }
     }, "form");
