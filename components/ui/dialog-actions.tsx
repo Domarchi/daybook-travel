@@ -12,12 +12,15 @@ export default function DialogActions({
   busyLabel,
   submitLabel,
   submitDisabled = false,
+  submitVariant = "primary",
   onCancel,
 }: {
   busy: boolean;
   busyLabel: string;
   submitLabel: string;
   submitDisabled?: boolean;
+  /** `danger` cuando lo que se confirma no se puede deshacer (Fase 5). */
+  submitVariant?: "primary" | "danger";
   onCancel: () => void;
 }) {
   return (
@@ -25,7 +28,7 @@ export default function DialogActions({
       <Button type="button" onClick={onCancel} disabled={busy}>
         Cancelar
       </Button>
-      <Button variant="primary" disabled={busy || submitDisabled}>
+      <Button variant={submitVariant} disabled={busy || submitDisabled}>
         {busy ? busyLabel : submitLabel}
       </Button>
     </div>

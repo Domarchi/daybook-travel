@@ -15,6 +15,7 @@ import type { Datos } from "./use-datos";
 import type { Dialogos } from "./use-dialogos";
 import type { Acreditacion } from "./use-acreditacion";
 import type { AccionesViajes } from "./use-acciones-viajes";
+import { avisoDeError, avisoDeExito } from "@/lib/avisos";
 
 type Entrada = Avisos & Sesion & Datos & Dialogos & Acreditacion & AccionesViajes;
 
@@ -147,9 +148,12 @@ export function useAccionesPersonas(e: Entrada) {
       if (!editPerson && resumeDate && savedId) {
         openTrip(null, resumeDate, savedId);
       } else {
+        // Si los documentos fallaron, la persona quedó guardada pero el aviso es
+        // un error: no se va solo, porque pide volver a abrirla.
         setNotice(
-          avisoDeDocumentos ||
-            (anulados
+          avisoDeDocumentos
+            ? avisoDeError(avisoDeDocumentos)
+            : avisoDeExito(anulados
               ? `Persona guardada como inactiva. Se ${anulados === 1 ? "anuló 1 viaje futuro" : `anularon ${anulados} viajes futuros`}.`
               : fueraDeTurno
                 ? `Persona guardada. Sus viajes existentes conservaron sus fechas: ${

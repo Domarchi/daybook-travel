@@ -120,6 +120,9 @@ export default function CloseDialog() {
         busyLabel="Cerrando…"
         submitLabel={modo === "anular" ? `Anular ${viajesTexto}` : `Cerrar ${viajesTexto}`}
         submitDisabled={!n}
+        // Anular no tiene vuelta atrás: el botón va en rojo y nombra la acción.
+        // Cerrar es el final normal de un viaje y queda con el botón de siempre.
+        submitVariant={modo === "anular" ? "danger" : "primary"}
         onCancel={closeModal}
       />
     </form>

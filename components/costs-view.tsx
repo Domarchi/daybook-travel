@@ -2,7 +2,8 @@
 
 import { formatoCLP, registroDeCosto, cuentaParaCostos } from "../lib/costs";
 import { useMemo } from "react";
-import { ChevronRight, Download } from "lucide-react";
+import { ChevronRight, Download, Route, Users, Wallet } from "lucide-react";
+import EmptyState from "@/components/ui/empty-state";
 import { csvDeCostos } from "@/lib/trips-csv";
 import { Button } from "@/components/ui/button";
 import { Label, Select } from "@/components/ui/field";
@@ -110,27 +111,27 @@ export default function CostsView() {
         <Button type="button" aria-pressed={costCategory === "reserva-sin-monto"}
           className="grid min-h-[112px] grid-cols-[1fr_auto] gap-1 p-4 text-left"
           onClick={() => setCostCategory(costCategory === "reserva-sin-monto" ? "" : "reserva-sin-monto")}>
-          <span className="text-[13px] text-foreground-soft">Reservas sin monto</span>
+          <span className="text-meta text-foreground-soft">Reservas sin monto</span>
           <ChevronRight className="row-span-3 self-center text-muted" size={18} />
-          <strong className="text-[28px] tabular-nums">{reservas.length}</strong>
+          <strong className="text-display tabular-nums">{reservas.length}</strong>
           <small>Revisar costo confirmado</small>
         </Button>
         <Button type="button" aria-pressed={costCategory === "planificado-sin-monto"}
           className="grid min-h-[112px] grid-cols-[1fr_auto] gap-1 p-4 text-left"
           onClick={() => setCostCategory(costCategory === "planificado-sin-monto" ? "" : "planificado-sin-monto")}>
-          <span className="text-[13px] text-foreground-soft">Planes sin monto</span>
+          <span className="text-meta text-foreground-soft">Planes sin monto</span>
           <ChevronRight className="row-span-3 self-center text-muted" size={18} />
-          <strong className="text-[28px] tabular-nums">{planes.length}</strong>
+          <strong className="text-display tabular-nums">{planes.length}</strong>
           <small>Precio por registrar</small>
         </Button>
       </div>
-      <p className="mb-5 text-[13px] leading-relaxed" role="note">
+      <p className="mb-5 text-meta leading-relaxed" role="note">
         El total suma únicamente los montos registrados en el período y estado seleccionados.
         Los planes sin monto no implican gasto realizado. Los viajes anulados se excluyen.
       </p>
       {costCategory && <section className="mb-5 rounded-md border border-line bg-surface" aria-label="Viajes sin monto">
         <header className="flex items-center justify-between gap-3 border-b border-line p-4">
-          <h2 className="text-[16px]">{costCategory === "reserva-sin-monto" ? "Reservas sin monto" : "Planes sin monto"} · {pendientes.length}</h2>
+          <h2 className="text-emphasis">{costCategory === "reserva-sin-monto" ? "Reservas sin monto" : "Planes sin monto"} · {pendientes.length}</h2>
           <Button type="button" onClick={() => setCostCategory("")}>Cerrar lista</Button>
         </header>
         {pendientes.length ? pendientes.slice().sort((a, b) => a.date.localeCompare(b.date)).map((trip) =>
@@ -138,11 +139,11 @@ export default function CostsView() {
             <span className="grid min-w-0 gap-1"><strong>{personName(trip.person_id)}</strong><small>{formatDate(trip.date)} · {trip.origin} → {trip.destination} · {trip.status}</small></span>
             <ChevronRight className="shrink-0 text-muted" size={18} />
           </Button>
-        ) : <p className="p-4 text-[13px]">No hay viajes de esta categoría con los filtros actuales.</p>}
+        ) : <EmptyState bare icon={<Wallet />} title="Nada pendiente en esta categoría" description="No hay viajes de esta categoría con los filtros actuales." />}
       </section>}
 
       <TableWrap className="mb-5" role="region" aria-label="Costos por mes" tabIndex={0}>
-        <h3 className="px-4 pt-4 pb-3 text-[17px] text-foreground">Por mes</h3>
+        <h3 className="px-4 pt-4 pb-3 text-heading text-foreground">Por mes</h3>
         <Table className="min-w-[600px]">
           <THead>
             <Tr>
@@ -168,7 +169,7 @@ export default function CostsView() {
               ))
             ) : (
               <Tr>
-                <Td colSpan={4}>Todavía no hay viajes que costear.</Td>
+                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Wallet />} title="Todavía no hay viajes que costear" description="Los montos aparecen aquí cuando un viaje registra su reserva." /></Td>
               </Tr>
             )}
           </TBody>
@@ -176,8 +177,8 @@ export default function CostsView() {
       </TableWrap>
 
       <TableWrap className="mb-5" role="region" aria-label="Costos por ruta" tabIndex={0}>
-        <h3 className="px-4 pt-4 pb-2 text-[17px] text-foreground">Por ruta</h3>
-        <p className="max-w-[660px] px-4 pb-4 text-[13px] text-muted">
+        <h3 className="px-4 pt-4 pb-2 text-heading text-foreground">Por ruta</h3>
+        <p className="max-w-[660px] px-4 pb-4 text-meta text-muted">
           La referencia es la mediana de los montos registrados para esa ruta
           con los filtros actuales. Una muestra pequeña puede variar entre compras.
         </p>
@@ -214,7 +215,7 @@ export default function CostsView() {
               ))
             ) : (
               <Tr>
-                <Td colSpan={5}>Todavía no hay rutas registradas.</Td>
+                <Td colSpan={5} className="p-0"><EmptyState bare icon={<Route />} title="Todavía no hay rutas registradas" description="Cada ruta aparece aquí con su costo cuando un viaje la usa." /></Td>
               </Tr>
             )}
           </TBody>
@@ -222,7 +223,7 @@ export default function CostsView() {
       </TableWrap>
 
       <TableWrap role="region" aria-label="Costos por persona" tabIndex={0}>
-        <h3 className="px-4 pt-4 pb-3 text-[17px] text-foreground">Por persona</h3>
+        <h3 className="px-4 pt-4 pb-3 text-heading text-foreground">Por persona</h3>
         <Table className="min-w-[600px]">
           <THead>
             <Tr>
@@ -254,7 +255,7 @@ export default function CostsView() {
                 ))
             ) : (
               <Tr>
-                <Td colSpan={4}>Todavía no hay personas con viajes.</Td>
+                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Users />} title="Todavía no hay personas con viajes" description="Cada persona aparece aquí con su gasto cuando tiene un viaje." /></Td>
               </Tr>
             )}
           </TBody>

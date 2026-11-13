@@ -30,10 +30,10 @@ export function TravelAgentConfirmation({
         aria-labelledby="travel-agent-confirmation-title"
         className="grid gap-3 rounded-lg border border-line bg-surface p-5"
       >
-        <h2 id="travel-agent-confirmation-title" className="text-[18px] font-semibold text-foreground">
+        <h2 id="travel-agent-confirmation-title" className="text-heading font-semibold text-foreground">
           No se puede revisar esta propuesta
         </h2>
-        <p className="text-[13px] text-muted">
+        <p className="text-meta text-muted">
           El diagnóstico es seguro: no se mostrará ni aplicará ningún cambio del viaje.
         </p>
       </section>
@@ -83,20 +83,20 @@ function TravelAgentConfirmationReady({
       className="grid w-full max-w-2xl gap-5 rounded-lg border border-line bg-surface p-[clamp(18px,4vw,28px)]"
     >
       <header className="grid gap-2 border-b border-line pb-4">
-        <p className="text-[11px] font-[750] tracking-[0.08em] text-muted uppercase">
+        <p className="text-overline font-bold tracking-[0.08em] text-muted uppercase">
           pending_confirmation
         </p>
-        <h2 id="travel-agent-confirmation-title" className="text-[20px] font-semibold text-foreground">
+        <h2 id="travel-agent-confirmation-title" className="text-title font-semibold text-foreground">
           Revisión de propuesta
         </h2>
-        <p className="text-[13px] text-muted">Esta propuesta requiere confirmación humana.</p>
+        <p className="text-meta text-muted">Esta propuesta requiere confirmación humana.</p>
       </header>
 
       <dl className="grid gap-3">
         {model.fields.map((field) => (
           <div key={field.key} className="grid gap-2 border-b border-line pb-3 last:border-b-0 last:pb-0 sm:grid-cols-2">
-            <dt className="text-[13px] font-[650] text-foreground-soft">{field.label}</dt>
-            <dd className="grid gap-2 text-[13px] text-muted">
+            <dt className="text-meta font-semibold text-foreground-soft">{field.label}</dt>
+            <dd className="grid gap-2 text-meta text-muted">
               <span>Antes: {field.before}</span>
               <span className="text-foreground">Propuesto: {field.after}</span>
             </dd>
@@ -105,7 +105,7 @@ function TravelAgentConfirmationReady({
       </dl>
 
       <div className="grid gap-3 border-t border-line pt-4">
-        <label htmlFor="travel-agent-human-confirmation" className="flex items-start gap-3 text-[13px] text-foreground-soft">
+        <label htmlFor="travel-agent-human-confirmation" className="flex items-start gap-3 text-meta text-foreground-soft">
           <input
             id="travel-agent-human-confirmation"
             type="checkbox"
@@ -121,7 +121,7 @@ function TravelAgentConfirmationReady({
           />
           Confirmo que revisé la propuesta y que requiere confirmación humana.
         </label>
-        <p id="travel-agent-confirmation-reason" className="text-[12px] text-muted">
+        <p id="travel-agent-confirmation-reason" className="text-caption text-muted">
           {reason}
         </p>
         <div className="flex flex-wrap justify-end gap-2">

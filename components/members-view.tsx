@@ -7,7 +7,10 @@
 // comprobar quién llama. Aquí no se borra a nadie: quitar un acceso lo
 // desactiva y se puede reactivar.
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/ui/empty-state";
+import { EsqueletoDeTabla } from "@/components/ui/esqueleto";
 import { Input, Label, Select } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
 import { StaticOverviewCard } from "@/components/ui/overview-card";
@@ -32,6 +35,7 @@ import {
 } from "../lib/members";
 import { db } from "../lib/supabase";
 import { useApp } from "../app/store";
+import { avisoConDeshacer, avisoDeExito } from "@/lib/avisos";
 
 export default function MembersView() {
   const { email: miCorreo, setNotice } = useApp();
@@ -62,6 +66,7 @@ export default function MembersView() {
     clave: string,
     llamada: PromiseLike<{ error: { message?: string } | null }>,
     exito: string,
+    deshacer?: () => void,
   ): Promise<boolean> {
     setOcupado(clave);
     setError("");
@@ -69,7 +74,7 @@ export default function MembersView() {
     if (fallo) {
       setError(mensajeDeError(fallo));
     } else {
-      setNotice(exito);
+      setNotice(deshacer ? avisoConDeshacer(exito, deshacer) : avisoDeExito(exito));
       await cargar();
     }
     setOcupado("");
@@ -123,8 +128,8 @@ export default function MembersView() {
         aria-busy={ocupado === "nuevo"}
         className="mb-5 grid gap-3 rounded-lg border border-line bg-surface p-4"
       >
-        <h2 className="text-[16px]">Dar acceso</h2>
-        <p className="text-[13px] leading-relaxed text-muted">
+        <h2 className="text-emphasis">Dar acceso</h2>
+        <p className="text-meta leading-relaxed text-muted">
           La cuenta es la misma de Daybook Asistencia y se crea fuera de esta
           aplicación. Aquí solo se decide cuáles cuentas pueden entrar a Travel.
         </p>
@@ -158,7 +163,7 @@ export default function MembersView() {
           </Button>
         </div>
         {avisoDelFormulario && (
-          <p id="accesos-aviso" role="alert" className="text-[13px] text-danger">
+          <p id="accesos-aviso" role="alert" className="text-meta text-danger">
             {avisoDelFormulario}
           </p>
         )}
@@ -167,7 +172,7 @@ export default function MembersView() {
       {error && (
         <p
           role="alert"
-          className="mb-5 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-[13px] text-danger"
+          className="mb-5 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger"
         >
           {error}
         </p>
@@ -188,11 +193,24 @@ export default function MembersView() {
           <TBody>
             {miembros === null ? (
               <Tr>
-                <Td colSpan={4}>{error ? "No se pudo cargar la lista." : "Cargando…"}</Td>
+                <Td colSpan={4} className="p-0">
+                  {error ? (
+                    <p className="p-4 text-meta text-danger">No se pudo cargar la lista.</p>
+                  ) : (
+                    <EsqueletoDeTabla etiqueta="Cargando accesos…" filas={3} columnas={4} />
+                  )}
+                </Td>
               </Tr>
             ) : miembros.length === 0 ? (
               <Tr>
-                <Td colSpan={4}>Todavía no hay nadie en la lista.</Td>
+                <Td colSpan={4} className="p-0">
+                  <EmptyState
+                    bare
+                    icon={<Users />}
+                    title="Todavía no hay nadie en la lista"
+                    description="Da acceso con el correo de la persona en el formulario de arriba."
+                  />
+                </Td>
               </Tr>
             ) : (
               miembros.map((miembro) => {
@@ -232,6 +250,16 @@ export default function MembersView() {
                                     miembro.role === "admin"
                                       ? `${miembro.email} ya no administra los accesos.`
                                       : `${miembro.email} ahora administra los accesos.`,
+                                    // Quitar el rol se revierte desde el mismo
+                                    // aviso (Fase 5); darlo no necesita salida.
+                                    miembro.role === "admin"
+                                      ? () =>
+                                          void ejecutar(
+                                            miembro.email,
+                                            db().rpc("set_member_role", { p_email: miembro.email, p_role: "admin" }),
+                                            `${miembro.email} vuelve a administrar los accesos.`,
+                                          )
+                                      : undefined,
                                   )
                                 }
                               >
@@ -249,8 +277,16 @@ export default function MembersView() {
                                     p_active: !miembro.active,
                                   }),
                                   miembro.active
-                                    ? `${miembro.email} ya no puede entrar. Puedes reactivarlo cuando quieras.`
+                                    ? `${miembro.email} ya no puede entrar.`
                                     : `${miembro.email} puede volver a entrar.`,
+                                  miembro.active
+                                    ? () =>
+                                        void ejecutar(
+                                          miembro.email,
+                                          db().rpc("set_member_active", { p_email: miembro.email, p_active: true }),
+                                          `${miembro.email} puede volver a entrar.`,
+                                        )
+                                    : undefined,
                                 )
                               }
                             >

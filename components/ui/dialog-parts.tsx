@@ -34,7 +34,7 @@ export function FormSection({
       className={cn(
         "seccion-form grid gap-[15px] pb-6",
         "[.seccion-form+&]:border-t [.seccion-form+&]:border-line [.seccion-form+&]:pt-[23px]",
-        "[&_h3]:text-[14px] [&_h3]:tracking-[-0.01em]",
+        "[&_h3]:text-body [&_h3]:tracking-[-0.01em]",
         className,
       )}
       {...props}
@@ -58,7 +58,7 @@ export function Hint({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       className={cn(
-        "border-l-2 border-line-strong px-3 py-[10px] text-[11px] text-muted",
+        "border-l-2 border-line-strong px-3 py-[10px] text-overline text-muted",
         className,
       )}
       {...props}
@@ -76,7 +76,7 @@ export function LoadingMark({
       aria-hidden="true"
       className={cn(
         "inline-block size-[18px] shrink-0 animate-[spin_700ms_linear_infinite]",
-        "rounded-[999px] border-2 border-line-strong border-t-foreground",
+        "rounded-pill border-2 border-line-strong border-t-foreground",
         className,
       )}
       {...props}

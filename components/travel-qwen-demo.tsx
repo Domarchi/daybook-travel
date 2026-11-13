@@ -32,7 +32,7 @@ export function TravelQwenDemo() {
 
   return (
     <main className="mx-auto grid max-w-2xl gap-6 p-8">
-      <header className="grid gap-2"><p className="text-sm text-muted">Demo interna · datos sintéticos</p><h1 className="text-2xl font-semibold">Propuesta Qwen pendiente</h1><p>Esta demo nunca cambia datos de viaje.</p></header>
+      <header className="grid gap-2"><p className="text-body text-muted">Demo interna · datos sintéticos</p><h1 className="text-title font-semibold">Propuesta Qwen pendiente</h1><p>Esta demo nunca cambia datos de viaje.</p></header>
       <form onSubmit={submit} className="grid gap-3">
         <p>Escenario: {ESCENARIO}</p>
         <section aria-label="Fixture sintética de solo lectura"><p>Solo lectura</p><dl>{CAMPOS_MOSTRABLES.map((field) => <div key={field}><dt>{field}</dt><dd>{CONTEXTO_SOLO_LECTURA[field] ?? "Sin hora"}</dd></div>)}</dl></section>

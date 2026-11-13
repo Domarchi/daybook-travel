@@ -82,7 +82,7 @@ export default function GenerateDialog() {
             <span className="text-foreground-soft">
               Se agregarán
             </span>
-            <strong className="text-[27px] tracking-[-0.035em] text-foreground tabular-nums">
+            <strong className="text-display tracking-[-0.035em] text-foreground tabular-nums">
               {generationPreview} viajes
             </strong>
             <small className="text-muted">

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 // Las tarjetas de conteo, en el resumen y en la pantalla final.
 export const TARJETA = "grid min-h-[76px] content-center gap-px rounded-sm border border-line bg-surface px-3 py-[10px]";
-export const TARJETA_NUMERO = "text-[22px] leading-[1.1] tracking-[-0.03em]";
+export const TARJETA_NUMERO = "text-title leading-[1.1] tracking-[-0.03em]";
 
 // Los tonos de las tarjetas y de las pastillas de accion. El gris es el estado
 // en reposo: una cuenta en cero no se enciende.
@@ -32,14 +32,14 @@ export function Paso({
   return (
     <li
       className={cn(
-        "flex min-h-9 items-center gap-2 text-[11px] font-[750]",
-        "max-[430px]:gap-[5px] max-[430px]:text-[10px]",
+        "flex min-h-9 items-center gap-2 text-overline font-bold",
+        "max-[430px]:gap-[5px] max-[430px]:text-overline",
         estado === "actual" ? "text-foreground" : "text-muted",
       )}
     >
       <span
         className={cn(
-          "inline-flex size-6 flex-none items-center justify-center rounded-[999px] border text-[10px]",
+          "inline-flex size-6 flex-none items-center justify-center rounded-pill border text-overline",
           "max-[430px]:size-[22px]",
           estado === "actual"
             ? "border-foreground-soft bg-foreground text-surface"

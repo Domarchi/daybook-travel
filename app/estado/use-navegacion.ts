@@ -19,6 +19,8 @@ export function useNavegacion(e: Entrada) {
   } = e;
 
   const [view, setView] = useState("Agenda");
+  // El menú del teléfono (el riel como cajón). Ir a otra pantalla lo cierra.
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [query, setQuery] = useState("");
   const [peopleQuery, setPeopleQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -48,6 +50,7 @@ export function useNavegacion(e: Entrada) {
 
   function navigate(label: string) {
     setView(label);
+    setMenuAbierto(false);
     clearMessages();
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }
@@ -92,6 +95,8 @@ export function useNavegacion(e: Entrada) {
   }
 
   return {
+    menuAbierto,
+    setMenuAbierto,
     view,
     setView,
     query,

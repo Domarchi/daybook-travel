@@ -17,16 +17,16 @@ const forma = [
   // El rotulo y la nota van en la primera columna; la flecha ocupa toda la
   // altura de la segunda.
   "[&>span]:col-start-1 [&>small]:col-start-1",
-  "[&>span]:text-[12px] [&>span]:font-medium [&>span]:text-muted",
-  "[&>strong]:self-end [&>strong]:text-[28px] [&>strong]:font-semibold [&>strong]:leading-[1.1] [&>strong]:tracking-[-0.035em]",
+  "[&>span]:text-caption [&>span]:font-medium [&>span]:text-muted",
+  "[&>strong]:self-end [&>strong]:text-display [&>strong]:font-semibold [&>strong]:leading-[1.1] [&>strong]:tracking-[-0.035em]",
   "[&>svg]:col-start-2 [&>svg]:row-span-full [&>svg]:self-center [&>svg]:text-muted",
-  "max-[760px]:min-h-[90px] max-[760px]:grid-cols-1 max-[760px]:p-3 max-[760px]:[&>span]:text-[12px] max-[760px]:[&>strong]:text-[24px] max-[760px]:[&>svg]:hidden",
+  "max-[760px]:min-h-[90px] max-[760px]:grid-cols-1 max-[760px]:p-3 max-[760px]:[&>span]:text-caption max-[760px]:[&>strong]:text-title max-[760px]:[&>svg]:hidden",
 ].join(" ");
 
 const variantes = {
   normal: "",
   // La primera tarjeta lleva una fecha, no un numero, asi que va mas chica.
-  next: "[&>strong]:text-[18px] max-[760px]:[&>strong]:text-[16px]",
+  next: "[&>strong]:text-heading max-[760px]:[&>strong]:text-emphasis",
   urgente:
     "border-[color-mix(in_srgb,var(--warning)_40%,var(--border))] bg-[color-mix(in_srgb,var(--warning)_7%,var(--surface))] [&>strong]:text-[var(--warning)]",
 } as const;
@@ -55,7 +55,7 @@ export function StaticOverviewCard({
     <div
       className={cn(
         forma,
-        "cursor-default border border-line bg-surface text-[13px] text-foreground-soft",
+        "cursor-default border border-line bg-surface text-meta text-foreground-soft",
         className,
       )}
       {...props}

@@ -8,7 +8,7 @@ export default function BrandIdentity({ className }: { className?: string }) {
   return (
     <div data-brand-identity className={cn("grid w-[168px] justify-items-start gap-[5px]", className)}>
       <BrandLogo className="w-full" />
-      <span className="text-[10px] leading-[1.3] font-medium tracking-[0.025em] whitespace-nowrap text-muted">
+      <span className="text-overline leading-[1.3] font-medium tracking-[0.025em] whitespace-nowrap text-muted">
         Gestión de traslados
       </span>
     </div>

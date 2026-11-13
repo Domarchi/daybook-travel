@@ -48,17 +48,17 @@ export default function YearDayDetail({
     <header className="flex flex-col items-stretch gap-4 border-b border-line px-[18px] py-4 max-[760px]:px-[14px]">
       <div>
         <SectionKicker>Día seleccionado</SectionKicker>
-        <h3 className="text-[20px] leading-[1.2] tracking-[-0.025em] text-foreground first-letter:uppercase">
+        <h3 className="text-title leading-[1.2] tracking-[-0.025em] text-foreground first-letter:uppercase">
           {titulo}
         </h3>
-        <p className="mt-[7px] text-[13px] text-muted">
+        <p className="mt-[7px] text-meta text-muted">
           {rows.length
             ? `${rows.length} ${rows.length === 1 ? "viaje programado" : "viajes programados"}`
             : "Sin movimientos registrados"}
         </p>
         {/* Cuántos hay en obra ese día. La lista va plegada para no empujar los viajes. */}
-        <details className="mt-2 text-[13px] text-foreground-soft">
-          <summary className="cursor-pointer font-[650] text-foreground marker:text-muted">
+        <details className="mt-2 text-meta text-foreground-soft">
+          <summary className="cursor-pointer font-semibold text-foreground marker:text-muted">
             En obra: {presentes.length} {presentes.length === 1 ? "persona" : "personas"}
           </summary>
           {presentes.length ? (
@@ -75,7 +75,7 @@ export default function YearDayDetail({
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-[12px] text-muted">Nadie en obra según los viajes registrados.</p>
+            <p className="mt-1 text-caption text-muted">Nadie en obra según los viajes registrados.</p>
           )}
         </details>
       </div>
@@ -114,7 +114,7 @@ export default function YearDayDetail({
             >
               <span
                 className={cn(
-                  "inline-flex size-9 items-center justify-center rounded-[9px]",
+                  "inline-flex size-9 items-center justify-center rounded-sm",
                   isUp
                     ? "bg-subida-soft text-subida"
                     : "bg-bajada-soft text-bajada",
@@ -128,7 +128,7 @@ export default function YearDayDetail({
                 )}
               </span>
               <span className="grid min-w-0 gap-[2px]">
-                <strong className="overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground">
+                <strong className="overflow-hidden text-meta text-ellipsis whitespace-nowrap text-foreground">
                   {member?.name ?? "Persona"}
                 </strong>
                 <small className="text-muted whitespace-normal">
@@ -141,7 +141,7 @@ export default function YearDayDetail({
                 </small>
               </span>
               <span className="col-start-2 row-start-2 flex min-w-0 flex-wrap items-center gap-2">
-                <strong className="overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground">
+                <strong className="overflow-hidden text-meta text-ellipsis whitespace-nowrap text-foreground">
                   {trip.requested_time?.slice(0, 5) || "Hora pendiente"}
                 </strong>
                 <ShiftBadge tono={tonoDeJornada(member?.shift ?? "")}>

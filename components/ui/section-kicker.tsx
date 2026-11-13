@@ -12,7 +12,7 @@ export function SectionKicker({
   return (
     <span
       className={cn(
-        "mb-2 block text-[10px] leading-[1.2] font-extrabold tracking-[0.14em] text-muted uppercase",
+        "mb-2 block text-overline leading-[1.2] font-extrabold tracking-[0.14em] text-muted uppercase",
         className,
       )}
       {...props}

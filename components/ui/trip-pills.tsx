@@ -13,8 +13,9 @@ import type { EstadoCompra } from "@/lib/purchase";
 
 const movimientoVariants = cva(
   [
-    "inline-flex min-h-7 w-fit items-center gap-[5px] rounded-[999px]",
-    "px-2 py-1 text-[11px] font-[750] whitespace-nowrap",
+    // Medidas de la pastilla común (Fase 3); lleva flecha en vez de punto.
+    "inline-flex min-h-[var(--db-badge-height)] w-fit items-center gap-[5px] rounded-[var(--db-badge-radius)]",
+    "px-[var(--db-badge-padding-x)] py-0 text-[length:var(--db-badge-font-size)] [font-weight:var(--db-badge-weight)] whitespace-nowrap",
   ].join(" "),
   {
     variants: {
@@ -43,8 +44,8 @@ export function DirectionPill({
 
 const compraVariants = cva(
   [
-    "block w-fit rounded-[999px] border px-[7px] py-[2px]",
-    "mt-1 text-[10px] font-bold whitespace-nowrap",
+    "block w-fit rounded-pill border px-[7px] py-[2px]",
+    "mt-1 text-overline font-bold whitespace-nowrap",
   ].join(" "),
   {
     variants: {

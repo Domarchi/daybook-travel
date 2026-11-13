@@ -27,7 +27,7 @@ import { enObra } from "../lib/en-obra";
 // se repite treinta veces por mes y no cambia nunca.
 const DIA = [
   "relative flex min-h-[64px] min-w-11 flex-col items-stretch justify-between",
-  "gap-[5px] overflow-hidden rounded-[10px] border-line p-[8px] text-left",
+  "gap-[5px] overflow-hidden rounded-md border-line p-[8px] text-left",
   "active:scale-100",
   "bg-[color-mix(in_srgb,var(--surface-raised)_70%,var(--bg))] text-foreground-soft",
   "raton:hover:not-disabled:border-foreground-soft raton:hover:not-disabled:bg-surface-hover",
@@ -397,11 +397,11 @@ export default function YearView({
         }}
       >
         <span className="flex items-center justify-between gap-[5px]">
-          <strong className="text-[15px] leading-none text-foreground max-[430px]:text-[14px] tabular-nums">
+          <strong className="text-body leading-none text-foreground max-[430px]:text-body tabular-nums">
             {Number(date.slice(8))}
           </strong>
           {isToday ? (
-            <em className="rounded-[999px] bg-[color-mix(in_srgb,var(--focus)_15%,transparent)] px-[5px] py-[2px] text-[8px] font-extrabold text-[var(--focus)] uppercase not-italic max-[760px]:hidden">
+            <em className="rounded-pill bg-[color-mix(in_srgb,var(--focus)_15%,transparent)] px-[5px] py-[2px] text-overline leading-none font-extrabold text-[var(--focus)] uppercase not-italic max-[760px]:hidden">
               Hoy
             </em>
           ) : null}
@@ -409,10 +409,10 @@ export default function YearView({
         <span className="flex items-center justify-start gap-[5px]">
           {counts.total ? (
             <>
-              <b className="text-[15px] text-foreground max-[760px]:text-[13px]">
+              <b className="text-body text-foreground max-[760px]:text-meta">
                 {counts.total}
               </b>
-              <small className="text-[9px] max-[760px]:hidden">
+              <small className="text-overline max-[760px]:hidden">
                 {counts.total === 1 ? "viaje" : "viajes"}
               </small>
             </>
@@ -427,7 +427,11 @@ export default function YearView({
             ) : null}
             {counts.tenByTen ? (
               <ShiftBadge tono="ten" tamano="chica">
-                10×10
+                {/* En un teléfono el día mide 44 px: «10×10» a 11 px no
+                    cabe, y se abrevia como «S/T» y «?». El detalle completo
+                    va en el nombre accesible del día. */}
+                <span className="max-[430px]:hidden">10×10</span>
+                <span className="hidden max-[430px]:inline">10</span>
               </ShiftBadge>
             ) : null}
             {counts.withoutShift ? (
@@ -462,7 +466,7 @@ export default function YearView({
           >
             {monthLabel(month)}
           </h2>
-          <p className="mt-[7px] text-[13px] text-muted">
+          <p className="mt-[7px] text-meta text-muted">
             {vista === "Semana"
               ? `${rangoDeSemana}: ${viajesDeLaSemana ? `${viajesDeLaSemana} ${viajesDeLaSemana === 1 ? "viaje" : "viajes"}` : "sin viajes"}.`
               : monthTrips.length
@@ -487,7 +491,7 @@ export default function YearView({
             onCambio={onShiftChange}
           />
 
-          <div className="flex items-center gap-[3px] rounded-[10px] border border-line bg-bg p-[3px] max-[760px]:w-full">
+          <div className="flex items-center gap-[3px] rounded-md border border-line bg-bg p-[3px] max-[760px]:w-full">
             <Button
               type="button"
               variant="icon"
@@ -498,7 +502,7 @@ export default function YearView({
               <ChevronLeft size={18} />
             </Button>
             <Input
-              className="w-[190px] border-0 bg-transparent px-[9px] py-[6px] text-[13px] font-bold max-[760px]:w-[100px] max-[760px]:flex-1 max-[760px]:px-1"
+              className="w-[190px] border-0 bg-transparent px-[9px] py-[6px] text-meta font-bold max-[760px]:w-[100px] max-[760px]:flex-1 max-[760px]:px-1"
               aria-label="Ir a mes y año"
               type="month"
               min="0001-01"
@@ -527,23 +531,23 @@ export default function YearView({
       </header>
 
       <div
-        className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 border-b border-line px-[22px] py-[10px] text-[11px] text-muted max-[760px]:px-[14px]"
+        className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 border-b border-line px-[22px] py-[10px] text-overline text-muted max-[760px]:px-[14px]"
         aria-label="Leyenda del calendario"
       >
         <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
-          <i className="inline-block size-[9px] flex-none rounded-[3px] bg-four" />{" "}
+          <i className="inline-block size-[9px] flex-none rounded-xs bg-four" />{" "}
           4×3
         </span>
         <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
-          <i className="inline-block size-[9px] flex-none rounded-[3px] bg-ten" />{" "}
+          <i className="inline-block size-[9px] flex-none rounded-xs bg-ten" />{" "}
           10×10
         </span>
         <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
-          <i className="inline-block size-[9px] flex-none rounded-[3px] border border-line-strong bg-surface-raised" />{" "}
+          <i className="inline-block size-[9px] flex-none rounded-xs border border-line-strong bg-surface-raised" />{" "}
           Sin turno
         </span>
         <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
-          <i className="inline-block size-[9px] flex-none rounded-[3px] border border-line-strong bg-muted" />{" "}
+          <i className="inline-block size-[9px] flex-none rounded-xs border border-line-strong bg-muted" />{" "}
           Por confirmar
         </span>
         <span className="inline-flex items-center gap-[7px]">
@@ -576,7 +580,7 @@ export default function YearView({
           >
             {weekdays.map((day) => (
               <span
-                className="px-[5px] pt-[2px] pb-[7px] text-right text-[10px] font-[750] text-muted uppercase"
+                className="px-[5px] pt-[2px] pb-[7px] text-right text-overline font-bold text-muted uppercase"
                 role="columnheader"
                 key={day}
               >
@@ -613,9 +617,9 @@ export default function YearView({
         </div>
       </div>
 
-      <footer className="flex min-h-[50px] items-center gap-6 border-t border-line px-[22px] py-[11px] text-[11px] text-muted max-[760px]:flex-wrap max-[760px]:items-start max-[760px]:gap-x-[18px] max-[760px]:gap-y-[7px] max-[760px]:px-[14px]">
+      <footer className="flex min-h-[50px] items-center gap-6 border-t border-line px-[22px] py-[11px] text-overline text-muted max-[760px]:flex-wrap max-[760px]:items-start max-[760px]:gap-x-[18px] max-[760px]:gap-y-[7px] max-[760px]:px-[14px]">
         <span>
-          <strong className="mr-1 text-[14px] text-foreground">
+          <strong className="mr-1 text-body text-foreground">
             {monthRows.length}
           </strong>{" "}
           {monthRows.length === 1
@@ -644,7 +648,7 @@ export default function YearView({
           onTrip={onTrip}
         />
       ) : (
-        <p className="border-t border-line px-[22px] py-[13px] text-center text-[12px] text-muted">
+        <p className="border-t border-line px-[22px] py-[13px] text-center text-caption text-muted">
           Selecciona un día para ver personas, horarios y reservas.
         </p>
       )}

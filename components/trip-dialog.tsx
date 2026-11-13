@@ -299,7 +299,7 @@ export default function TripDialog() {
                 {pideMonto(pnrActual, montoActual) && (
                   <small
                     id="pedir-monto"
-                    className="mt-[6px] border-l-2 border-[var(--focus)] pl-2 text-[11px] leading-[1.4] font-normal text-foreground-soft"
+                    className="mt-[6px] border-l-2 border-[var(--focus)] pl-2 text-overline leading-[1.4] font-normal text-foreground-soft"
                   >
                     ¿Cuánto costó? Si lo tienes a mano, anótalo ahora: Costos solo suma los
                     viajes con monto. Puedes dejarlo vacío y cargarlo después.
@@ -308,7 +308,7 @@ export default function TripDialog() {
                 {precio && precio.referencia !== null && (
                   <small
                     className={cn(
-                      "mt-[6px] text-[11px] leading-[1.4] text-foreground-soft",
+                      "mt-[6px] text-overline leading-[1.4] text-foreground-soft",
                       precio.nivel === "caro" && "font-bold text-warning",
                       precio.nivel === "barato" && "font-bold",
                     )}

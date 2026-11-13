@@ -45,7 +45,7 @@ export function FilterPills({
     <div
       aria-label={label}
       className={cn(
-        "flex items-center gap-[3px] rounded-[10px] border border-line bg-bg p-[3px]",
+        "flex items-center gap-[3px] rounded-md border border-line bg-bg p-[3px]",
         "overflow-x-auto",
         "max-[760px]:w-full",
         className,
@@ -62,7 +62,7 @@ export function FilterPills({
             aria-pressed={valor === opcion}
             onClick={() => onCambio(opcion)}
             className={cn(
-              "min-h-11 px-[11px] text-[12px] leading-[1.2]",
+              "min-h-11 px-[11px] text-caption leading-[1.2]",
               "max-[760px]:flex-[0_0_auto]",
               valor === opcion
                 ? encendida

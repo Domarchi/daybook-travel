@@ -1,8 +1,9 @@
 "use client";
 
 import EmptyState from "@/components/ui/empty-state";
+import { EsqueletoDeLista } from "@/components/ui/esqueleto";
 import { Button } from "@/components/ui/button";
-import { DialogBody, LoadingMark } from "@/components/ui/dialog-parts";
+import { DialogBody } from "@/components/ui/dialog-parts";
 import { ArrowDownLeft, ArrowRight, Clock } from "lucide-react";
 import { formatDateTime } from "../lib/format";
 import { cambiosDe, notaDelCambio, type Entidad } from "../lib/historial";
@@ -61,18 +62,13 @@ export default function HistoryDialog() {
           </Button>
         )}
         {historyLoading ? (
-          <div
-            className="flex min-h-[220px] items-center justify-center gap-[10px]"
-            aria-live="polite"
-          >
-            <LoadingMark />
-            <p className="text-muted">Cargando cambios…</p>
-          </div>
+          <EsqueletoDeLista etiqueta="Cargando cambios…" filas={3} />
         ) : demo ? (
           <EmptyState
             icon={<Clock />}
             title="Historial disponible en la operación"
             description="La demostración no guarda cambios permanentes."
+            bare
           />
         ) : history.length ? (
           <div className="grid">
@@ -99,7 +95,7 @@ export default function HistoryDialog() {
                 >
                   <span
                     aria-hidden="true"
-                    className="mt-[5px] size-[11px] rounded-[999px] border-2 border-surface bg-foreground-soft shadow-[0_0_0_1px_var(--border-strong)]"
+                    className="mt-[5px] size-[11px] rounded-pill border-2 border-surface bg-foreground-soft shadow-[0_0_0_1px_var(--border-strong)]"
                   />
                   <div className="grid gap-1">
                     <strong className="text-foreground">
@@ -113,10 +109,10 @@ export default function HistoryDialog() {
                       {formatDateTime(item.created_at)} · {autorDe(item)}
                     </small>
                     {cambios.length > 0 && (
-                      <ul className="mt-1 grid gap-[3px] text-[12px] text-foreground-soft">
+                      <ul className="mt-1 grid gap-[3px] text-caption text-foreground-soft">
                         {cambios.map((cambio) => (
                           <li key={cambio.campo} className="flex flex-wrap items-center gap-x-[6px]">
-                            <span className="font-[650] text-foreground">{cambio.campo}:</span>
+                            <span className="font-semibold text-foreground">{cambio.campo}:</span>
                             <span className={cambio.antes === "—" ? "text-muted" : "line-through decoration-muted"}>
                               {cambio.antes}
                             </span>
@@ -127,7 +123,7 @@ export default function HistoryDialog() {
                       </ul>
                     )}
                     {(nota || estadoInicial) && (
-                      <p className="mt-1 rounded-sm bg-surface-soft px-3 py-[10px] text-[12px] whitespace-pre-wrap text-foreground-soft">
+                      <p className="mt-1 rounded-sm bg-surface-soft px-3 py-[10px] text-caption whitespace-pre-wrap text-foreground-soft">
                         {[nota, estadoInicial].filter(Boolean).join(" · ")}
                       </p>
                     )}
@@ -150,6 +146,7 @@ export default function HistoryDialog() {
                 ? "Este viaje todavía no tiene cambios registrados."
                 : "Esta persona todavía no tiene cambios registrados."
             }
+            bare
           />
         )}
       </DialogBody>

@@ -75,9 +75,11 @@ export function Th({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-11 border-b border-line bg-table-head px-[13px] py-[9px]",
-        "text-left align-middle text-[10px] font-extrabold tracking-[0.05em]",
-        "text-muted uppercase",
+        // Encabezado común de @daybook/design (Fase 3): 12 px semibold, mayúsculas,
+        // espaciado .08em y sin banda de fondo.
+        "h-11 border-b border-line px-[13px] py-[9px]",
+        "text-left align-middle text-[length:var(--db-table-head-font-size)] [font-weight:var(--db-table-head-weight)]",
+        "tracking-[var(--db-table-head-tracking)] text-muted [text-transform:var(--db-table-head-transform)]",
         "transition-[background-color] duration-[120ms] ease-[ease]",
         className,
       )}
@@ -91,13 +93,13 @@ export function Td({ className, ...props }: React.ComponentProps<"td">) {
     <td
       className={cn(
         "border-b border-line px-[13px] py-[14px]",
-        "text-left align-middle text-[13px] text-foreground-soft",
+        "text-left align-middle text-meta text-foreground-soft",
         "transition-[background-color] duration-[120ms] ease-[ease]",
         // Tarjeta: la celda pasa a ser una fila con su titulo a la izquierda.
         "max-[760px]:flex max-[760px]:min-h-12 max-[760px]:w-full max-[760px]:min-w-0",
         "max-[760px]:items-center max-[760px]:justify-between max-[760px]:gap-3",
         "max-[760px]:px-3 max-[760px]:py-[10px]",
-        "max-[760px]:before:flex-[0_0_auto] max-[760px]:before:text-[9px]",
+        "max-[760px]:before:flex-[0_0_auto] max-[760px]:before:text-overline",
         "max-[760px]:before:font-extrabold max-[760px]:before:tracking-[0.05em]",
         "max-[760px]:before:text-muted max-[760px]:before:uppercase",
         "max-[760px]:before:content-[attr(data-label)]",

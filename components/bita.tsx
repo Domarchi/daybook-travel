@@ -198,7 +198,7 @@ export default function Bita() {
           setError("");
           setAbierto(true);
         }}
-        className="fixed right-6 bottom-6 z-[25] inline-flex min-h-12 items-center gap-2 rounded-full border border-primary bg-primary py-0 pr-4 pl-2 text-[13px] font-[750] text-primary-foreground shadow-[0_10px_28px_rgb(17_18_15/0.2)] max-[760px]:right-4 max-[760px]:bottom-[calc(16px+env(safe-area-inset-bottom))]"
+        className="fixed right-6 bottom-6 z-[25] inline-flex min-h-12 items-center gap-2 rounded-full border border-primary bg-primary py-0 pr-4 pl-2 text-meta font-bold text-primary-foreground shadow-[0_10px_28px_rgb(17_18_15/0.2)] max-[760px]:right-4 max-[760px]:bottom-[calc(16px+env(safe-area-inset-bottom))]"
       >
         <BitaAvatar size={30} thinking={enviando} />
         {NOMBRE_DE_BITA}
@@ -217,7 +217,7 @@ export default function Bita() {
         <div className="flex min-w-0 items-center gap-3">
           <BitaAvatar size={36} thinking={enviando} />
           <div className="min-w-0">
-            <h2 className="m-0 text-base leading-tight font-[700]">{NOMBRE_DE_BITA}</h2>
+            <h2 className="m-0 text-base leading-tight font-bold">{NOMBRE_DE_BITA}</h2>
             <small className="block text-xs text-muted">Viajes, compras y costos</small>
           </div>
         </div>
@@ -247,7 +247,7 @@ export default function Bita() {
                 <button
                   type="button"
                   onClick={() => irA(linea.accion)}
-                  className={`w-full rounded-md border px-3 py-2 text-left text-[13px] leading-snug ${
+                  className={`w-full rounded-md border px-3 py-2 text-left text-meta leading-snug ${
                     linea.tono === "alerta"
                       ? "border-urgente-line bg-urgente-soft text-foreground"
                       : "border-line bg-surface-soft text-foreground"
@@ -266,7 +266,7 @@ export default function Bita() {
                   type="button"
                   disabled={enviando}
                   onClick={() => void enviar(pregunta)}
-                  className="min-h-11 rounded-md border border-line bg-surface px-3 py-2 text-left text-[13px] raton:hover:border-line-strong"
+                  className="min-h-11 rounded-md border border-line bg-surface px-3 py-2 text-left text-meta raton:hover:border-line-strong"
                 >
                   {pregunta}
                 </button>
@@ -279,7 +279,7 @@ export default function Bita() {
           entrada.rol === "user" ? (
             <div
               key={entrada.id}
-              className="max-w-[88%] self-end rounded-[10px] rounded-br-[4px] bg-primary px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground [overflow-wrap:anywhere]"
+              className="max-w-[88%] self-end rounded-lg rounded-br-[4px] bg-primary px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground [overflow-wrap:anywhere]"
             >
               <span className="sr-only">Tú: </span>
               {entrada.texto}
@@ -287,7 +287,7 @@ export default function Bita() {
           ) : (
             <div key={entrada.id} className="flex max-w-[94%] items-start gap-2 self-start">
               <BitaAvatar size={26} />
-              <div className="rounded-[10px] rounded-bl-[4px] border border-line bg-surface-soft px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+              <div className="rounded-lg rounded-bl-[4px] border border-line bg-surface-soft px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
                 <span className="sr-only">{NOMBRE_DE_BITA}: </span>
                 {trozosConViajes(entrada.texto, entrada.viajes ?? {}).map((trozo, i) =>
                   trozo.tipo === "texto" ? (
@@ -297,7 +297,7 @@ export default function Bita() {
                       key={i}
                       type="button"
                       onClick={() => abrirViaje(trozo.id)}
-                      className="font-[700] text-primary underline underline-offset-2"
+                      className="font-bold text-primary underline underline-offset-2"
                     >
                       ver viaje
                     </button>
@@ -308,12 +308,12 @@ export default function Bita() {
           ),
         )}
         {enviando && (
-          <p role="status" className="m-0 self-start text-[13px] text-muted">
+          <p role="status" className="m-0 self-start text-meta text-muted">
             {NOMBRE_DE_BITA} está revisando los viajes…
           </p>
         )}
         {error && (
-          <p role="alert" className="m-0 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-[13px] text-danger">
+          <p role="alert" className="m-0 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-meta text-danger">
             {error}
           </p>
         )}
@@ -335,7 +335,7 @@ export default function Bita() {
           <button
             type="submit"
             disabled={enviando || !texto.trim()}
-            className="inline-flex min-h-11 items-center gap-1 rounded-md border border-primary bg-primary px-3 text-[13px] font-[750] text-primary-foreground disabled:opacity-60"
+            className="inline-flex min-h-11 items-center gap-1 rounded-md border border-primary bg-primary px-3 text-meta font-bold text-primary-foreground disabled:opacity-60"
           >
             <Send size={15} /> Enviar
           </button>

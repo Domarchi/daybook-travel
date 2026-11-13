@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 const buttonVariants = cva(
   [
     "inline-flex cursor-pointer items-center justify-center gap-2",
-    "rounded-sm border py-0 text-[13px] leading-[1.2]",
+    // Medidas del botón común de @daybook/design (Fase 3): 44 px, 14 px semibold.
+    "rounded-[var(--db-button-radius)] border py-0 text-[length:var(--db-button-font-size)] [font-weight:var(--db-button-weight)] leading-[1.2]",
     "transition-[transform,background-color,border-color,color,opacity]",
     "duration-[140ms] ease-[var(--ease-out)]",
     "active:not-focus-visible:not-disabled:scale-[0.97]",
@@ -36,14 +37,22 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "min-h-11 border-line bg-surface-raised px-[14px] font-[650] text-foreground-soft",
+          "min-h-[var(--db-button-height)] border-line bg-surface-raised px-[var(--db-button-padding-x)] text-foreground-soft",
         primary: [
-          "min-h-[46px] border-primary bg-primary px-[18px] font-[750] text-primary-foreground",
+          "min-h-[var(--db-button-height)] border-primary bg-primary px-[var(--db-button-padding-x)] text-primary-foreground",
           "raton:hover:not-disabled:border-[var(--action-hover)]",
           "raton:hover:not-disabled:bg-[var(--action-hover)]",
           "raton:hover:not-disabled:text-primary-foreground",
         ].join(" "),
-        icon: "size-11 min-h-11 min-w-11 border-line bg-surface-raised p-0 font-[650] text-foreground-soft",
+        // Fase 5: el botón que confirma lo que no tiene vuelta atrás, dentro de
+        // su diálogo, y que nombra la acción («Anular 3 viajes»).
+        danger: [
+          "min-h-[var(--db-button-height)] border-[var(--db-danger-action)] bg-[var(--db-danger-action)] px-[var(--db-button-padding-x)] text-[var(--db-danger-action-text)]",
+          "raton:hover:not-disabled:border-[var(--db-danger-action-hover)]",
+          "raton:hover:not-disabled:bg-[var(--db-danger-action-hover)]",
+          "raton:hover:not-disabled:text-[var(--db-danger-action-text)]",
+        ].join(" "),
+        icon: "size-[var(--db-button-height)] min-h-[var(--db-button-height)] min-w-[var(--db-button-height)] border-line bg-surface-raised p-0 text-foreground-soft",
       },
     },
     defaultVariants: { variant: "default" },

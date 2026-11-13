@@ -10,14 +10,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const pillVariants = cva(
-  "inline-flex w-fit min-h-[25px] items-center gap-[5px] whitespace-nowrap rounded-[999px] border px-2 py-1 text-[10px] font-[750]",
+  // Pastilla común de @daybook/design (Fase 3): 24 px, 12 px semibold, píldora
+  // con punto del color del estado y el fondo suave del estado del paquete (el
+  // mismo que Parte Diario), sin borde: sin borde, la mezcla al 10% de antes casi
+  // no se veía sobre negro.
+  [
+    "inline-flex w-fit min-h-[var(--db-badge-height)] items-center gap-[5px] whitespace-nowrap",
+    "rounded-[var(--db-badge-radius)] px-[var(--db-badge-padding-x)] py-0",
+    "text-[length:var(--db-badge-font-size)] [font-weight:var(--db-badge-weight)]",
+    "before:size-[var(--db-badge-dot)] before:shrink-0 before:rounded-full before:bg-current before:content-['']",
+  ].join(" "),
   {
     variants: {
       tono: {
-        neutro: "border-line-strong bg-surface-soft text-foreground-soft",
-        aviso: "border-info-line bg-info-soft text-info",
-        bien: "border-success-line bg-success-soft text-success",
-        malo: "border-danger-line bg-danger-soft text-danger",
+        neutro: "bg-[var(--db-surface-muted)] text-foreground-soft",
+        aviso: "bg-[var(--db-info-soft)] text-info",
+        bien: "bg-[var(--db-success-soft)] text-success",
+        malo: "bg-[var(--db-danger-soft)] text-danger",
       },
     },
     defaultVariants: { tono: "neutro" },
