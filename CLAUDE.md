@@ -52,7 +52,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |
 | `app/api/cron/alertas-urgentes/route.ts` | El cron de los avisos por correo. Delgado a propósito: la lógica está en `lib/urgent-alerts-handler.ts` (autorización, configuración, respuesta), `lib/urgent-alerts.ts` (qué viajes y qué dice el correo) y `lib/send-mail.ts` (Resend). Todo se prueba sin red. |
-| `docs/manual/hacer_manual.py` | **La fuente de la guía de uso** (`docs/Manual_Daybook_Travel.pdf`, 17 páginas). Arma `manual.html` y Chrome lo imprime a PDF; los comandos están en el README. La numeración de páginas se calcula ahí, no en el navegador. No lleva correos ni nombres de personas: la lista de accesos vive en la pantalla Accesos. Al cambiar una pantalla, se actualiza el texto y se regenera. |
+| `docs/manual/hacer_manual.py` | **La fuente de la guía de uso** (`docs/Manual_Daybook_Travel.pdf`, 19 páginas, versión 2.1). Arma `manual.html` y Chrome lo imprime a PDF; los comandos están en el README. La numeración de páginas se calcula ahí, no en el navegador. No lleva correos ni nombres de personas: la lista de accesos vive en la pantalla Accesos. Al cambiar una pantalla, se actualiza el texto y se regenera. |
 | `supabase/00*.sql` | Migraciones, se aplican **en orden numérico**. Aquí vive la verdad del sistema. |
 
 ## Reglas que NO hay que romper
