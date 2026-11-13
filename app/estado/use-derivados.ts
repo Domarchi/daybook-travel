@@ -16,6 +16,7 @@ import {
 import { movimientos } from "../../lib/cycles";
 import { localDate, normalize } from "../../lib/format";
 import { estadoDeCompra, porComprarAhora, resumenDeCompra } from "../../lib/purchase";
+import { diasEsperando } from "../../lib/solicitudes";
 import { esTurnoRotativo, Person, Trip } from "../../lib/types";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
@@ -193,6 +194,11 @@ export function useDerivados(e: Entrada) {
   const requestedCount = upcomingTrips.filter(
     (trip) => trip.status === "Solicitado",
   ).length;
+  // Cuántos días lleva esperando la solicitud más antigua (lib/solicitudes.ts).
+  const esperaMasLarga = upcomingTrips.reduce<number | null>((max, trip) => {
+    const dias = diasEsperando(trip, localDate());
+    return dias === null ? max : Math.max(max ?? 0, dias);
+  }, null);
   const nextTrip = upcomingTrips[0];
 
   const generationPeople = useMemo(() => {
@@ -248,6 +254,7 @@ export function useDerivados(e: Entrada) {
     upcomingTrips,
     plannedCount,
     requestedCount,
+    esperaMasLarga,
     nextTrip,
     generationPeople,
     porGenerar,

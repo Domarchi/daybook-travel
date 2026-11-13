@@ -13,6 +13,7 @@ export default function AgendaPanel() {
     savePurchaseWindow,
     showPurchaseQueue,
     requestedCount,
+    esperaMasLarga,
     activePeople,
     personName,
     openTrip,
@@ -38,6 +39,7 @@ export default function AgendaPanel() {
       onUnclosed={() => showPurchaseQueue("sin_cerrar")}
       onWindowChange={(dias) => void savePurchaseWindow(dias)}
       requestedCount={requestedCount}
+      esperaMasLarga={esperaMasLarga}
       activeCount={activePeople.length}
       personName={personName}
       onTrip={(trip) => openTrip(trip)}
