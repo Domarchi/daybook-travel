@@ -176,7 +176,13 @@ export default function Workspace() {
 
       <ModalLayer />
       {/* Bita flota sobre la página, fuera del contenido que se vuelve inerte con un diálogo abierto. */}
-      {(accessStatus === "allowed" || demo) && <Bita />}
+      {/* Con el menú del ☰ abierto, Bita se esconde (sin desmontarse, para no perder
+          la conversación): si no, su botón quedaba encima del menú y del velo. */}
+      {(accessStatus === "allowed" || demo) && (
+        <div hidden={menuAbierto}>
+          <Bita />
+        </div>
+      )}
     </div>
   );
 }

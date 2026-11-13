@@ -57,8 +57,8 @@ export default function YearDayDetail({
             : "Sin movimientos registrados"}
         </p>
         {/* Cuántos hay en obra ese día. La lista va plegada para no empujar los viajes. */}
-        <details className="mt-2 text-[13px] text-foreground-soft">
-          <summary className="cursor-pointer font-[650] text-foreground marker:text-muted">
+        <details className="mt-2 text-meta text-foreground-soft">
+          <summary className="cursor-pointer font-semibold text-foreground marker:text-muted">
             En obra: {presentes.length} {presentes.length === 1 ? "persona" : "personas"}
           </summary>
           {presentes.length ? (
@@ -75,7 +75,7 @@ export default function YearDayDetail({
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-[12px] text-muted">Nadie en obra según los viajes registrados.</p>
+            <p className="mt-1 text-caption text-muted">Nadie en obra según los viajes registrados.</p>
           )}
         </details>
       </div>

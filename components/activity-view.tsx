@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Clock } from "lucide-react";
 import EmptyState from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { LoadingMark } from "@/components/ui/dialog-parts";
+import { EsqueletoDeLista } from "@/components/ui/esqueleto";
 import { ENTIDADES_DE_ACTIVIDAD, agruparPorDia, describir } from "../lib/actividad";
 import { localDate } from "../lib/format";
 import { db } from "../lib/supabase";
@@ -84,9 +84,11 @@ export default function ActivityView() {
 
   if (items === null) {
     return (
-      <div className="flex min-h-[220px] items-center justify-center gap-[10px]" aria-live="polite">
-        {error ? <p className="text-danger">{error}</p> : (<><LoadingMark /><p className="text-muted">Cargando actividad…</p></>)}
-      </div>
+      error ? (
+        <p className="text-danger" role="alert">{error}</p>
+      ) : (
+        <EsqueletoDeLista etiqueta="Cargando actividad…" filas={4} lineas={2} />
+      )
     );
   }
 
@@ -102,7 +104,7 @@ export default function ActivityView() {
     <section aria-label="Actividad reciente" className="grid gap-5">
       {grupos.map((grupo) => (
         <div key={grupo.dia}>
-          <h2 className="mb-2 text-[12px] font-extrabold tracking-[0.05em] text-muted uppercase">{grupo.nombre}</h2>
+          <h2 className="mb-2 text-caption font-extrabold tracking-[0.05em] text-muted uppercase">{grupo.nombre}</h2>
           <ol className="overflow-hidden rounded-lg border border-line bg-surface">
             {grupo.items.map((item) => {
               const e = describir(item, mapas);
@@ -122,17 +124,17 @@ export default function ActivityView() {
                   key={e.id}
                   className="grid grid-cols-[52px_1fr_auto] items-start gap-3 border-b border-line px-4 py-3 last:border-b-0 max-[760px]:grid-cols-[44px_1fr]"
                 >
-                  <span className="pt-[2px] text-[12px] text-muted tabular-nums">{hora(item.created_at)}</span>
+                  <span className="pt-[2px] text-caption text-muted tabular-nums">{hora(item.created_at)}</span>
                   <div className="grid min-w-0 gap-1">
-                    <p className="text-[13px] text-foreground-soft">
+                    <p className="text-meta text-foreground-soft">
                       <strong className="text-foreground">{e.titulo}</strong> · {e.sujeto}
                     </p>
                     <small className="text-muted">{autorDe(item)}</small>
                     {e.cambios.length > 0 && (
-                      <ul className="grid gap-[2px] text-[12px] text-foreground-soft">
+                      <ul className="grid gap-[2px] text-caption text-foreground-soft">
                         {e.cambios.map((cambio) => (
                           <li key={cambio.campo} className="flex flex-wrap items-center gap-x-[6px]">
-                            <span className="font-[650] text-foreground">{cambio.campo}:</span>
+                            <span className="font-semibold text-foreground">{cambio.campo}:</span>
                             <span className={cambio.antes === "—" ? "text-muted" : "line-through decoration-muted"}>
                               {cambio.antes}
                             </span>
@@ -143,7 +145,7 @@ export default function ActivityView() {
                       </ul>
                     )}
                     {e.nota && (
-                      <p className="text-[12px] whitespace-pre-wrap text-muted">{e.nota}</p>
+                      <p className="text-caption whitespace-pre-wrap text-muted">{e.nota}</p>
                     )}
                   </div>
                   {abrir && (

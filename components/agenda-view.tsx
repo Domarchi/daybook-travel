@@ -14,7 +14,7 @@ const VENTANAS_SUGERIDAS = [7, 14, 21, 30, 45, 60];
 // crece hacia arriba y abajo sin mover el texto: el enlace mide 18 px de alto y
 // un dedo necesita unos 44.
 const ENLACE_EN_TEXTO =
-  "relative cursor-pointer font-[650] text-foreground-soft underline underline-offset-2 after:absolute after:-inset-x-1 after:-inset-y-[13px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]";
+  "relative cursor-pointer font-semibold text-foreground-soft underline underline-offset-2 after:absolute after:-inset-x-1 after:-inset-y-[13px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]";
 
 export default function AgendaView({
   nextTrip,

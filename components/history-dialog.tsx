@@ -112,7 +112,7 @@ export default function HistoryDialog() {
                       <ul className="mt-1 grid gap-[3px] text-caption text-foreground-soft">
                         {cambios.map((cambio) => (
                           <li key={cambio.campo} className="flex flex-wrap items-center gap-x-[6px]">
-                            <span className="font-[650] text-foreground">{cambio.campo}:</span>
+                            <span className="font-semibold text-foreground">{cambio.campo}:</span>
                             <span className={cambio.antes === "—" ? "text-muted" : "line-through decoration-muted"}>
                               {cambio.antes}
                             </span>

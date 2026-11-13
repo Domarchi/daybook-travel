@@ -34,7 +34,12 @@ const AYUDAS = `
     el.dispatchEvent(new Event("change", { bubbles: true }));
     return true;
   };
-  window.__aviso = () => document.querySelector("main [role=status]")?.textContent?.trim() ?? "";
+  // El aviso es la tarjeta flotante común del estándar Daybook (Fase 5a): va fuera
+  // de <main>, en .toast-region. Se lee solo su texto, sin «Deshacer» ni la ✕.
+  window.__aviso = () => {
+    const t = document.querySelector(".toast-region .toast");
+    return t ? [...t.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim() : "";
+  };
   window.__error = () => document.querySelector(".dialog [role=alert]")?.textContent?.trim() ?? "";
   true;
 `;

@@ -392,7 +392,7 @@ export default function TripsView() {
                     {revision.get(trip.id)?.map((motivo) => (
                       <small
                         key={motivo}
-                        className="mt-1 flex items-center gap-1 text-[11px] font-bold text-warning"
+                        className="mt-1 flex items-center gap-1 text-overline font-bold text-warning"
                       >
                         <TriangleAlert size={13} aria-hidden="true" />
                         {textoDeRevision(motivo, trip.direction)}
@@ -438,7 +438,7 @@ export default function TripsView() {
                       return (
                         <small
                           className={
-                            "mt-1 block text-[11px] whitespace-nowrap " +
+                            "mt-1 block text-overline whitespace-nowrap " +
                             (dias >= ESPERA_LARGA ? "font-bold text-warning" : "text-muted")
                           }
                         >

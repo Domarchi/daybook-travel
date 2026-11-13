@@ -299,7 +299,7 @@ export default function TripDialog() {
                 {pideMonto(pnrActual, montoActual) && (
                   <small
                     id="pedir-monto"
-                    className="mt-[6px] border-l-2 border-[var(--focus)] pl-2 text-[11px] leading-[1.4] font-normal text-foreground-soft"
+                    className="mt-[6px] border-l-2 border-[var(--focus)] pl-2 text-overline leading-[1.4] font-normal text-foreground-soft"
                   >
                     ¿Cuánto costó? Si lo tienes a mano, anótalo ahora: Costos solo suma los
                     viajes con monto. Puedes dejarlo vacío y cargarlo después.

@@ -521,6 +521,11 @@ small {
     bottom: calc(var(--db-space-4) + env(safe-area-inset-bottom));
     max-width: calc(100vw - var(--db-space-6));
   }
+  /* Con el botón flotante de Bita abajo a la derecha, el aviso sube por encima
+     de él (48 px de botón más su margen) para no taparlo. */
+  .shell:has([data-bita-boton]) .toast {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
 }
 
 /* Excel is an occasional, review-first workflow inside Personas. */
