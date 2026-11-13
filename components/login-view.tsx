@@ -12,7 +12,7 @@ import { SectionKicker } from "@/components/ui/section-kicker";
 
 // El pie es el mismo de la aplicación, así que las clases son las mismas.
 const PIE =
-  "mt-6 flex items-center justify-between gap-5 border-t border-line pt-[18px] max-[760px]:pt-3 text-overline font-bold tracking-[0.06em] text-muted uppercase max-[430px]:mt-4 max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[5px]";
+  "mt-6 flex items-center justify-between gap-5 border-t border-line pt-[18px] max-[760px]:pt-3 text-overline font-bold tracking-[0.06em] text-muted uppercase max-[430px]:mt-3 max-[430px]:flex-col max-[430px]:items-start max-[430px]:gap-[3px] max-[430px]:pt-2";
 
 // Pantalla que se ve mientras la aplicación decide si hay sesión abierta.
 // Comparte el fondo estático de la entrada para evitar un cambio visual de fondo.
