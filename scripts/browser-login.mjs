@@ -186,9 +186,12 @@ async function waitForHttp(url, child) {
   throw new Error(`Next no quedó listo en ${DEADLINE_MS} ms: ${lastError}\n${child.output()}`);
 }
 
+// Chrome recién instalado en una máquina de CI que acaba de arrancar puede tardar
+// en abrir su puerto de depuración: en GitHub pasó varias veces de los 20 s que
+// había antes ("Chrome no expuso CDP"). Se le da el mismo plazo que a Next.
 async function waitForDevTools(profile, child) {
   const file = join(profile, "DevToolsActivePort");
-  const deadline = Date.now() + 20_000;
+  const deadline = Date.now() + DEADLINE_MS;
   let lastError = "archivo todavía ausente";
   while (Date.now() < deadline) {
     if (child.launchError) {
@@ -378,13 +381,26 @@ async function assertKeyboardFocus(cdp, stop, label) {
   assert.notEqual(focus.outlineWidth, "0px", `foco visible ${stop.name} ${label}: ${JSON.stringify(focus)}`);
 }
 
+// Pedir una pestaña nueva es lo primero que se le pide a Chrome recién
+// arrancado, y en CI a veces tarda más de los 3 s que tenía: el error era un
+// "TimeoutError" suelto que no decía de dónde venía. Ahora espera hasta 10 s,
+// lo intenta tres veces y, si no, falla diciendo qué no pudo hacer.
 async function openTarget(cdpPort) {
-  const response = await fetch(`http://127.0.0.1:${cdpPort}/json/new?about%3Ablank`, {
-    method: "PUT",
-    signal: AbortSignal.timeout(3_000),
-  });
-  assert.equal(response.ok, true, `Chrome no creó una pestaña: HTTP ${response.status}`);
-  return response.json();
+  let lastError = "sin respuesta";
+  for (let intento = 1; intento <= 3; intento++) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${cdpPort}/json/new?about%3Ablank`, {
+        method: "PUT",
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (response.ok) return response.json();
+      lastError = `HTTP ${response.status}`;
+    } catch (error) {
+      lastError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    }
+    await delay(500 * intento);
+  }
+  throw new Error(`Chrome no creó una pestaña tras 3 intentos: ${lastError}`);
 }
 
 async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
