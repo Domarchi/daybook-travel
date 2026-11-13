@@ -434,3 +434,9 @@ small {
   }
 }
 }
+
+/* Bita flota abajo a la derecha: mientras está, la página deja espacio debajo para
+   que lo último (y los botones del final) siempre pueda quedar por encima del botón. */
+body:has([data-bita-boton]) main {
+  padding-bottom: 96px;
+}

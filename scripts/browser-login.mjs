@@ -620,6 +620,10 @@ export async function startBrowser() {
         NEXT_TELEMETRY_DISABLED: "1",
         NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "browser-test-publishable-key",
+        // Bita encendida y sin llave de Anthropic: en la demostración muestra solo el
+        // resumen, que no llama a nadie. Lo prueba browser-flujos.mjs.
+        BITA_ENABLED: "1",
+        ANTHROPIC_API_KEY: "",
       },
     });
     await waitForHttp(appUrl, next);
