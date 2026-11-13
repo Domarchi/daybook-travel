@@ -266,10 +266,10 @@ export function useAccionesViajes(e: Entrada) {
     abrirModal("close");
   }
 
-  async function closeSelectedTrips(modo: ModoDeCierre, motivo: string, pnr: string) {
+  async function closeSelectedTrips(modo: ModoDeCierre, motivo: string, pnr: string, monto = "") {
     const rows = viajesPorCerrar();
     await runAction(async () => {
-      const problema = problemaDeCierre(rows, modo, motivo, pnr);
+      const problema = problemaDeCierre(rows, modo, motivo, pnr, monto);
       if (problema) throw new Error(problema);
       const updatedAt = new Date().toISOString();
       if (demo) {
@@ -277,7 +277,7 @@ export function useAccionesViajes(e: Entrada) {
         setTrips((current) =>
           current.map((trip) =>
             porId.has(trip.id)
-              ? { ...trip, ...cambioDeCierre(trip, modo, motivo, pnr), updated_at: updatedAt }
+              ? { ...trip, ...cambioDeCierre(trip, modo, motivo, pnr, monto), updated_at: updatedAt }
               : trip,
           ),
         );
@@ -289,7 +289,7 @@ export function useAccionesViajes(e: Entrada) {
             rows.slice(index, index + 10).map((trip) =>
               db()
                 .from("trips")
-                .update({ ...cambioDeCierre(trip, modo, motivo, pnr), updated_at: updatedAt })
+                .update({ ...cambioDeCierre(trip, modo, motivo, pnr, monto), updated_at: updatedAt })
                 .eq("id", trip.id)
                 .eq("updated_at", trip.updated_at!)
                 .select("id"),

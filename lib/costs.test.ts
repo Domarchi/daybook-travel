@@ -13,6 +13,7 @@ import {
   rutaDe,
   registroDeCosto,
 } from "./costs.ts";
+import { pideMonto } from "./costs.ts";
 
 const viaje = (extra: {
   date?: string;
@@ -227,4 +228,11 @@ test("un plan sin monto no se trata como una reserva comprada sin costo", () => 
 test("los anulados se excluyen y un monto cero sigue siendo registrado", () => {
   assert.equal(registroDeCosto(viaje({ status: "Anulado", amount: 120000 })), "excluido");
   assert.equal(registroDeCosto(viaje({ amount: 0 })), "registrado");
+});
+
+test("con código de reserva y sin monto, se pide el monto; no se exige", () => {
+  assert.equal(pideMonto("YQJKYM", ""), true);
+  assert.equal(pideMonto("YQJKYM", " "), true);
+  assert.equal(pideMonto("YQJKYM", "85990"), false);
+  assert.equal(pideMonto("", ""), false);
 });

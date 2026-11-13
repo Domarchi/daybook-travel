@@ -61,3 +61,16 @@ test("al cerrar, los motivos viejos no se repiten en las notas: quedan en el his
     "Importado.\nMotivo del cambio: No viajó",
   );
 });
+
+test("al registrar una reserva común se puede poner el monto por pasajero", () => {
+  assert.deepEqual(cambioDeCierre(viaje(), "reserva", "Comprado por fuera", "abc123", "85990"), {
+    status: "Completado",
+    pnr: "ABC123",
+    notes: "Motivo del cambio: Comprado por fuera",
+    amount: 85990,
+  });
+  // Sin monto, el viaje conserva el que tenía: no se pisa con vacío.
+  assert.equal("amount" in cambioDeCierre(viaje(), "reserva", "Comprado por fuera", "abc123", ""), false);
+  assert.match(problemaDeCierre([viaje(), viaje()], "reserva", "Comprado por fuera", "ABC123", "caro") ?? "", /monto/);
+  assert.equal(problemaDeCierre([viaje(), viaje()], "reserva", "Comprado por fuera", "ABC123", "0"), null);
+});
