@@ -204,9 +204,57 @@ async function cerrarEnBloque(cdpPort, appUrl) {
   }
 }
 
+// Bita en la demostración: el botón flotante abre el resumen sin IA, cada línea
+// lleva a su pantalla, Escape cierra y devuelve el foco, y en un teléfono de 390 px
+// en modo oscuro el panel ocupa la pantalla sin desbordarla. Sin cuenta real no
+// hay preguntas: la demostración no tiene sesión que mandar al servidor.
+async function bita(cdpPort, appUrl) {
+  const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  const boton = `document.querySelector('button[aria-label="Abrir el chat con Bita"]')`;
+  const panel = `document.querySelector('[role=dialog][aria-label^="Bita"]')`;
+  try {
+    await waitUntil(cdp, `!!${boton}`, "el botón flotante de Bita");
+    const lugar = await cdp.evaluate(`(() => { const r = ${boton}.getBoundingClientRect(); return [document.documentElement.clientWidth - r.right, innerHeight - r.bottom, getComputedStyle(${boton}).position]; })()`);
+    assert.deepEqual(lugar, [24, 24, "fixed"], "abajo a la derecha, fijo");
+
+    await ir(cdp, "Viajes");
+    await cdp.evaluate(`${boton}.click()`);
+    await waitUntil(cdp, `!!${panel}?.querySelector('[aria-label="Cómo vienen los viajes"] li')`, "el resumen de Bita");
+    const resumen = await cdp.evaluate(`${panel}.innerText`);
+    assert.match(resumen, /Soy Bita/);
+    assert.match(resumen, /Hoy (nadie viaja|\d+ (sube|suben|baja|bajan))/);
+    assert.match(resumen, /Esta semana: \d+ subidas? y \d+ bajadas?/);
+    assert.match(resumen, /solo muestro este resumen/, "en la demostración no hay preguntas");
+    assert.equal(await cdp.evaluate(`!!${panel}.querySelector("textarea")`), false);
+
+    // Una línea del resumen lleva a su pantalla.
+    await cdp.evaluate(`window.__clic("Esta semana", ${panel})`);
+    await waitUntil(cdp, `document.querySelector("main h1")?.textContent.includes("Agenda")`, "la agenda desde el resumen");
+
+    // Escape cierra y el foco vuelve al botón.
+    await cdp.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await waitUntil(cdp, `!${panel} && document.activeElement === ${boton}`, "cerrar con Escape y volver al botón");
+
+    // Teléfono de 390 px en modo oscuro: el panel ocupa la pantalla y no la desborda.
+    await cdp.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "dark" }] });
+    await delay(300);
+    await cdp.evaluate(`${boton}.click()`);
+    await waitUntil(cdp, `!!${panel}`, "el panel en el teléfono");
+    const medidas = await cdp.evaluate(`[${panel}.getBoundingClientRect().width, document.documentElement.scrollWidth]`);
+    assert.deepEqual(medidas, [390, 390], "el panel ocupa el ancho y nada se sale");
+
+    assert.deepEqual(lista, [], "sin errores en la consola");
+    return "Bita: botón, resumen sin IA, enlace, Escape y teléfono oscuro";
+  } finally {
+    cdp.close();
+  }
+}
+
 async function main() {
   const { cdpPort, appUrl } = await startBrowser();
-  for (const escenario of [planificarYSolicitar, cerrarEnBloque]) {
+  for (const escenario of [planificarYSolicitar, cerrarEnBloque, bita]) {
     console.log(`✓ ${await escenario(cdpPort, appUrl)}`);
   }
 }

@@ -52,6 +52,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/supabase.ts` | Cliente. Dos líneas. |
 | `app/api/cron/alertas-urgentes/route.ts` | El cron de los avisos por correo. Delgado a propósito: la lógica está en `lib/urgent-alerts-handler.ts` (autorización, configuración, respuesta), `lib/urgent-alerts.ts` (qué viajes y qué dice el correo) y `lib/send-mail.ts` (Resend). Todo se prueba sin red. |
 | `docs/manual/hacer_manual.py` | **La fuente de la guía de uso** (`docs/Manual_Daybook_Travel.pdf`, 17 páginas). Arma `manual.html` y Chrome lo imprime a PDF; los comandos están en el README. La numeración de páginas se calcula ahí, no en el navegador. No lleva correos ni nombres de personas: la lista de accesos vive en la pantalla Accesos. Al cambiar una pantalla, se actualiza el texto y se regenera. |
+| `components/bita.tsx`, `lib/bita-*.ts`, `app/api/bita/` | **Bita, la asistente** (ver `docs/bita.md`). Viene apagada (`BITA_ENABLED`). Botón flotante con un resumen sin IA (`lib/bita-resumen.ts`) y un chat de **solo lectura**: el servidor lee con el token de la persona (RLS), los nombres salen como seudónimos (`lib/bita-seudonimos.ts`) y nunca salen reservas, vuelos ni montos de un viaje. La llave de servicio solo cuenta mensajes (migración 014). Lógica en `lib/bita-handler.ts` con todo lo externo inyectado; pruebas en `lib/bita-*.test.ts` y el escenario «Bita» de `scripts/browser-flujos.mjs`. |
 | `supabase/00*.sql` | Migraciones, se aplican **en orden numérico**. Aquí vive la verdad del sistema. |
 
 ## Reglas que NO hay que romper
@@ -101,7 +102,7 @@ se agrega una nueva con el número siguiente.
 **La base de RELEVO la comparte Daybook Asistencia** (sus tablas son `asistencia_*` y sus
 migraciones se registran como `001_asistencia`, `002_padron`…). Por eso las de Travel se
 registran en Supabase con el prefijo `travel_`: `travel_013_historial_con_correo`. Desde el
-12-nov-2026 están registradas la 009 a la 013. La 009 a la 012 se habían aplicado por el editor
+12-nov-2026 están registradas la 009 a la 013. La 014 (`014_bita_uso.sql`, el cupo de Bita) se registra como `travel_014_bita_uso` cuando se autorice aplicarla. La 009 a la 012 se habían aplicado por el editor
 SQL sin quedar en el registro; se verificaron (funciones, tablas y permisos) y se registraron
 solo como constancia, sin volver a ejecutarlas. De antes quedan tres con otro nombre
 (`dias_de_viaje_por_persona`, `excel_sin_regla_del_lunes`, `ventana_de_compra`) y la 001 a 004,
