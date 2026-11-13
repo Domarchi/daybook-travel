@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cambioDeCierre, mismoVuelo, problemaDeCierre } from "./cierre.ts";
+import { MOTIVO_PERSONA_INACTIVA, cambioDeCierre, mismoVuelo, problemaDeCierre, viajesFuturosDe } from "./cierre.ts";
+import { problemaDeMotivo } from "./motivo.ts";
 
 const viaje = (extra: Partial<{ date: string; origin: string; destination: string; notes: string }> = {}) => ({
   date: extra.date ?? "2026-10-05",
@@ -73,4 +74,24 @@ test("al registrar una reserva común se puede poner el monto por pasajero", () 
   assert.equal("amount" in cambioDeCierre(viaje(), "reserva", "Comprado por fuera", "abc123", ""), false);
   assert.match(problemaDeCierre([viaje(), viaje()], "reserva", "Comprado por fuera", "ABC123", "caro") ?? "", /monto/);
   assert.equal(problemaDeCierre([viaje(), viaje()], "reserva", "Comprado por fuera", "ABC123", "0"), null);
+});
+
+test("al desactivar a alguien, sus viajes futuros sin reserva se pueden anular; los con reserva no", () => {
+  const v = (extra: Record<string, string>) => ({ person_id: "p1", date: "2026-11-20", status: "Planificado", pnr: "", ...extra });
+  const { sinReserva, conReserva } = viajesFuturosDe(
+    "p1",
+    [
+      v({}),
+      v({ status: "Solicitado" }),
+      v({ pnr: "ABC123", status: "Emitido" }),
+      v({ date: "2026-11-01" }), // ya pasó
+      v({ status: "Anulado" }), // ya anulado
+      v({ person_id: "p2" }), // de otra persona
+    ],
+    "2026-11-12",
+  );
+  assert.equal(sinReserva.length, 2);
+  assert.equal(conReserva.length, 1);
+  // El motivo automático cumple el mínimo que se le pide a cualquiera.
+  assert.equal(problemaDeMotivo(MOTIVO_PERSONA_INACTIVA), null);
 });

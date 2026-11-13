@@ -144,9 +144,22 @@ async function planificarYSolicitar(cdpPort, appUrl) {
     await cdp.evaluate(`window.__valor(".dialog input[name=name]", "persona  de EJEMPLO 1")`);
     await waitUntil(cdp, `!!document.getElementById("persona-repetida")`, "el aviso de persona repetida");
     await cdp.evaluate(`window.__clic("Cancelar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `!document.querySelector(".dialog")`, "cerrar el diálogo de persona");
+
+    // Desactivar a una persona ofrece anular sus viajes futuros sin reserva.
+    await cdp.evaluate(`
+      const fila = [...document.querySelectorAll("main article")].find((a) => a.querySelector("h2")?.textContent === "Persona de ejemplo 1");
+      window.__clic("Editar", fila);
+    `);
+    await waitUntil(cdp, `!!document.querySelector(".dialog input[name=active]")`, "el diálogo de la persona");
+    await cdp.evaluate(`document.querySelector(".dialog input[name=active]").click()`);
+    await waitUntil(cdp, `!!document.querySelector(".dialog input[name=anular_futuros]")`, "la oferta de anular sus viajes");
+    await cdp.evaluate(`document.querySelector(".dialog input[name=anular_futuros]").click()`);
+    await cdp.evaluate(`window.__clic("Guardar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `/^Persona guardada como inactiva\. Se anul/.test(window.__aviso())`, "el aviso de viajes anulados");
 
     assert.deepEqual(lista, [], "sin errores en la consola");
-    return `planificar ${nuevos} viajes, manifiesto, solicitado, pedido de monto, motivo mínimo y persona repetida`;
+    return `planificar ${nuevos} viajes, manifiesto, solicitado, pedido de monto, motivo mínimo, persona repetida y desactivar con sus viajes`;
   } finally {
     cdp.close();
   }

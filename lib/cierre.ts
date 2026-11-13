@@ -75,3 +75,25 @@ export function cambioDeCierre(
         ...(monto.trim() ? { amount: Number(monto) } : {}),
       };
 }
+
+/**
+ * Los viajes que vienen de una persona, para cuando se la desactiva. Los que no
+ * tienen reserva se pueden anular de una vez; los que ya tienen código no se
+ * tocan solos: hay un pasaje comprado y alguien tiene que decidir qué hacer.
+ */
+export function viajesFuturosDe<T extends Pick<Trip, "person_id" | "date" | "status" | "pnr">>(
+  personId: string,
+  viajes: T[],
+  hoy: string,
+) {
+  const futuros = viajes.filter(
+    (viaje) => viaje.person_id === personId && viaje.date >= hoy && viaje.status !== "Anulado",
+  );
+  return {
+    sinReserva: futuros.filter((viaje) => !(viaje.pnr ?? "").trim()),
+    conReserva: futuros.filter((viaje) => (viaje.pnr ?? "").trim()),
+  };
+}
+
+/** El motivo que queda en cada viaje anulado al desactivar a la persona. */
+export const MOTIVO_PERSONA_INACTIVA = "La persona quedó inactiva.";
