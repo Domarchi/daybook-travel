@@ -606,6 +606,9 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
       runtimeCanary.open=false;
     }
     await cdp.send('Emulation.setDeviceMetricsOverride',{width,height,screenWidth:width,screenHeight:height,deviceScaleFactor:1,mobile});
+    // Desde la Fase 4a el tema por omisión sigue al sistema (antes Travel forzaba oscuro):
+    // el recorrido parte en oscuro y prueba el paso a claro, así que el sistema se emula oscuro.
+    await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
     await cdp.send('Emulation.setTouchEmulationEnabled', mobile ? {enabled:true,maxTouchPoints:5} : {enabled:false});
     const viewport = `${width}x${height}`;
     const checkedStates = new Set();
@@ -1013,6 +1016,9 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
         // Se mantienen dimensiones, pantalla, escala y capacidad táctil de T1;
         // deny/keyboard vuelve a asertar las medidas y ejecutar Tab/touch reales.
         await cdp.send('Emulation.setDeviceMetricsOverride',{width,height,screenWidth:width,screenHeight:height,deviceScaleFactor:1,mobile});
+    // Desde la Fase 4a el tema por omisión sigue al sistema (antes Travel forzaba oscuro):
+    // el recorrido parte en oscuro y prueba el paso a claro, así que el sistema se emula oscuro.
+    await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
         await cdp.send('Emulation.setTouchEmulationEnabled', mobile ? {enabled:true,maxTouchPoints:5} : {enabled:false});
         await deny();
         await assertSafeQueryUi();
