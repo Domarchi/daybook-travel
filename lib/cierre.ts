@@ -37,6 +37,7 @@ export function problemaDeCierre(
   modo: ModoDeCierre,
   motivo: string,
   pnr: string,
+  monto = "",
 ): string | null {
   if (!viajes.length) return "Selecciona los viajes que quieres cerrar.";
   const motivoMalo = problemaDeMotivo(motivo);
@@ -46,6 +47,8 @@ export function problemaDeCierre(
       return "Una misma reserva solo sirve para viajes del mismo día y la misma ruta. Si cada uno tiene su código, ábrelos de a uno.";
     }
     if (!pnr.trim()) return "Escribe el código de reserva.";
+    // El monto es opcional; si se escribe, tiene que ser un número.
+    if (monto.trim() && !(Number(monto) >= 0)) return "El monto por pasajero debe ser un número igual o mayor que cero.";
   }
   return null;
 }
@@ -56,11 +59,19 @@ export function cambioDeCierre(
   modo: ModoDeCierre,
   motivo: string,
   pnr: string,
+  monto = "",
 ) {
   // Las observaciones y el motivo del cierre, igual que al editar o al marcar
   // como solicitado. Los motivos anteriores están en el historial.
   const notes = notasConMotivo(viaje.notes, motivo);
   return modo === "anular"
     ? { status: "Anulado", notes }
-    : { status: "Completado", pnr: pnr.trim().toUpperCase(), notes };
+    : {
+        status: "Completado",
+        pnr: pnr.trim().toUpperCase(),
+        notes,
+        // El monto es por pasajero, como en el Excel de la agencia: cada viaje
+        // lleva el suyo. Si no se escribió, el viaje conserva el que tenía.
+        ...(monto.trim() ? { amount: Number(monto) } : {}),
+      };
 }

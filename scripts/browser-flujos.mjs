@@ -122,6 +122,13 @@ async function planificarYSolicitar(cdpPort, appUrl) {
     // Editar un viaje: un motivo de un punto no pasa; uno que se entiende, sí.
     await cdp.evaluate(`window.__clic("Abrir", document.querySelector("tbody"))`);
     await waitUntil(cdp, `!!document.querySelector(".dialog textarea[name=change_reason]")`, "el diálogo de viaje");
+    // Con código de reserva y sin monto, el diálogo pide el monto; con monto, deja de pedirlo.
+    await cdp.evaluate(`window.__valor(".dialog input[name=pnr]", "ABC123")`);
+    await waitUntil(cdp, `!!document.getElementById("pedir-monto")`, "el pedido de monto");
+    await cdp.evaluate(`window.__valor(".dialog input[name=amount]", "85990")`);
+    await waitUntil(cdp, `!document.getElementById("pedir-monto")`, "el pedido de monto resuelto");
+    await cdp.evaluate(`window.__valor(".dialog input[name=pnr]", "")`);
+    await cdp.evaluate(`window.__valor(".dialog input[name=amount]", "")`);
     await cdp.evaluate(`window.__valor(".dialog textarea[name=change_reason]", ".")`);
     await cdp.evaluate(`window.__clic("Guardar viaje", document.querySelector(".dialog"))`);
     await waitUntil(cdp, `window.__error().includes("al menos 5 letras")`, "el rechazo del motivo corto");
@@ -139,7 +146,7 @@ async function planificarYSolicitar(cdpPort, appUrl) {
     await cdp.evaluate(`window.__clic("Cancelar", document.querySelector(".dialog"))`);
 
     assert.deepEqual(lista, [], "sin errores en la consola");
-    return `planificar ${nuevos} viajes, manifiesto, solicitado, motivo mínimo y persona repetida`;
+    return `planificar ${nuevos} viajes, manifiesto, solicitado, pedido de monto, motivo mínimo y persona repetida`;
   } finally {
     cdp.close();
   }

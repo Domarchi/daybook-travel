@@ -177,6 +177,10 @@ solo como constancia, sin volver a ejecutarlas. De antes quedan tres con otro no
      hora carísima no debe mover la referencia contra la que se comparan las demás.
    - Al escribir un monto que se aparta más de un 40% de esa referencia, el diálogo lo dice. No
      bloquea: una tarifa cara puede ser legítima. Existe para que un cero de más no pase.
+   - **Con código de reserva y sin monto, el diálogo pide el monto** (`pideMonto`): es el momento
+     en que se tiene el precio delante. No obliga. El cierre en bloque con reserva común también
+     acepta un monto por pasajero, opcional. Salió de que en noviembre de 2026 ningún viaje tenía
+     monto. El Excel de la agencia también sirve: el importador lee la columna «Monto CLP».
 
 5. **Elegibilidad por acreditación. HECHO** (rama `acreditacion`). Documentos con vencimiento,
    evaluados contra la **fecha del viaje**, no contra hoy: vale hasta el día de su vencimiento.

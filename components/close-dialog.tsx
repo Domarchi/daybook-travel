@@ -19,6 +19,7 @@ export default function CloseDialog() {
   const [modo, setModo] = useState<ModoDeCierre>("anular");
   const [motivo, setMotivo] = useState("");
   const [pnr, setPnr] = useState("");
+  const [monto, setMonto] = useState("");
 
   const n = viajes.length;
   const viajesTexto = `${n} ${n === 1 ? "viaje" : "viajes"}`;
@@ -29,7 +30,7 @@ export default function CloseDialog() {
       aria-busy={busy}
       onSubmit={(event) => {
         event.preventDefault();
-        void closeSelectedTrips(modo, motivo, pnr);
+        void closeSelectedTrips(modo, motivo, pnr, monto);
       }}
     >
       <DialogBody>
@@ -77,6 +78,22 @@ export default function CloseDialog() {
               <Hint id="cierre-pnr-ayuda">
                 Quedan como Completado, del {formatDate(viajes[0].date)}, {viajes[0].origin} →{" "}
                 {viajes[0].destination}.
+              </Hint>
+              <Label>
+                Monto por pasajero (CLP) <small className="text-muted">(opcional)</small>
+                <Input
+                  name="monto"
+                  type="number"
+                  min="0"
+                  step="1"
+                  aria-describedby="cierre-monto-ayuda"
+                  value={monto}
+                  onChange={(event) => setMonto(event.target.value)}
+                />
+              </Label>
+              <Hint id="cierre-monto-ayuda">
+                Si lo tienes, anótalo: Costos solo suma los viajes con monto. Cada pasajero
+                queda con este monto.
               </Hint>
             </>
           )}
