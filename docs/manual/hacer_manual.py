@@ -6,8 +6,8 @@ import html, sys
 SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
-VERSION = "2.1"
-FECHA = "12 de noviembre de 2026"
+VERSION = "2.2"
+FECHA = "13 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
 def e(t):
@@ -251,6 +251,26 @@ pagina("Viajes sin cerrar", "Lo que ya pasó y quedó sin reserva",
     col("Se volaron con una misma reserva", '<p>Quedan <strong>Completados</strong> con su código y, si lo tienes, el monto por pasajero. Solo se puede si todos son del mismo día y la misma ruta: un código es un vuelo. Si cada uno tiene su código, ábrelos de a uno.</p>')) +
   nota("Antes de anular", "Si alguno se voló con un pasaje comprado por fuera, no lo anules: regístrale la reserva. Anular dejaría un registro que no es cierto.", "aviso"))
 
+pagina("Viajes para revisar", "Lo que viene y tiene algo raro",
+  "La aplicación avisa de los viajes próximos que probablemente están mal, antes de comprarlos. No bloquea nada: solo avisa.",
+  dos(
+    col("Los tres avisos", lista([
+      "<strong>Repetido</strong>: la misma persona tiene dos viajes iguales ese día. Uno sobra.",
+      "<strong>Sube sin haber bajado</strong>, o <strong>baja sin haber subido</strong>: falta registrar un movimiento entre medio, o sobra uno.",
+      "<strong>No calza con su turno</strong>: el viaje está planificado en un día que ya no corresponde a su turno, porque se cambió la ficha.",
+    ])),
+    col("Dónde están", lista([
+      "Bajo las tarjetas de la Agenda aparece «N viajes próximos para revisar». Abre la lista.",
+      "En Viajes, cada uno lleva su aviso bajo la ruta, en cualquier lista.",
+      "Al guardar una ficha con otro turno, el aviso dice cuántos viajes quedaron fuera.",
+    ]))) +
+  '<h2>Si cambió el turno de alguien</h2>' +
+  pasos([
+    "Abre cada viaje marcado <strong>No calza con su turno</strong> y anúlalo, con un motivo como «Cambio de turno».",
+    "Pulsa <strong>Planificar turnos</strong> para esa persona: crea los viajes del turno nuevo sin tocar los demás.",
+  ]) +
+  nota("Por qué solo los planificados", "Un viaje solicitado o con reserva ya lo vio alguien; si está en otro día, suele ser a propósito (alguien que bajó antes, un cambio de vuelo). Por eso el aviso de turno solo mira los planificados. Lo que ya pasó no se revisa: se cierra."))
+
 pagina("Actividad e historial", "Quién cambió qué, y cuándo",
   "Cada cambio queda guardado con su autor. Hay dos formas de verlo: todo el proyecto, o un viaje o una persona.",
   dos(
@@ -275,7 +295,7 @@ pagina("Solicitud de pasajes", "Cómo preparar la lista para la agencia",
     "Revisa y pulsa <strong>Copiar</strong>, o descarga el <strong>PDF</strong> o el <strong>CSV</strong>.",
     "Pega el texto en el correo a la agencia y envíalo.",
     "Después de enviarlo, pulsa <strong>Marcar N como solicitados</strong> sobre esa misma lista.",
-    "Cuando llegue la respuesta, completa PNR, vuelo, monto y el estado <strong>Emitido</strong>.",
+    "Cuando llegue la respuesta, abre <strong>Pendientes de confirmación</strong>, marca los pasajeros de un mismo vuelo y pulsa <strong>Registrar reserva</strong>: quedan Emitido con el código y, si los tienes, el vuelo y el monto.",
   ]) +
   dos(
     col("Qué conviene saber", lista([

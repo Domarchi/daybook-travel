@@ -87,4 +87,5 @@ export type ModalName =
   | "excel"
   | "manifest"
   | "close"
+  | "reserve"
   | null;
