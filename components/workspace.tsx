@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, Menu, X } from "lucide-react";
+import BrandMark from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
 import CostsView from "@/components/costs-view";
@@ -28,6 +29,8 @@ export default function Workspace() {
     people,
     trips,
     view,
+    menuAbierto,
+    setMenuAbierto,
     modal,
     notice,
     setNotice,
@@ -62,14 +65,35 @@ export default function Workspace() {
         aria-hidden={modal ? true : undefined}
       >
         <SideNav />
+        {/* El velo detrás del menú del teléfono: tocarlo lo cierra. */}
+        {menuAbierto && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 min-[821px]:hidden"
+            aria-hidden="true"
+            onClick={() => setMenuAbierto(false)}
+          />
+        )}
 
         {/* La cabecera fija de la familia Daybook (64 px, negra en oscuro), con
-            el lugar donde uno está. En el teléfono el riel ya es la barra de
-            arriba, así que no se repite. */}
-        <header className="sticky top-0 z-20 flex h-[var(--db-topbar-height)] items-center border-b border-line bg-[color-mix(in_srgb,var(--bg)_91%,transparent)] px-[max(var(--db-content-gutter),calc((100%_-_var(--db-content-max))/2_+_var(--db-content-gutter)))] backdrop-blur-[18px] max-[820px]:hidden">
+            el lugar donde uno está. En el teléfono lleva además el botón ☰ que
+            abre el riel como cajón, y el símbolo. */}
+        <header className="sticky top-0 z-20 flex h-[var(--db-topbar-height)] items-center gap-3 border-b border-line bg-[color-mix(in_srgb,var(--bg)_91%,transparent)] px-[max(var(--db-content-gutter),calc((100%_-_var(--db-content-max))/2_+_var(--db-content-gutter)))] backdrop-blur-[18px] max-[760px]:px-4">
+          <Button
+            id="boton-menu"
+            type="button"
+            variant="icon"
+            className="min-[821px]:hidden"
+            aria-label="Abrir menú"
+            aria-controls="menu-principal"
+            aria-expanded={menuAbierto}
+            onClick={() => setMenuAbierto(true)}
+          >
+            <Menu size={20} />
+          </Button>
+          <BrandMark className="max-[820px]:block max-[820px]:w-8" />
           <nav aria-label="Ubicación" className="flex min-w-0 items-center gap-2 text-meta">
-            <span className="text-muted">Traslados · Copiapó</span>
-            <ChevronRight size={14} aria-hidden="true" className="flex-none text-muted" />
+            <span className="text-muted max-[820px]:hidden">Traslados · Copiapó</span>
+            <ChevronRight size={14} aria-hidden="true" className="flex-none text-muted max-[820px]:hidden" />
             <span aria-current="page" className="truncate font-semibold text-foreground">{view}</span>
           </nav>
         </header>

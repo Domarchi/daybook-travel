@@ -197,10 +197,13 @@ test("BrandMark referencia los dos isotipos de Daybook (tema oscuro y claro)", a
 // El isotipo escondido que tenía la identidad de la entrada nunca se veía (la
 // entrada lo anulaba en todos los anchos) y se quitó al pasar la marca a
 // Tailwind. El cambio de logo a isotipo lo hace la barra lateral.
-test("la barra lateral usa el isotipo en espacios compactos, el logo completo en los amplios", async () => {
+test("el riel lleva el logo completo; el isotipo va en el espacio compacto, la cabecera del teléfono", async () => {
+  // Desde el menú hamburguesa (Fase 4b) el riel es siempre de 232 px, también
+  // como cajón en el teléfono: ahí cabe el logo. El isotipo vive en la cabecera.
   const barra = await readFile(path("components/side-nav.tsx"), "utf8");
   assert.match(barra, /<BrandLogo\b/);
-  assert.match(barra, /<BrandMark\b/);
+  const cabecera = await readFile(path("components/workspace.tsx"), "utf8");
+  assert.match(cabecera, /<BrandMark\b/);
 
   const identidad = await readFile(path("components/ui/brand-identity.tsx"), "utf8");
   assert.match(identidad, /<BrandLogo\b/);
