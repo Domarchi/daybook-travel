@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { db } from "../../lib/supabase";
 import type { Avisos } from "./use-avisos";
+import { avisoDeError } from "@/lib/avisos";
 
 type Entrada = Avisos;
 
@@ -27,9 +28,11 @@ export function useSesion(e: Entrada) {
       // muestra la pantalla de entrada con el motivo, en vez de una página en
       // blanco, y la demostración sigue funcionando sin credenciales.
       setNotice(
-        error instanceof Error
-          ? error.message
-          : "Falta configurar el acceso a la base de datos.",
+        avisoDeError(
+          error instanceof Error
+            ? error.message
+            : "Falta configurar el acceso a la base de datos.",
+        ),
       );
       setReady(true);
       return;

@@ -7,6 +7,7 @@ import { FormEvent } from "react";
 import { addDays } from "../../lib/calendar";
 import { localDate } from "../../lib/format";
 import { db } from "../../lib/supabase";
+import { avisoDeError, avisoDeExito } from "@/lib/avisos";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
@@ -39,8 +40,12 @@ export function useAccionesGenerar(e: Entrada) {
     clearMessages();
     if (!planificables.length) {
       navigate("Personas");
+      // No se pudo abrir: es un error que dice qué falta, y se queda a la vista
+      // mientras se va a Personas a resolverlo.
       setNotice(
-        "Agrega una persona activa con jornada 4×3 o 10×10 para crear su calendario.",
+        avisoDeError(
+          "Agrega una persona activa con jornada 4×3 o 10×10 para crear su calendario.",
+        ),
       );
       return;
     }
@@ -119,7 +124,9 @@ export function useAccionesGenerar(e: Entrada) {
       const peopleCount = generationPeople.length;
       closeModal();
       setNotice(
-        `${count} viajes nuevos para ${peopleCount} ${peopleCount === 1 ? "persona" : "personas"}. Los registros existentes se conservaron.`,
+        avisoDeExito(
+          `${count} viajes nuevos para ${peopleCount} ${peopleCount === 1 ? "persona" : "personas"}. Los registros existentes se conservaron.`,
+        ),
       );
     }, "form");
   }

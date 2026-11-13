@@ -11,6 +11,7 @@ import { db } from "../../lib/supabase";
 import { AccessStatus, Person, Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
+import { avisoDeError } from "@/lib/avisos";
 
 type Entrada = Avisos & Sesion;
 
@@ -112,7 +113,9 @@ export function useDatos(e: Entrada) {
     } catch {
       setAccessStatus((current) => (current === "allowed" ? current : "error"));
       setNotice(
-        "No pudimos cargar la información. Revisa la conexión e inténtalo nuevamente.",
+        avisoDeError(
+          "No pudimos cargar la información. Revisa la conexión e inténtalo nuevamente.",
+        ),
       );
     } finally {
       setLoading(false);

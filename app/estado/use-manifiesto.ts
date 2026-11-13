@@ -15,6 +15,7 @@ import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
 import type { Derivados } from "./use-derivados";
 import type { Acreditacion } from "./use-acreditacion";
+import { avisoDeError, avisoDeExito } from "@/lib/avisos";
 
 type Entrada = Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion;
 
@@ -44,7 +45,7 @@ export function useManifiesto(e: Entrada) {
   // una vez enviado el correo, se marquen como solicitados en un solo paso.
   function openManifest() {
     if (!requestableTrips.length) {
-      setNotice("No hay viajes futuros por solicitar con estos filtros.");
+      setNotice(avisoDeError("No hay viajes futuros por solicitar con estos filtros."));
       return;
     }
     clearMessages();
@@ -63,7 +64,7 @@ export function useManifiesto(e: Entrada) {
     // Lo mismo que lleva el texto y el PDF: lo que el manifiesto muestra.
     const rows = manifestTrips;
     if (!rows.length) {
-      setNotice("No hay viajes futuros por solicitar con estos filtros.");
+      setNotice(avisoDeError("No hay viajes futuros por solicitar con estos filtros."));
       return;
     }
     const csv = csvDeViajes(
@@ -90,7 +91,9 @@ export function useManifiesto(e: Entrada) {
     anchor.click();
     URL.revokeObjectURL(url);
     setNotice(
-      "Lista descargada. Revísala y, cuando la envíes, marca la selección como solicitada.",
+      avisoDeExito(
+        "Lista descargada. Revísala y, cuando la envíes, marca la selección como solicitada.",
+      ),
     );
   }
 
@@ -106,7 +109,7 @@ export function useManifiesto(e: Entrada) {
       ),
     );
     if (!ids.length) {
-      setNotice("Selecciona viajes planificados para continuar.");
+      setNotice(avisoDeError("Selecciona viajes planificados para continuar."));
       return;
     }
     await runAction(async () => {
@@ -167,7 +170,9 @@ export function useManifiesto(e: Entrada) {
       }
       setSelectedTrips([]);
       setNotice(
-        `${ids.length} ${ids.length === 1 ? "viaje marcado como solicitado" : "viajes marcados como solicitados"}.`,
+        avisoDeExito(
+          `${ids.length} ${ids.length === 1 ? "viaje marcado como solicitado" : "viajes marcados como solicitados"}.`,
+        ),
       );
     });
   }

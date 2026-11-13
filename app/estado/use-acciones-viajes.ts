@@ -16,6 +16,7 @@ import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
 import type { Derivados } from "./use-derivados";
+import { avisoDeError, avisoDeExito } from "@/lib/avisos";
 
 type Entrada = Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados;
 
@@ -178,14 +179,14 @@ export function useAccionesViajes(e: Entrada) {
         setCalendarMonth(trip.date.slice(0, 7));
         setSelectedDay(trip.date);
       }
-      setNotice("Viaje guardado correctamente.");
+      setNotice(avisoDeExito("Viaje guardado correctamente."));
     }, "form");
   }
 
   async function savePurchaseWindow(dias: number) {
     clearMessages();
     if (!ventanaValida(dias)) {
-      setNotice("La ventana de compra va de 1 a 120 dias.");
+      setNotice(avisoDeError("La ventana de compra va de 1 a 120 dias."));
       return;
     }
     const anterior = purchaseWindow;
@@ -200,7 +201,7 @@ export function useAccionesViajes(e: Entrada) {
       .eq("id", "00000000-0000-0000-0000-000000000001");
     if (error) {
       setPurchaseWindow(anterior);
-      setNotice("No pudimos guardar la ventana de compra.");
+      setNotice(avisoDeError("No pudimos guardar la ventana de compra."));
     }
   }
 
@@ -240,7 +241,7 @@ export function useAccionesViajes(e: Entrada) {
   function openCloseTrips() {
     clearMessages();
     if (!viajesPorCerrar().length) {
-      setNotice("Selecciona viajes pasados sin reserva para continuar.");
+      setNotice(avisoDeError("Selecciona viajes pasados sin reserva para continuar."));
       return;
     }
     abrirModal("close");
@@ -290,9 +291,11 @@ export function useAccionesViajes(e: Entrada) {
       closeModal();
       const n = rows.length;
       setNotice(
-        modo === "anular"
-          ? `${n} ${n === 1 ? "viaje anulado" : "viajes anulados"}.`
-          : `${n} ${n === 1 ? "viaje cerrado" : "viajes cerrados"} con la reserva ${pnr.trim().toUpperCase()}.`,
+        avisoDeExito(
+          modo === "anular"
+            ? `${n} ${n === 1 ? "viaje anulado" : "viajes anulados"}.`
+            : `${n} ${n === 1 ? "viaje cerrado" : "viajes cerrados"} con la reserva ${pnr.trim().toUpperCase()}.`,
+        ),
       );
     }, "form");
   }

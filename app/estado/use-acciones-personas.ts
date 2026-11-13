@@ -12,6 +12,7 @@ import type { Datos } from "./use-datos";
 import type { Dialogos } from "./use-dialogos";
 import type { Acreditacion } from "./use-acreditacion";
 import type { AccionesViajes } from "./use-acciones-viajes";
+import { avisoDeError, avisoDeExito } from "@/lib/avisos";
 
 type Entrada = Avisos & Sesion & Datos & Dialogos & Acreditacion & AccionesViajes;
 
@@ -119,9 +120,14 @@ export function useAccionesPersonas(e: Entrada) {
       if (!editPerson && resumeDate && savedId) {
         openTrip(null, resumeDate, savedId);
       } else {
+        // Si los documentos fallaron, la persona quedó guardada pero el aviso es
+        // un error: no se va solo, porque pide volver a abrirla.
         setNotice(
-          avisoDeDocumentos ||
-            "Persona guardada. Sus viajes existentes conservaron sus fechas.",
+          avisoDeDocumentos
+            ? avisoDeError(avisoDeDocumentos)
+            : avisoDeExito(
+                "Persona guardada. Sus viajes existentes conservaron sus fechas.",
+              ),
         );
       }
     }, "form");

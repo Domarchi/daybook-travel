@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Menu, X } from "lucide-react";
+import { Check, ChevronRight, Menu, TriangleAlert, X } from "lucide-react";
 import BrandMark from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
@@ -14,6 +14,7 @@ import PeopleView from "@/components/people-view";
 import SideNav from "@/components/side-nav";
 import TripsView from "@/components/trips-view";
 import { useApp } from "../app/store";
+import { cn } from "@/lib/utils";
 
 // Workspace es el armazon: decide que pantalla se ve y ordena las piezas.
 // Cada pieza pide su estado a useApp(); aqui no se pasan props.
@@ -51,7 +52,7 @@ export default function Workspace() {
         toggleTheme={toggleTheme}
         login={login}
         busy={busy}
-        notice={notice}
+        notice={notice?.mensaje ?? ""}
         enterDemo={enterDemo}
       />
     );
@@ -109,23 +110,6 @@ export default function Workspace() {
             </div>
           )}
 
-          {notice && (
-            <div
-              className="mb-[22px] flex min-h-12 translate-y-0 items-center justify-between gap-4 rounded-md border border-[color-mix(in_srgb,var(--success)_35%,var(--border))] bg-surface py-[7px] pr-2 pl-[14px] text-meta text-foreground-soft opacity-100 transition-[opacity,transform] duration-[220ms] ease-[var(--ease-out)] starting:-translate-y-[6px] starting:opacity-0"
-              role="status"
-            >
-              <span>{notice}</span>
-              <Button
-                type="button"
-                variant="icon"
-                aria-label="Cerrar aviso"
-                onClick={() => setNotice("")}
-              >
-                <X size={16} />
-              </Button>
-            </div>
-          )}
-
           {accessStatus !== "allowed" && !demo ? (
             <AccessState />
           ) : (
@@ -150,6 +134,27 @@ export default function Workspace() {
             <span>Personas · Planificación · Pasajes</span>
           </footer>
         </main>
+      </div>
+
+      {/* El aviso tras una acción (Fase 5): flota abajo al centro del contenido,
+          como en Parte Diario y Ticket. Va fuera de `.app-content`, que queda
+          `inert` con un diálogo abierto, y dentro de una región viva que ya
+          estaba montada, para que el lector de pantalla lo anuncie. El número
+          del aviso en la `key` hace que uno repetido se vuelva a anunciar. */}
+      <div className="toast-region" role="status" aria-live="polite" aria-atomic="true">
+        {notice && (
+          <div className={cn("toast", notice.tono === "error" && "error")} key={notice.id}>
+            <span aria-hidden="true">
+              {notice.tono === "error" ? <TriangleAlert size={18} /> : <Check size={18} />}
+            </span>
+            {notice.mensaje}
+            {notice.tono === "error" && (
+              <button type="button" className="toast-close" aria-label="Cerrar aviso" onClick={() => setNotice(null)}>
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <ModalLayer />

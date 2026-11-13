@@ -32,6 +32,7 @@ import {
 } from "../lib/members";
 import { db } from "../lib/supabase";
 import { useApp } from "../app/store";
+import { avisoDeExito } from "@/lib/avisos";
 
 export default function MembersView() {
   const { email: miCorreo, setNotice } = useApp();
@@ -69,7 +70,7 @@ export default function MembersView() {
     if (fallo) {
       setError(mensajeDeError(fallo));
     } else {
-      setNotice(exito);
+      setNotice(avisoDeExito(exito));
       await cargar();
     }
     setOcupado("");

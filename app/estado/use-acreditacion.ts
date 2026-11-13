@@ -17,6 +17,7 @@ import type { Avisos } from "./use-avisos";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
 import type { Derivados } from "./use-derivados";
+import { avisoDeError, avisoDeExito } from "@/lib/avisos";
 
 type Entrada = Avisos & Datos & Navegacion & Derivados;
 
@@ -109,11 +110,11 @@ export function useAcreditacion(e: Entrada) {
   async function addDocumentType(nombre: string): Promise<boolean> {
     const limpio = limpiarNombreDeTipo(nombre);
     if (!nombreDeTipoValido(limpio)) {
-      setNotice("Escribe el nombre del documento (entre 2 y 80 letras).");
+      setNotice(avisoDeError("Escribe el nombre del documento (entre 2 y 80 letras)."));
       return false;
     }
     if (tipoRepetido(limpio, documentTypes)) {
-      setNotice("Ese documento ya está en la lista.");
+      setNotice(avisoDeError("Ese documento ya está en la lista."));
       return false;
     }
     let guardado = false;
@@ -130,7 +131,7 @@ export function useAcreditacion(e: Entrada) {
       }
       await reload();
       guardado = true;
-      setNotice(`${limpio} ahora se exige para viajar.`);
+      setNotice(avisoDeExito(`${limpio} ahora se exige para viajar.`));
     });
     return guardado;
   }
@@ -151,9 +152,11 @@ export function useAcreditacion(e: Entrada) {
       }
       await reload();
       setNotice(
-        active
-          ? `${tipo.name} se vuelve a exigir.`
-          : `${tipo.name} ya no se exige. Puedes volver a activarlo.`,
+        avisoDeExito(
+          active
+            ? `${tipo.name} se vuelve a exigir.`
+            : `${tipo.name} ya no se exige. Puedes volver a activarlo.`,
+        ),
       );
     });
   }

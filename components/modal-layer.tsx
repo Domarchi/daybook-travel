@@ -12,6 +12,7 @@ import ExcelSyncPanel from "../app/excel-sync-panel";
 import { X } from "lucide-react";
 import { formatDate } from "../lib/format";
 import { useApp } from "../app/store";
+import { avisoDeExito } from "@/lib/avisos";
 
 export default function ModalLayer() {
   const {
@@ -148,7 +149,7 @@ export default function ModalLayer() {
             }}
             onApplied={async (message) => {
               if (!demo) await reload();
-              setNotice(message);
+              setNotice(avisoDeExito(message));
             }}
           />
         )}
