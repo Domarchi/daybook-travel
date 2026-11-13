@@ -170,8 +170,8 @@
   --down-soft: rgba(179, 154, 251, 0.13);
   --success: var(--db-success);
   --warning: var(--db-warning);
-  --danger: #ee7b83;
-  --info: #8cb7df;
+  --danger: var(--db-danger);
+  --info: var(--db-info);
   --shadow: 0 16px 48px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.12);
   /* Radios y curva de @daybook/design. --rad-lg (diálogos) pasó de 18 px al
      radio de diálogo de la familia (12 px). */
@@ -210,11 +210,9 @@
   /* Fondo, superficies, texto, acción y foco del tema claro llegan solos desde
      @daybook/design. Aquí queda lo que en claro Travel decide distinto. */
   --surface-soft: var(--db-surface-muted);
-  /* Oscurecido desde #687482, que daba 4.36 sobre el fondo de pagina y no
-     alcanzaba el minimo AA de 4.5. Este da 5.0 sobre el fondo y 5.4 sobre las
-     tarjetas blancas. El tema oscuro ya iba holgado y no se toca. */
-  --muted: #5f6058;
-  --border-strong: #bfc2c4;
+  /* Texto apagado, borde de campo, peligro e información salen del paquete en
+     los dos temas (antes Travel los fijaba aquí: el borde de campo #bfc2c4 no
+     llegaba al 3:1 que pide la Fase 3). */
   --four: #c95728;
   --four-soft: rgba(201, 87, 40, 0.1);
   --four-border: rgba(201, 87, 40, 0.32);
@@ -225,8 +223,6 @@
   --up-soft: rgba(24, 122, 85, 0.09);
   --down: #6f56b4;
   --down-soft: rgba(111, 86, 180, 0.09);
-  --danger: #b83743;
-  --info: #3e708f;
   --shadow: 0 16px 48px rgba(31, 43, 55, 0.08), 0 1px 3px rgba(31, 43, 55, 0.04);
 
   /* El riel grafito del tema claro (fondo, texto, borde y activo vienen del

@@ -108,7 +108,7 @@ export default function PeopleView() {
                   </h2>
                   <span
                     className={
-                      "shrink-0 text-[9px] font-extrabold tracking-[0.04em] uppercase " +
+                      "shrink-0 text-overline font-extrabold tracking-[0.04em] uppercase " +
                       (person.active ? "text-success" : "text-muted")
                     }
                   >

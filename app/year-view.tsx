@@ -391,7 +391,7 @@ export default function YearView({
             {Number(date.slice(8))}
           </strong>
           {isToday ? (
-            <em className="rounded-pill bg-[color-mix(in_srgb,var(--focus)_15%,transparent)] px-[5px] py-[2px] text-[8px] font-extrabold text-[var(--focus)] uppercase not-italic max-[760px]:hidden">
+            <em className="rounded-pill bg-[color-mix(in_srgb,var(--focus)_15%,transparent)] px-[5px] py-[2px] text-overline leading-none font-extrabold text-[var(--focus)] uppercase not-italic max-[760px]:hidden">
               Hoy
             </em>
           ) : null}
@@ -402,7 +402,7 @@ export default function YearView({
               <b className="text-body text-foreground max-[760px]:text-meta">
                 {counts.total}
               </b>
-              <small className="text-[9px] max-[760px]:hidden">
+              <small className="text-overline max-[760px]:hidden">
                 {counts.total === 1 ? "viaje" : "viajes"}
               </small>
             </>
@@ -417,7 +417,11 @@ export default function YearView({
             ) : null}
             {counts.tenByTen ? (
               <ShiftBadge tono="ten" tamano="chica">
-                10×10
+                {/* En un teléfono el día mide 44 px: «10×10» a 11 px no
+                    cabe, y se abrevia como «S/T» y «?». El detalle completo
+                    va en el nombre accesible del día. */}
+                <span className="max-[430px]:hidden">10×10</span>
+                <span className="hidden max-[430px]:inline">10</span>
               </ShiftBadge>
             ) : null}
             {counts.withoutShift ? (

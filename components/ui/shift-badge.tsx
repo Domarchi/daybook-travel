@@ -25,12 +25,12 @@ const shiftVariants = cva(
       tamano: {
         // .shift-badge
         normal: "min-h-[25px] px-2 py-[5px] text-overline leading-none",
-        // .shift-tag, la que va dentro de un dia del calendario. En pantalla
-        // angosta se estrecha y encoge, porque el dia mide 44 px de ancho.
+        // .shift-tag, la que va dentro de un dia del calendario. 11 px, el
+        // minimo de la escala comun: en un telefono el dia mide 44 px, asi que
+        // el texto se abrevia («10», «S/T», «?») en vez de encoger.
         chica: [
-          "min-h-[18px] px-[5px] py-[2px] text-[8px] leading-none",
+          "min-h-[18px] px-[5px] py-[2px] text-overline leading-none",
           "max-[760px]:max-w-full max-[760px]:px-1",
-          "max-[430px]:text-[7px]",
         ].join(" "),
       },
     },

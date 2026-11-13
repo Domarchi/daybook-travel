@@ -103,7 +103,7 @@ export function Td({ className, ...props }: React.ComponentProps<"td">) {
         "max-[760px]:flex max-[760px]:min-h-12 max-[760px]:w-full max-[760px]:min-w-0",
         "max-[760px]:items-center max-[760px]:justify-between max-[760px]:gap-3",
         "max-[760px]:px-3 max-[760px]:py-[10px]",
-        "max-[760px]:before:flex-[0_0_auto] max-[760px]:before:text-[9px]",
+        "max-[760px]:before:flex-[0_0_auto] max-[760px]:before:text-overline",
         "max-[760px]:before:font-extrabold max-[760px]:before:tracking-[0.05em]",
         "max-[760px]:before:text-muted max-[760px]:before:uppercase",
         "max-[760px]:before:content-[attr(data-label)]",
