@@ -7,6 +7,7 @@ import { FormEvent } from "react";
 import { db } from "../../lib/supabase";
 import { localDate } from "../../lib/format";
 import { MOTIVO_PERSONA_INACTIVA, viajesFuturosDe } from "../../lib/cierre";
+import { viajesARevisar } from "../../lib/revision";
 import { Person } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
@@ -128,6 +129,18 @@ export function useAccionesPersonas(e: Entrada) {
           if (!demo) await reload();
         }
       }
+      // Cambiar el turno no mueve los viajes ya generados (a propósito: pueden
+      // estar pedidos). Si alguno planificado quedó fuera, se dice aquí, que es
+      // cuando se entiende por qué; después siguen en "para revisar".
+      const fueraDeTurno = editPerson && person.active
+        ? [
+            ...viajesARevisar(
+              trips.filter((trip) => trip.person_id === editPerson.id),
+              [{ ...person, id: editPerson.id }],
+              localDate(),
+            ).values(),
+          ].filter((motivos) => motivos.includes("fuera_de_turno")).length
+        : 0;
       const resumeDate = pendingTripDate;
       closeModal();
       setPendingTripDate(null);
@@ -138,7 +151,13 @@ export function useAccionesPersonas(e: Entrada) {
           avisoDeDocumentos ||
             (anulados
               ? `Persona guardada como inactiva. Se ${anulados === 1 ? "anuló 1 viaje futuro" : `anularon ${anulados} viajes futuros`}.`
-              : "Persona guardada. Sus viajes existentes conservaron sus fechas."),
+              : fueraDeTurno
+                ? `Persona guardada. Sus viajes existentes conservaron sus fechas: ${
+                    fueraDeTurno === 1
+                      ? "1 planificado ya no calza con su turno y quedó"
+                      : `${fueraDeTurno} planificados ya no calzan con su turno y quedaron`
+                  } para revisar en Viajes.`
+                : "Persona guardada. Sus viajes existentes conservaron sus fechas."),
         );
       }
     }, "form");

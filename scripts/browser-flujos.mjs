@@ -1,7 +1,8 @@
 // Los flujos principales de Daybook Travel, en un navegador de verdad y con la
 // demostración (sin Supabase): planificar turnos, armar el manifiesto, marcar
-// como solicitado, editar un viaje con su motivo, el aviso de persona repetida
-// y cerrar en bloque los viajes pasados sin reserva.
+// como solicitado, editar un viaje con su motivo, el aviso de persona repetida,
+// cerrar en bloque los viajes pasados sin reserva, los viajes para revisar y la
+// reserva en bloque.
 //
 // Hasta ahora el CI probaba en navegador solo la entrada y la recuperación de
 // clave; el resto se comprobaba a mano. Esto no reemplaza las pruebas de
@@ -204,6 +205,51 @@ async function cerrarEnBloque(cdpPort, appUrl) {
   }
 }
 
+// Cambiar el turno de alguien deja sus viajes planificados donde estaban: la
+// persona lo sabe al guardar, la Agenda los cuenta y Viajes dice por qué. Y la
+// reserva que manda la agencia se registra desde la lista de solicitados.
+async function revisarYReservar(cdpPort, appUrl) {
+  const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  try {
+    await ir(cdp, "Personas");
+    await cdp.evaluate(`
+      const fila = [...document.querySelectorAll("main article")].find((a) => a.querySelector("h2")?.textContent === "Persona de ejemplo 1");
+      window.__clic("Editar", fila);
+    `);
+    await waitUntil(cdp, `!!document.querySelector(".dialog select[name=up_weekday]")`, "el diálogo de la persona");
+    await cdp.evaluate(`window.__valor(".dialog select[name=up_weekday]", "2")`);
+    await cdp.evaluate(`window.__clic("Guardar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `/ya no calzan? con su turno/.test(window.__aviso())`, "el aviso de viajes fuera de turno");
+
+    await ir(cdp, "Agenda");
+    await waitUntil(cdp, `!!window.__boton("para revisar")`, "el enlace de viajes para revisar");
+    const enlace = await cdp.evaluate(`window.__boton("para revisar").textContent.trim()`);
+    const total = Number(enlace.match(/^(\d+)/)?.[1] ?? 0);
+    assert.ok(total > 0, `debía haber viajes para revisar: «${enlace}»`);
+    await cdp.evaluate(`window.__clic("para revisar")`);
+    await waitUntil(cdp, `document.querySelector("main").innerText.includes("para revisar")`, "la lista para revisar");
+    const avisos = await cdp.evaluate(`document.querySelector("tbody").innerText.match(/No calza con su turno/g)?.length ?? 0`);
+    assert.equal(avisos, total, "cada viaje de la lista dice por qué está");
+
+    // La agencia respondió: el solicitado recibe su código desde la lista.
+    await ir(cdp, "Agenda");
+    await cdp.evaluate(`window.__clic("Pendientes de confirmación", document.querySelector("main"))`);
+    await waitUntil(cdp, `document.querySelector("main").innerText.includes("registrar su reserva")`, "la lista de solicitados");
+    await cdp.evaluate(`document.querySelector("tbody input[type=checkbox]").click()`);
+    await waitUntil(cdp, `!!window.__boton("Registrar reserva")`, "la barra de reserva");
+    await cdp.evaluate(`window.__clic("Registrar reserva")`);
+    await waitUntil(cdp, `!!document.querySelector(".dialog input[name=pnr]")`, "el diálogo de reserva");
+    await cdp.evaluate(`window.__valor(".dialog input[name=pnr]", "demo77")`);
+    await cdp.evaluate(`window.__clic("Registrar en 1 viaje", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `window.__aviso() === "Reserva DEMO77 registrada en 1 viaje."`, "el aviso de reserva registrada");
+
+    assert.deepEqual(lista, [], "sin errores en la consola");
+    return `fuera de turno (${total} para revisar) y reserva en bloque`;
+  } finally {
+    cdp.close();
+  }
+}
+
 // Bita en la demostración: el botón flotante abre el resumen sin IA, cada línea
 // lleva a su pantalla, Escape cierra y devuelve el foco, y en un teléfono de 390 px
 // en modo oscuro el panel ocupa la pantalla sin desbordarla. Sin cuenta real no
@@ -254,7 +300,7 @@ async function bita(cdpPort, appUrl) {
 
 async function main() {
   const { cdpPort, appUrl } = await startBrowser();
-  for (const escenario of [planificarYSolicitar, cerrarEnBloque, bita]) {
+  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita]) {
     console.log(`✓ ${await escenario(cdpPort, appUrl)}`);
   }
 }

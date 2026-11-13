@@ -157,3 +157,35 @@ export function movimientos(persona: CicloPersona, hasta: string): Movimiento[] 
 
   throw new Error(`Jornada desconocida: ${shift}`);
 }
+
+/**
+ * Los movimientos entre `desde` y `hasta`, aunque la persona haya empezado hace
+ * años. `movimientos` cuenta desde la fecha de inicio y no pasa de dos años;
+ * para comparar los viajes que vienen con el turno no hace falta el pasado, así
+ * que se adelanta el inicio a un punto del ciclo cercano a `desde`, sin mover
+ * ninguna fecha:
+ *
+ *   4×3    una semana antes de `desde`: alcanza para la bajada cuya subida
+ *          cayó antes (la distancia entre las dos es de seis días como mucho).
+ *   10×10  la última subida del ciclo en `desde` o antes (múltiplo de veinte
+ *          días desde el inicio), para no perder la alternancia.
+ */
+export function movimientosEntre(
+  persona: CicloPersona,
+  desde: string,
+  hasta: string,
+): Movimiento[] {
+  let inicio = persona.start_date;
+  if (ES_FECHA.test(inicio) && ES_FECHA.test(desde) && desde > inicio) {
+    if (persona.shift === "4×3") {
+      const semanaAntes = addDays(desde, -7);
+      if (semanaAntes > inicio) inicio = semanaAntes;
+    } else if (persona.shift === "10×10") {
+      const ciclos = Math.floor(diasEntre(inicio, desde) / 20);
+      inicio = addDays(inicio, ciclos * 20);
+    }
+  }
+  return movimientos({ ...persona, start_date: inicio }, hasta).filter(
+    (paso) => paso.date >= desde,
+  );
+}

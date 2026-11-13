@@ -9,6 +9,7 @@ export default function AgendaPanel() {
   const {
     nextTrip,
     resumenCompra,
+    revision,
     purchaseWindow,
     savePurchaseWindow,
     showPurchaseQueue,
@@ -37,6 +38,8 @@ export default function AgendaPanel() {
       purchaseWindow={purchaseWindow}
       onPurchase={() => showPurchaseQueue()}
       onUnclosed={() => showPurchaseQueue("sin_cerrar")}
+      reviewCount={revision.size}
+      onReview={() => showPurchaseQueue("revisar")}
       onWindowChange={(dias) => void savePurchaseWindow(dias)}
       requestedCount={requestedCount}
       esperaMasLarga={esperaMasLarga}

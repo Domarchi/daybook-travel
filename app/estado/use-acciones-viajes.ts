@@ -9,6 +9,7 @@ import { localDate } from "../../lib/format";
 import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
 import { problemaDeMotivo } from "../../lib/motivo";
+import { cambioDeReserva, esReservable, problemaDeReserva } from "../../lib/reserva";
 import { notasConMotivo } from "../../lib/notas";
 import { db } from "../../lib/supabase";
 import { HistoryItem, Person, Trip } from "../../lib/types";
@@ -323,6 +324,40 @@ export function useAccionesViajes(e: Entrada) {
     }, "form");
   }
 
+  // Lo seleccionado que de verdad sigue solicitado y sin código. Igual que al
+  // cerrar: si alguien registró la reserva entre medio, ese viaje no se toca.
+  function viajesPorReservar() {
+    return selectedTrips
+      .map((id) => trips.find((trip) => trip.id === id))
+      .filter((trip): trip is Trip => Boolean(trip))
+      .filter(esReservable);
+  }
+
+  function openReserveTrips() {
+    clearMessages();
+    if (!viajesPorReservar().length) {
+      setNotice("Selecciona viajes solicitados sin reserva para continuar.");
+      return;
+    }
+    abrirModal("reserve");
+  }
+
+  async function reserveSelectedTrips(pnr: string, vuelo: string, monto: string) {
+    const rows = viajesPorReservar();
+    await runAction(async () => {
+      const problema = problemaDeReserva(rows, pnr, monto);
+      if (problema) throw new Error(problema);
+      await aplicarEnTandas(rows, (trip) => cambioDeReserva(trip, { pnr, vuelo, monto }));
+      if (!demo) await reload();
+      setSelectedTrips([]);
+      closeModal();
+      const n = rows.length;
+      setNotice(
+        `Reserva ${pnr.trim().toUpperCase()} registrada en ${n} ${n === 1 ? "viaje" : "viajes"}.`,
+      );
+    }, "form");
+  }
+
   return {
     openTrip,
     saveTrip,
@@ -333,6 +368,9 @@ export function useAccionesViajes(e: Entrada) {
     openCloseTrips,
     closeSelectedTrips,
     anularViajes,
+    viajesPorReservar,
+    openReserveTrips,
+    reserveSelectedTrips,
   };
 }
 
