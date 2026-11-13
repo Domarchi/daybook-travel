@@ -57,3 +57,28 @@ export function csvDeViajes(
   ];
   return "﻿" + filas.map((fila) => fila.map(celdaCsv).join(";")).join("\r\n");
 }
+
+/**
+ * El CSV de Costos, para contabilidad: un viaje por fila, con el monto como
+ * número sin formato (así Excel lo suma) y vacío si no hay. Van todos los viajes
+ * del período, tengan o no monto: la cobertura también es un dato.
+ */
+export function csvDeCostos(viajes: Trip[], nombreDe: (personId: string) => string) {
+  const filas: unknown[][] = [
+    ["Fecha", "Persona", "Sentido", "Origen", "Destino", "Estado", "Reserva", "Vuelo", "Monto CLP"],
+    ...[...viajes]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((viaje) => [
+        viaje.date,
+        nombreDe(viaje.person_id),
+        viaje.direction === "SUBIDA" ? "Subida" : viaje.direction === "BAJADA" ? "Bajada" : viaje.direction,
+        viaje.origin,
+        viaje.destination,
+        viaje.status,
+        viaje.pnr,
+        viaje.flight,
+        viaje.amount === null || viaje.amount === undefined ? "" : Number(viaje.amount),
+      ]),
+  ];
+  return "\uFEFF" + filas.map((fila) => fila.map(celdaCsv).join(";")).join("\r\n");
+}
