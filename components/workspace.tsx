@@ -57,7 +57,7 @@ export default function Workspace() {
   return (
     <div className="shell">
       <div
-        className="app-content ml-[var(--db-rail-width)] max-[820px]:ml-0"
+        className="app-content ml-[var(--db-rail-width)] max-[1025px]:ml-[var(--db-rail-width-compact)] max-[820px]:ml-0"
         inert={modal ? true : undefined}
         aria-hidden={modal ? true : undefined}
       >

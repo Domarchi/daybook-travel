@@ -65,7 +65,8 @@ export default function SideNav() {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-30 flex w-[var(--db-rail-width)] flex-col border-r border-r-rail-line bg-rail text-rail-foreground",
+        // Hasta 1024 px (tableta) el riel es el compacto de la familia, 214 px; `max-[1025px]` es «menos de 1025», como el `max-width: 1024px` de Parte Diario y Ticket.
+        "fixed inset-y-0 left-0 z-30 flex w-[var(--db-rail-width)] flex-col max-[1025px]:w-[var(--db-rail-width-compact)] border-r border-r-rail-line bg-rail text-rail-foreground",
         "max-[820px]:sticky max-[820px]:inset-x-0 max-[820px]:top-0 max-[820px]:bottom-auto",
         "max-[820px]:w-auto max-[820px]:flex-row max-[820px]:flex-wrap max-[820px]:items-center",
         "max-[820px]:border-r-0 max-[820px]:border-b max-[820px]:border-b-rail-line max-[820px]:px-[14px] max-[820px]:py-[10px]",
