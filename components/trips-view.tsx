@@ -3,10 +3,13 @@
 import { useRef } from "react";
 
 import EmptyState from "@/components/ui/empty-state";
-import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { formatDate, localDate } from "../lib/format";
 import { TRIP_STATUSES as statuses } from "../lib/types";
 import { diasParaVolar } from "../lib/purchase";
+import { ESPERA_LARGA, diasEsperando, textoDeEspera } from "../lib/solicitudes";
+import { textoDeRevision } from "../lib/revision";
+import { esReservable } from "../lib/reserva";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Input, Label, Select } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -45,6 +48,7 @@ export default function TripsView() {
     navigate,
     onlyUpcoming,
     openCloseTrips,
+    openReserveTrips,
     compraDe,
     purchaseFilter,
     setPurchaseFilter,
@@ -56,6 +60,7 @@ export default function TripsView() {
     query,
     reload,
     requestableTrips,
+    revision,
     selectedTrips,
     setDateFilter,
     setOnlyUpcoming,
@@ -75,17 +80,23 @@ export default function TripsView() {
   if (selectedTrips.length) ultimaCuenta.current = selectedTrips.length;
   const cuentaSeleccion = selectedTrips.length || ultimaCuenta.current;
 
-  // En la lista de pasados sin reserva la selección sirve para cerrarlos; en el
-  // resto, para marcar como solicitados los planificados que vienen. Son dos
-  // usos que no se mezclan: cada lista deja marcar solo lo suyo.
+  // En la lista de pasados sin reserva la selección sirve para cerrarlos; en la
+  // de solicitados, para registrar la reserva que mandó la agencia; en el resto,
+  // para marcar como solicitados los planificados que vienen. Son usos que no se
+  // mezclan: cada lista deja marcar solo lo suyo.
   const modoCierre = purchaseFilter === "sin_cerrar";
-  const seleccionables = modoCierre
-    ? visibleTrips.filter((trip) => compraDe(trip) === "sin_cerrar")
-    : requestableTrips;
+  const modoReserva = !modoCierre && statusFilter === "Solicitado";
   const esSeleccionable = (trip: (typeof visibleTrips)[number]) =>
     modoCierre
       ? compraDe(trip) === "sin_cerrar"
-      : trip.status === "Planificado" && trip.date >= localDate();
+      : modoReserva
+        ? esReservable(trip)
+        : trip.status === "Planificado" && trip.date >= localDate();
+  const seleccionables = modoReserva
+    ? visibleTrips.filter(esReservable)
+    : modoCierre
+      ? visibleTrips.filter((trip) => compraDe(trip) === "sin_cerrar")
+      : requestableTrips;
 
   const hasTripFilters =
     Boolean(query) ||
@@ -210,6 +221,10 @@ export default function TripsView() {
           {dateFilter ? ` · ${formatDate(dateFilter)}` : ""}
           {purchaseFilter === "abiertos" ? " · por comprar" : ""}
           {purchaseFilter === "sin_cerrar" ? " · pasados sin reserva" : ""}
+          {purchaseFilter === "revisar" ? " · para revisar" : ""}
+          {modoReserva && seleccionables.length > 0
+            ? " · marca los de un mismo vuelo para registrar su reserva"
+            : ""}
         </span>
         {hasTripFilters && visibleTrips.length > 0 && (
           <Button
@@ -258,6 +273,15 @@ export default function TripsView() {
                 >
                   {`Cerrar ${cuentaSeleccion} ${cuentaSeleccion === 1 ? "viaje" : "viajes"}`}
                 </Button>
+              ) : modoReserva ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={openReserveTrips}
+                  disabled={busy}
+                >
+                  Registrar reserva
+                </Button>
               ) : (
                 <Button
                   type="button"
@@ -292,7 +316,9 @@ export default function TripsView() {
                       aria-label={
                         modoCierre
                           ? "Seleccionar todos los viajes sin cerrar visibles"
-                          : "Seleccionar todos los viajes planificados visibles"
+                          : modoReserva
+                            ? "Seleccionar todos los viajes solicitados sin reserva visibles"
+                            : "Seleccionar todos los viajes planificados visibles"
                       }
                       checked={
                         seleccionables.length > 0 &&
@@ -326,7 +352,12 @@ export default function TripsView() {
             <TBody>
               {visibleTrips.map((trip) => (
                 <Tr key={trip.id}>
-                  <Td data-label="Seleccionar" className={CELDA_SELECCION}>
+                  {/* En tarjeta, un viaje que no se puede marcar no lleva la fila
+                      "Seleccionar —": eran 44 px de nada al comienzo de cada tarjeta. */}
+                  <Td
+                    data-label="Seleccionar"
+                    className={esSeleccionable(trip) ? CELDA_SELECCION : CELDA_SELECCION + " max-[760px]:hidden"}
+                  >
                     {esSeleccionable(trip) ? (
                       <label
                         className={
@@ -357,6 +388,16 @@ export default function TripsView() {
                     <small className="block text-muted">
                       {trip.origin} → {trip.destination}
                     </small>
+                    {/* Lo que conviene revisar antes de comprar (lib/revision.ts). */}
+                    {revision.get(trip.id)?.map((motivo) => (
+                      <small
+                        key={motivo}
+                        className="mt-1 flex items-center gap-1 text-[11px] font-bold text-warning"
+                      >
+                        <TriangleAlert size={13} aria-hidden="true" />
+                        {textoDeRevision(motivo, trip.direction)}
+                      </small>
+                    ))}
                   </Td>
                   <Td data-label="Fecha">
                     {formatDate(trip.date)}
@@ -387,7 +428,25 @@ export default function TripsView() {
                     {trip.requested_time?.slice(0, 5) || "Por confirmar"}
                   </Td>
                   <Td data-label="Estado">
+                    {/* Un solo bloque: en tarjeta la celda es una fila con su título a la izquierda. */}
+                    <div className="grid justify-items-start max-[760px]:justify-items-end">
                     <StatusPill status={trip.status} />
+                    {(() => {
+                      // Cuánto lleva esperando a la agencia; desde 3 días se destaca.
+                      const dias = diasEsperando(trip, localDate());
+                      if (dias === null) return null;
+                      return (
+                        <small
+                          className={
+                            "mt-1 block text-[11px] whitespace-nowrap " +
+                            (dias >= ESPERA_LARGA ? "font-bold text-warning" : "text-muted")
+                          }
+                        >
+                          Pedido {textoDeEspera(dias)}
+                        </small>
+                      );
+                    })()}
+                    </div>
                   </Td>
                   <Td data-label="Reserva">{trip.pnr || "—"}</Td>
                   <Td data-label="Acciones" className={CELDA_ACCIONES}>

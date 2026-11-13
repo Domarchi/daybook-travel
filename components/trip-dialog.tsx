@@ -5,10 +5,11 @@ import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-
 import { Checkbox, Input, Label, Select, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { observacionesDe } from "../lib/notas";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
 import { ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
-import { avisoDePrecio, formatoCLP } from "../lib/costs";
+import { avisoDePrecio, formatoCLP, pideMonto } from "../lib/costs";
 import { useApp } from "../app/store";
 
 export default function TripDialog() {
@@ -29,6 +30,13 @@ export default function TripDialog() {
     showHistory,
     tripStatus,
   } = useApp();
+
+  // El código y el monto que se están escribiendo: con código y sin monto, el
+  // diálogo lo pide (ver pideMonto en lib/costs.ts).
+  const [pnrActual, setPnrActual] = useState(editTrip?.pnr ?? "");
+  const [montoActual, setMontoActual] = useState(
+    editTrip?.amount === null || editTrip?.amount === undefined ? "" : String(editTrip.amount),
+  );
 
   // Lo que costó normalmente esta ruta, para comparar el monto que se escribe.
   // Se recalcula al escribir porque la ruta puede cambiar en el mismo diálogo.
@@ -263,6 +271,7 @@ export default function TripDialog() {
                   defaultValue={editTrip?.pnr}
                   maxLength={40}
                   required={reservationRequired}
+                  onChange={(event) => setPnrActual(event.currentTarget.value)}
                 />
               </Label>
               <Label>
@@ -281,8 +290,21 @@ export default function TripDialog() {
                   min="0"
                   step="1"
                   defaultValue={editTrip?.amount ?? ""}
-                  onChange={(event) => revisarMonto(event.currentTarget)}
+                  aria-describedby={pideMonto(pnrActual, montoActual) ? "pedir-monto" : undefined}
+                  onChange={(event) => {
+                    setMontoActual(event.currentTarget.value);
+                    revisarMonto(event.currentTarget);
+                  }}
                 />
+                {pideMonto(pnrActual, montoActual) && (
+                  <small
+                    id="pedir-monto"
+                    className="mt-[6px] border-l-2 border-[var(--focus)] pl-2 text-[11px] leading-[1.4] font-normal text-foreground-soft"
+                  >
+                    ¿Cuánto costó? Si lo tienes a mano, anótalo ahora: Costos solo suma los
+                    viajes con monto. Puedes dejarlo vacío y cargarlo después.
+                  </small>
+                )}
                 {precio && precio.referencia !== null && (
                   <small
                     className={cn(
@@ -313,7 +335,7 @@ export default function TripDialog() {
             Información útil <small className="text-muted">(opcional)</small>
             <Textarea
               name="notes"
-              defaultValue={editTrip?.notes}
+              defaultValue={observacionesDe(editTrip?.notes)}
               placeholder="Restricciones horarias, equipaje o acuerdos."
             />
           </Label>

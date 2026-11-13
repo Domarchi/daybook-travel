@@ -34,20 +34,28 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `components/document-types-panel.tsx` | El recuadro «Documentos exigidos» de Personas. Lo ven todos; solo un administrador agrega o desactiva tipos. |
 | `lib/accreditation.ts` | **La acreditación.** `motivosDeAcreditacion(persona, fecha, tipos, documentos)` dice qué documentos faltan o vencen antes de un viaje. Sin React ni Supabase. 9 pruebas, más `accreditation-postgres.test.ts` contra la migración 010. |
-| `lib/personas-repetidas.ts` | **Personas con el mismo nombre.** El diálogo de persona avisa mientras se escribe (no bloquea: dos personas pueden llamarse igual). Salió de una persona con dos fichas activas en producción. 5 pruebas. |
+| `lib/personas-repetidas.ts` | **Personas con el mismo nombre.** El diálogo de persona avisa mientras se escribe (no bloquea: dos personas pueden llamarse igual) y la lista marca «Nombre repetido» en las fichas que ya comparten nombre. Salió de una persona con dos fichas activas en producción. 6 pruebas. |
 | `app/excel-sync-panel.tsx` | La pantalla del importador Excel en 3 pasos (Preparar → Revisar → Aplicar), 818 líneas. Bien hecho, no romper. Sus cuentas están en `lib/excel-preview.ts` (leer hojas, comparar, armar la vista previa; 10 pruebas) y sus piezas chicas en `app/excel-sync-parts.tsx`. |
 | `app/year-view.tsx` | El calendario de la Agenda (vista Mes y Semana). El panel del día seleccionado está en `app/year-day-detail.tsx`. |
-| `lib/trips-csv.ts` | El CSV de la solicitud a la agencia, con la defensa contra fórmulas de Excel. 5 pruebas. |
+| `lib/en-obra.ts` | **Quién está en obra un día**, según los viajes registrados (no el turno teórico): último movimiento hasta ese día = subida. Lo muestra el panel del día en la Agenda («En obra: N personas», plegable, con «Sube/Baja ese día»), con el filtro de turno. Si lo primero registrado de alguien es una bajada, se asume que ya estaba. 4 pruebas. |
+| `lib/revision.ts` | **Viajes para revisar.** Los que vienen y probablemente están mal: **repetidos** (misma persona, día y sentido), **fuera de orden** (dos subidas o dos bajadas seguidas, mirando lo registrado como `lib/en-obra.ts`, con el pasado como contexto) y **fuera de turno** (un Planificado que ya no calza con `lib/cycles.ts`, porque se cambió la ficha; los solicitados o con reserva no se miran: si se movieron fue a propósito). Solo avisa, y solo de hoy en adelante. La Agenda lo cuenta bajo las tarjetas («N viajes próximos para revisar», abre Viajes filtrado) y cada fila de Viajes dice el motivo. Al guardar una ficha, el aviso dice cuántos quedaron fuera de turno. Usa `movimientosEntre` de `lib/cycles.ts`, que no tiene el tope de dos años desde el inicio. 13 pruebas. |
+| `lib/reserva.ts` y `components/reserve-dialog.tsx` | **Registrar una reserva en bloque.** En Viajes filtrado por **Solicitado** (la tarjeta «Pendientes de confirmación» lleva ahí), la selección sirve para registrar la reserva que mandó la agencia: código, vuelo y monto por pasajero (los dos últimos opcionales). Quedan **Emitido**. Como en el cierre en bloque, un código es un vuelo: solo si son del mismo día y la misma ruta. El motivo es fijo y dice el código. 4 pruebas. |
+| `lib/trips-csv.ts` | El CSV de la solicitud a la agencia y el de **Costos** («Descargar para Excel»: los viajes del período y estado elegidos, con el monto como número para que Excel sume), con la defensa contra fórmulas de Excel. 6 pruebas. |
 | `app/globals.css` | ~435 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el velo y la caja de los diálogos y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
 | `lib/cierre.ts` | **Cerrar viajes sin cerrar.** Qué cambio le toca a cada viaje al anularlo o al registrarle una reserva común, y qué falta para poder hacerlo. 6 pruebas. |
+| `lib/cierre.ts` (también) | `viajesFuturosDe`: al **desactivar a una persona**, su ficha ofrece anular sus viajes futuros sin reserva (casilla desmarcada por omisión; motivo fijo «La persona quedó inactiva.»). Los que tienen reserva no se tocan: solo se avisa cuántos son. |
+| `lib/solicitudes.ts` | **Cuánto lleva esperando una solicitud.** En Viajes, los «Solicitado» sin reserva dicen «Pedido hace N días» (desde 3 días, destacado), y la tarjeta «Pendientes de confirmación» dice cuánto lleva la más antigua. Se mide desde `updated_at`: si alguien editó el viaje después de pedirlo, la espera se lee más corta. 4 pruebas. |
 | `lib/purchase.ts` | **La ventana de compra.** `estadoDeCompra(viaje, hoy, ventana)` dice si un viaje está resuelto, cerrado, sin cerrar, vencido, urgente o próximo. 18 pruebas. |
-| `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. Tiene 18 pruebas. |
+| `lib/cycles.ts` | **El motor de ciclos.** `movimientos(persona, hasta)` decide qué días sube y baja cada persona. Única fuente de esas fechas. `movimientosEntre(persona, desde, hasta)` da lo mismo recortado, sin el tope de dos años desde el inicio. Tiene 21 pruebas. |
+| `lib/historial.ts` | **Qué cambió en cada entrada del historial.** Compara `before_data` y `after_data` y devuelve los campos que se reconocen (fecha, reserva, estado, turno, vigencia…) ya escritos para leer, y solo lo que la nota agregó en ese cambio. Lo usa el historial de viajes y el de personas (botón en la ficha), que incluye los cambios de vencimiento de sus documentos. 7 pruebas. |
+| `lib/actividad.ts` y `components/activity-view.tsx` | **Actividad reciente.** Pantalla con los últimos cambios de viajes, personas y documentos de todo el proyecto, por día, con quién y qué cambió, y un botón para abrir cada uno. La ven todos los miembros; carga sus datos al abrirse (como Accesos), de a 50. Los cambios de accesos no aparecen: tienen su pantalla. 5 pruebas. |
 | `lib/calendar.ts` | Solo `addDays()`. Suma días sobre cadenas AAAA-MM-DD fijando el mediodía UTC. |
 | `lib/excel-sync.ts` | Lógica de comparación del importador. Tiene tests. |
 | `lib/supabase.ts` | Cliente. Dos líneas. |
 | `app/api/cron/alertas-urgentes/route.ts` | El cron de los avisos por correo. Delgado a propósito: la lógica está en `lib/urgent-alerts-handler.ts` (autorización, configuración, respuesta), `lib/urgent-alerts.ts` (qué viajes y qué dice el correo) y `lib/send-mail.ts` (Resend). Todo se prueba sin red. |
-| `docs/manual/hacer_manual.py` | **La fuente de la guía de uso** (`docs/Manual_Daybook_Travel.pdf`, 17 páginas). Arma `manual.html` y Chrome lo imprime a PDF; los comandos están en el README. La numeración de páginas se calcula ahí, no en el navegador. No lleva correos ni nombres de personas: la lista de accesos vive en la pantalla Accesos. Al cambiar una pantalla, se actualiza el texto y se regenera. |
+| `docs/manual/hacer_manual.py` | **La fuente de la guía de uso** (`docs/Manual_Daybook_Travel.pdf`, 20 páginas, versión 2.2). Arma `manual.html` y Chrome lo imprime a PDF; los comandos están en el README. La numeración de páginas se calcula ahí, no en el navegador. No lleva correos ni nombres de personas: la lista de accesos vive en la pantalla Accesos. Al cambiar una pantalla, se actualiza el texto y se regenera. |
+| `components/bita.tsx`, `lib/bita-*.ts`, `app/api/bita/` | **Bita, la asistente** (ver `docs/bita.md`). Viene apagada (`BITA_ENABLED`). Botón flotante con un resumen sin IA (`lib/bita-resumen.ts`) y un chat de **solo lectura**: el servidor lee con el token de la persona (RLS), los nombres salen como seudónimos (`lib/bita-seudonimos.ts`) y nunca salen reservas, vuelos ni montos de un viaje. La llave de servicio solo cuenta mensajes (migración 014). Lógica en `lib/bita-handler.ts` con todo lo externo inyectado; pruebas en `lib/bita-*.test.ts` y el escenario «Bita» de `scripts/browser-flujos.mjs`. |
 | `supabase/00*.sql` | Migraciones, se aplican **en orden numérico**. Aquí vive la verdad del sistema. |
 
 ## Reglas que NO hay que romper
@@ -64,6 +72,14 @@ Todo esto está implementado en SQL y es deliberado:
    quien solo cambió accesos. Si la 013 no está aplicada, se ve el número corto de antes.
 3. **Editar un viaje exige motivo.** El trigger `validate_trip()` rechaza un UPDATE con `notes`
    vacío. Es lo que hace posible reconstruir por qué se compró algo.
+   Además la pantalla exige un motivo de **al menos 5 letras** (`lib/motivo.ts`): en producción
+   había viajes anulados con el motivo ".". Es de letras y no de palabras porque «Duplicado» o
+   «No viajó» son motivos buenos.
+   **Las notas guardan las observaciones y solo el último motivo** (`lib/notas.ts`). Antes cada
+   edición sumaba su motivo y volvía a guardar los anteriores, y «Información útil» se llenaba
+   de motivos; los anteriores están en el historial. Una columna aparte para el motivo (para que
+   la base exija el mínimo) se descartó por ahora: obliga a reescribir en producción las
+   funciones del importador de Excel (003/004) y de propuestas (008), que también editan viajes.
 4. **La persona y el sentido de un viaje no se cambian.** Se anula y se crea otro.
 5. **Estado Emitido/Completado/No presentado exige PNR.** Constraint en la tabla.
 6. **Un viaje debe caer dentro de la vigencia de una persona activa.**
@@ -85,6 +101,15 @@ Todo esto está implementado en SQL y es deliberado:
 
 Antes de tocar `supabase/*.sql`: las migraciones ya aplicadas en producción **no se editan**,
 se agrega una nueva con el número siguiente.
+
+**La base de RELEVO la comparte Daybook Asistencia** (sus tablas son `asistencia_*` y sus
+migraciones se registran como `001_asistencia`, `002_padron`…). Por eso las de Travel se
+registran en Supabase con el prefijo `travel_`: `travel_013_historial_con_correo`. Desde el
+12-nov-2026 están registradas la 009 a la 013. La 014 (`014_bita_uso.sql`, el cupo de Bita) se registra como `travel_014_bita_uso` cuando se autorice aplicarla. La 009 a la 012 se habían aplicado por el editor
+SQL sin quedar en el registro; se verificaron (funciones, tablas y permisos) y se registraron
+solo como constancia, sin volver a ejecutarlas. De antes quedan tres con otro nombre
+(`dias_de_viaje_por_persona`, `excel_sin_regla_del_lunes`, `ventana_de_compra`) y la 001 a 004,
+007 y 008 sin registrar.
 
 ## Pendientes, en orden
 
@@ -144,8 +169,8 @@ se agrega una nueva con el número siguiente.
      para marcar como solicitados, y las dos no se mezclan. «No se volaron» los anula con un
      motivo. «Se volaron con una misma reserva» les pone el código y los deja Completado, y
      solo se ofrece si todos son del mismo día y la misma ruta: un código es un vuelo. Si cada
-     uno tiene su código, se abren de a uno. El motivo se agrega a las notas, como en «Marcar
-     como solicitados».
+     uno tiene su código, se abren de a uno. El motivo queda como último motivo de las notas,
+     igual que al editar o al marcar como solicitados.
 
 4. **Costos. HECHO** (rama `costos`). Vista "Costos" con gasto por mes, por ruta y por persona.
 
@@ -158,6 +183,10 @@ se agrega una nueva con el número siguiente.
      hora carísima no debe mover la referencia contra la que se comparan las demás.
    - Al escribir un monto que se aparta más de un 40% de esa referencia, el diálogo lo dice. No
      bloquea: una tarifa cara puede ser legítima. Existe para que un cero de más no pase.
+   - **Con código de reserva y sin monto, el diálogo pide el monto** (`pideMonto`): es el momento
+     en que se tiene el precio delante. No obliga. El cierre en bloque con reserva común también
+     acepta un monto por pasajero, opcional. Salió de que en noviembre de 2026 ningún viaje tenía
+     monto. El Excel de la agencia también sirve: el importador lee la columna «Monto CLP».
 
 5. **Elegibilidad por acreditación. HECHO** (rama `acreditacion`). Documentos con vencimiento,
    evaluados contra la **fecha del viaje**, no contra hoy: vale hasta el día de su vencimiento.
@@ -186,9 +215,10 @@ se agrega una nueva con el número siguiente.
      seleccionado. El navegador integrado bloquea el primero; en Chrome sobre HTTPS anda.
    - Cuando falta la hora o el equipaje se escribe "Por confirmar", **con mayúscula en ambos**.
      El equipaje que sí existe va en minúscula ("maleta en bodega").
-   - Dentro de un mismo día los bloques van por orden alfabético de origen, así que la bajada
-     sale antes que la subida. Está sin decidir si conviene: alfabético, subidas primero, o por
-     hora de vuelo.
+   - **Dentro de un mismo día los bloques van por hora de vuelo** (decidido en noviembre de 2026;
+     antes iban por orden alfabético de origen y la bajada salía antes que la subida). La hora de
+     un bloque es la más temprana de sus pasajeros; los bloques sin hora («Por confirmar») van al
+     final del día. Dentro de un bloque, los pasajeros van por hora y después por nombre.
    - **Ojo al probar en la demo**: los 13 viajes de ejemplo caen en 13 días y rutas distintos, así
      que todos los bloques dicen "1 pasajero" y el agrupamiento no se ve. Para verlo hacen falta
      dos personas el mismo día y la misma ruta.
@@ -309,9 +339,8 @@ rota. Nada de reescritura de una sentada.
      `text-rail-link`, `border-rail-line`, etc.
    - El logo y el isotipo eligen su dibujo con la variante `claro:` (ver abajo).
      `tono="oscuro"` fija la variante para fondo oscuro; lo usa la barra.
-   - El hover de la barra va con `[&:hover]:` y no con `hover:`: en Tailwind 4 `hover:` solo
-     aplica donde hay mouse, y el CSS viejo lo aplicaba siempre. Traducción literal; si se
-     quiere `raton:` como el resto, es un cambio aparte.
+   - El hover de la barra se tradujo primero literal (`[&:hover]:`, que aplica también en un
+     teléfono) y después, en un paso aparte, se pasó a `raton:hover:` como el resto.
    - Se midió a 1440, 800 y 400 px en los dos temas, más el hover. Coincide todo salvo el
      estilo y el color de bordes de **ancho 0** (`border-right: 0` también los reiniciaba) y
      la transición, que ahora anima `translate`/`scale` en vez de `transform`. Como la regla
@@ -473,6 +502,7 @@ opinión.
 npm install
 npm run dev      # http://127.0.0.1:3000 (o el puerto que indique)
 npm test         # node --test sobre lib/*.test.ts
+npm run test:browser:flujos  # los flujos principales en Chrome, con la demostración
 npm run build
 ```
 
@@ -541,11 +571,31 @@ Que el demo funcione **no** prueba que la conexión a Supabase esté bien: son c
 
 ## Detalles a corregir cuando toque
 
+- **Pruebas de flujos en navegador** (`scripts/browser-flujos.mjs`, también en el CI). Con la
+  demostración: planificar turnos, el manifiesto con la acreditación pendiente e «Incluir igual»,
+  marcar como solicitado, el motivo mínimo al editar, el aviso de persona repetida y cerrar en
+  bloque (con el reloj de la página adelantado 40 días **después** de entrar, porque la demo arma
+  sus viajes desde la fecha de hoy), los viajes fuera de turno (cambiando el día de subida de una
+  persona) y la reserva en bloque. Buscan los botones por su texto, no por clases. Si cambias
+  el texto de un botón o de un aviso que la prueba usa, hay que cambiarlo ahí también.
+- **Cómo carga los datos.** Primero se comprueba el acceso (`is_member`); después personas,
+  viajes, ajustes, acreditación y rol van **en paralelo** (`app/estado/use-datos.ts`). Antes
+  iban en cadena y eran ~1,3 s de espera en producción. Se trae toda la historia: en
+  noviembre de 2026 eran 179 viajes en unas diez semanas (~1.000 al año), y Costos, los
+  viajes sin cerrar y la actividad necesitan el pasado. Cargar por rango se justifica recién
+  con varios miles de viajes; `allRows` ya pide de a 1.000, así que no hay un tope silencioso.
 - **El CI corre una sola vez por cambio.** `.github/workflows/ci.yml` escucha `pull_request` y
   `push` solo a `main` (antes escuchaba `push` sin filtro y todo corría dos veces; el `verify` del
   push era el que fallaba de forma intermitente, casi siempre con "Chrome no expuso CDP", que es
   del servidor de GitHub y no del código). Si aun así falla así, se relanza con
   `gh run rerun <id> --failed`. Una prueba (`lib/ci-workflow.test.ts`) fija los disparadores.
+- **Las fallas del arranque de Chrome en el CI** (revisadas el 13-nov-2026: 7 de 9 fallas eran
+  del primer paso de navegador) venían de plazos cortos en `scripts/browser-login.mjs`: Chrome
+  tenía 20 s para abrir su puerto («Chrome no expuso CDP») y 3 s, sin reintento, para crear una
+  pestaña (un `TimeoutError` suelto, sin decir de dónde). Ahora tiene los mismos 45 s que Next y
+  `openTarget` reintenta tres veces y falla diciendo qué no pudo hacer. Queda una falla rara en
+  el arnés de recuperación («M1 document boundary … false !== true»): mide el foco justo después
+  de una tecla. No se tocó: reintentar ahí haría esperar a cada uno de sus mutantes.
 - **La prueba B2 de PostgreSQL esperaba mal el arranque.** La imagen de Docker levanta primero un
   servidor temporal solo por socket y luego el definitivo; ahora `waitForPostgres` exige TCP y
   después el socket (PR #13). Si reaparece, mirar ahí antes de relanzar a ciegas.

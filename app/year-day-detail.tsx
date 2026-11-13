@@ -22,6 +22,7 @@ export default function YearDayDetail({
   detailRef,
   titulo,
   rows,
+  presentes,
   members,
   onAdd,
   onClose,
@@ -31,6 +32,8 @@ export default function YearDayDetail({
   /** El día en palabras, "lunes 16 de noviembre de 2026". */
   titulo: string;
   rows: Trip[];
+  /** Quién está en obra ese día (lib/en-obra.ts), ya ordenado por nombre. */
+  presentes: { person_id: string; nombre: string; estado: "en obra" | "sube" | "baja" }[];
   members: Map<string, Person>;
   onAdd: () => void;
   onClose: () => void;
@@ -53,6 +56,28 @@ export default function YearDayDetail({
             ? `${rows.length} ${rows.length === 1 ? "viaje programado" : "viajes programados"}`
             : "Sin movimientos registrados"}
         </p>
+        {/* Cuántos hay en obra ese día. La lista va plegada para no empujar los viajes. */}
+        <details className="mt-2 text-[13px] text-foreground-soft">
+          <summary className="cursor-pointer font-[650] text-foreground marker:text-muted">
+            En obra: {presentes.length} {presentes.length === 1 ? "persona" : "personas"}
+          </summary>
+          {presentes.length ? (
+            <ul className="mt-2 grid gap-1">
+              {presentes.map((p) => (
+                <li key={p.person_id} className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate">{p.nombre}</span>
+                  {p.estado !== "en obra" && (
+                    <small className={p.estado === "sube" ? "text-subida" : "text-bajada"}>
+                      {p.estado === "sube" ? "Sube ese día" : "Baja ese día"}
+                    </small>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-[12px] text-muted">Nadie en obra según los viajes registrados.</p>
+          )}
+        </details>
       </div>
       <div className="flex items-center gap-[7px]">
         <Button

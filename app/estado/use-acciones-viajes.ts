@@ -8,8 +8,11 @@ import { FormEvent } from "react";
 import { localDate } from "../../lib/format";
 import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
+import { problemaDeMotivo } from "../../lib/motivo";
+import { cambioDeReserva, esReservable, problemaDeReserva } from "../../lib/reserva";
+import { notasConMotivo } from "../../lib/notas";
 import { db } from "../../lib/supabase";
-import { HistoryItem, Trip } from "../../lib/types";
+import { HistoryItem, Person, Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
@@ -28,6 +31,7 @@ export function useAccionesViajes(e: Entrada) {
     closeModal,
     dateFilter,
     demo,
+    documents,
     editTrip,
     peopleById,
     personFilter,
@@ -89,14 +93,13 @@ export function useAccionesViajes(e: Entrada) {
       const direction = String(form.get("direction"));
       const changeReason = String(form.get("change_reason") ?? "").trim();
       const observations = String(form.get("notes") ?? "").trim();
-      if (editTrip && !changeReason) {
-        throw new Error("Indica el motivo de este cambio.");
+      if (editTrip) {
+        const problema = problemaDeMotivo(changeReason);
+        if (problema) throw new Error(problema);
       }
-      const notes = editTrip
-        ? [observations, `Motivo del cambio: ${changeReason}`]
-            .filter(Boolean)
-            .join("\n")
-        : observations;
+      // Las observaciones y solo el motivo nuevo: los anteriores están en el
+      // historial (ver lib/notas.ts).
+      const notes = editTrip ? notasConMotivo(observations, changeReason) : observations;
       const trip = {
         person_id: person.id,
         date: String(form.get("date")),
@@ -205,9 +208,27 @@ export function useAccionesViajes(e: Entrada) {
     }
   }
 
+  // El historial de un viaje o de una persona. El diálogo sabe de quién es por
+  // cuál de los dos queda puesto: editTrip o editPerson.
   async function showHistory(trip: Trip) {
-    clearMessages();
+    setEditPerson(null);
     setEditTrip(trip);
+    await cargarHistorial([trip.id]);
+  }
+
+  async function showPersonHistory(person: Person) {
+    setEditTrip(null);
+    setEditPerson(person);
+    // Los vencimientos de sus documentos quedan auditados aparte, cada uno con
+    // su propio id: se piden junto con la ficha para verlos en el mismo lugar.
+    const documentos = documents
+      .filter((documento) => documento.person_id === person.id && documento.id)
+      .map((documento) => documento.id!);
+    await cargarHistorial([person.id, ...documentos]);
+  }
+
+  async function cargarHistorial(recordIds: string[]) {
+    clearMessages();
     setHistory([]);
     setHistoryLoading(!demo);
     abrirModal("history");
@@ -216,7 +237,7 @@ export function useAccionesViajes(e: Entrada) {
       const { data, error } = await db()
         .from("history")
         .select("*")
-        .eq("record_id", trip.id)
+        .in("record_id", recordIds)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const items = (data ?? []) as HistoryItem[];
@@ -247,46 +268,52 @@ export function useAccionesViajes(e: Entrada) {
     abrirModal("close");
   }
 
-  async function closeSelectedTrips(modo: ModoDeCierre, motivo: string, pnr: string) {
+  // Aplica el mismo tipo de cambio a varios viajes: de a diez, y cada uno solo
+  // si nadie lo cambió desde que se cargó la lista, igual que "Marcar como
+  // solicitados". No recarga: quien llama decide cuándo.
+  async function aplicarEnTandas(rows: Trip[], cambio: (trip: Trip) => Partial<Trip>) {
+    const updatedAt = new Date().toISOString();
+    if (demo) {
+      const porId = new Map(rows.map((trip) => [trip.id, trip]));
+      setTrips((current) =>
+        current.map((trip) => (porId.has(trip.id) ? { ...trip, ...cambio(trip), updated_at: updatedAt } : trip)),
+      );
+      return;
+    }
+    for (let index = 0; index < rows.length; index += 10) {
+      const results = await Promise.all(
+        rows.slice(index, index + 10).map((trip) =>
+          db()
+            .from("trips")
+            .update({ ...cambio(trip), updated_at: updatedAt })
+            .eq("id", trip.id)
+            .eq("updated_at", trip.updated_at!)
+            .select("id"),
+        ),
+      );
+      for (const result of results) {
+        if (result.error) throw result.error;
+        if (!result.data?.length) {
+          throw new Error(
+            "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
+          );
+        }
+      }
+    }
+  }
+
+  /** Anula varios viajes con un mismo motivo. Lo usa también desactivar a una persona. */
+  async function anularViajes(rows: Trip[], motivo: string) {
+    await aplicarEnTandas(rows, (trip) => cambioDeCierre(trip, "anular", motivo, ""));
+  }
+
+  async function closeSelectedTrips(modo: ModoDeCierre, motivo: string, pnr: string, monto = "") {
     const rows = viajesPorCerrar();
     await runAction(async () => {
-      const problema = problemaDeCierre(rows, modo, motivo, pnr);
+      const problema = problemaDeCierre(rows, modo, motivo, pnr, monto);
       if (problema) throw new Error(problema);
-      const updatedAt = new Date().toISOString();
-      if (demo) {
-        const porId = new Map(rows.map((trip) => [trip.id, trip]));
-        setTrips((current) =>
-          current.map((trip) =>
-            porId.has(trip.id)
-              ? { ...trip, ...cambioDeCierre(trip, modo, motivo, pnr), updated_at: updatedAt }
-              : trip,
-          ),
-        );
-      } else {
-        // De a diez, y cada uno solo si nadie lo cambió desde que se cargó la
-        // lista: lo mismo que hace "Marcar como solicitados".
-        for (let index = 0; index < rows.length; index += 10) {
-          const results = await Promise.all(
-            rows.slice(index, index + 10).map((trip) =>
-              db()
-                .from("trips")
-                .update({ ...cambioDeCierre(trip, modo, motivo, pnr), updated_at: updatedAt })
-                .eq("id", trip.id)
-                .eq("updated_at", trip.updated_at!)
-                .select("id"),
-            ),
-          );
-          for (const result of results) {
-            if (result.error) throw result.error;
-            if (!result.data?.length) {
-              throw new Error(
-                "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
-              );
-            }
-          }
-        }
-        await reload();
-      }
+      await aplicarEnTandas(rows, (trip) => cambioDeCierre(trip, modo, motivo, pnr, monto));
+      if (!demo) await reload();
       setSelectedTrips([]);
       closeModal();
       const n = rows.length;
@@ -300,14 +327,53 @@ export function useAccionesViajes(e: Entrada) {
     }, "form");
   }
 
+  // Lo seleccionado que de verdad sigue solicitado y sin código. Igual que al
+  // cerrar: si alguien registró la reserva entre medio, ese viaje no se toca.
+  function viajesPorReservar() {
+    return selectedTrips
+      .map((id) => trips.find((trip) => trip.id === id))
+      .filter((trip): trip is Trip => Boolean(trip))
+      .filter(esReservable);
+  }
+
+  function openReserveTrips() {
+    clearMessages();
+    if (!viajesPorReservar().length) {
+      setNotice(avisoDeError("Selecciona viajes solicitados sin reserva para continuar."));
+      return;
+    }
+    abrirModal("reserve");
+  }
+
+  async function reserveSelectedTrips(pnr: string, vuelo: string, monto: string) {
+    const rows = viajesPorReservar();
+    await runAction(async () => {
+      const problema = problemaDeReserva(rows, pnr, monto);
+      if (problema) throw new Error(problema);
+      await aplicarEnTandas(rows, (trip) => cambioDeReserva(trip, { pnr, vuelo, monto }));
+      if (!demo) await reload();
+      setSelectedTrips([]);
+      closeModal();
+      const n = rows.length;
+      setNotice(
+        avisoDeExito(`Reserva ${pnr.trim().toUpperCase()} registrada en ${n} ${n === 1 ? "viaje" : "viajes"}.`),
+      );
+    }, "form");
+  }
+
   return {
     openTrip,
     saveTrip,
     savePurchaseWindow,
     showHistory,
+    showPersonHistory,
     viajesPorCerrar,
     openCloseTrips,
     closeSelectedTrips,
+    anularViajes,
+    viajesPorReservar,
+    openReserveTrips,
+    reserveSelectedTrips,
   };
 }
 
@@ -315,7 +381,7 @@ export function useAccionesViajes(e: Entrada) {
 // traduce a correo. Si la migración todavía no está aplicada, o la llamada
 // falla, el historial se muestra igual, con el número corto de antes: no
 // saber el correo no es razón para no mostrar los cambios.
-async function conCorreoDelAutor(items: HistoryItem[]): Promise<HistoryItem[]> {
+export async function conCorreoDelAutor(items: HistoryItem[]): Promise<HistoryItem[]> {
   const ids = [...new Set(items.map((item) => item.actor).filter((id): id is string => Boolean(id)))];
   if (!ids.length) return items;
   try {

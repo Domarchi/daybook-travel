@@ -2,6 +2,7 @@
 
 import { CalendarDays, ChevronRight } from "lucide-react";
 import { formatDate } from "../lib/format";
+import { textoDeEspera } from "../lib/solicitudes";
 import type { Trip } from "../lib/types";
 import { Button } from "@/components/ui/button";
 import { OverviewCard } from "@/components/ui/overview-card";
@@ -9,14 +10,23 @@ import { Select } from "@/components/ui/field";
 
 const VENTANAS_SUGERIDAS = [7, 14, 21, 30, 45, 60];
 
+// Un enlace dentro de la frase bajo las tarjetas. El área que recibe el toque
+// crece hacia arriba y abajo sin mover el texto: el enlace mide 18 px de alto y
+// un dedo necesita unos 44.
+const ENLACE_EN_TEXTO =
+  "relative cursor-pointer font-[650] text-foreground-soft underline underline-offset-2 after:absolute after:-inset-x-1 after:-inset-y-[13px] after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]";
+
 export default function AgendaView({
   nextTrip,
   purchaseSummary,
   purchaseWindow,
   onPurchase,
   onUnclosed,
+  reviewCount,
+  onReview,
   onWindowChange,
   requestedCount,
+  esperaMasLarga,
   activeCount,
   personName,
   onTrip,
@@ -35,8 +45,11 @@ export default function AgendaView({
   purchaseWindow: number;
   onPurchase: () => void;
   onUnclosed: () => void;
+  reviewCount: number;
+  onReview: () => void;
   onWindowChange: (dias: number) => void;
   requestedCount: number;
+  esperaMasLarga: number | null;
   activeCount: number;
   personName: (id: string) => string;
   onTrip: (trip: Trip) => void;
@@ -105,7 +118,11 @@ export default function AgendaView({
         <OverviewCard type="button" onClick={onRequested}>
           <span>Pendientes de confirmación</span>
           <strong>{requestedCount}</strong>
-          <small>Solicitudes enviadas</small>
+          <small>
+            {requestedCount && esperaMasLarga !== null
+              ? `La más antigua, ${textoDeEspera(esperaMasLarga)}`
+              : "Solicitudes enviadas"}
+          </small>
           <ChevronRight size={18} />
         </OverviewCard>
         <OverviewCard type="button" onClick={onPeople}>
@@ -120,17 +137,23 @@ export default function AgendaView({
         {purchaseSummary.sinCerrar > 0 && (
           <>
             {" "}
-            <button
-              type="button"
-              className="cursor-pointer font-semibold text-foreground-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]"
-              onClick={onUnclosed}
-            >
+            <button type="button" className={ENLACE_EN_TEXTO} onClick={onUnclosed}>
               {purchaseSummary.sinCerrar}{" "}
               {purchaseSummary.sinCerrar === 1
                 ? "viaje pasado quedó sin reserva"
                 : "viajes pasados quedaron sin reserva"}
             </button>
             : ya no se compran, hay que cerrarlos.
+          </>
+        )}
+        {reviewCount > 0 && (
+          <>
+            {" "}
+            <button type="button" className={ENLACE_EN_TEXTO} onClick={onReview}>
+              {reviewCount}{" "}
+              {reviewCount === 1 ? "viaje próximo para revisar" : "viajes próximos para revisar"}
+            </button>
+            : se repiten, no siguen el orden de subida y bajada, o no calzan con el turno.
           </>
         )}
       </p>

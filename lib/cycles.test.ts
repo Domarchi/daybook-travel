@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { movimientos, diaSemana, type CicloPersona } from "./cycles.ts";
+import { movimientos, movimientosEntre, diaSemana, type CicloPersona } from "./cycles.ts";
 import { addDays } from "./calendar.ts";
 
 // Copia exacta del calendario que se retira de lib/calendar.ts. Vive aquí, y
@@ -250,4 +250,43 @@ test("addDays no se corre un día en los cambios de horario ni en fin de año", 
   assert.equal(addDays("2026-09-05", 3), "2026-09-08");
   assert.equal(addDays("2026-04-03", 3), "2026-04-06");
   assert.equal(addDays("2026-12-31", 1), "2027-01-01");
+});
+
+// ---------------------------------------------------------------------------
+// movimientosEntre: lo mismo que movimientos, recortado, y sin el tope de dos
+// años contado desde el inicio.
+// ---------------------------------------------------------------------------
+
+test("movimientosEntre da lo mismo que movimientos recortado", () => {
+  const personas = [
+    cuatroPorTres(),
+    cuatroPorTres({ up_weekday: 4, down_weekday: 1 }),
+    cuatroPorTres({ start_date: "2026-09-10" }),
+    diezPorDiez(),
+    diezPorDiez({ start_date: "2026-09-17" }),
+  ];
+  for (const persona of personas) {
+    for (const desde of ["2026-09-01", "2026-10-03", "2026-10-15", "2026-11-26"]) {
+      const esperado = movimientos(persona, "2027-02-28").filter((m) => m.date >= desde);
+      assert.deepEqual(movimientosEntre(persona, desde, "2027-02-28"), esperado, `${persona.shift} ${persona.start_date} desde ${desde}`);
+    }
+  }
+});
+
+test("movimientosEntre funciona con alguien que empezó hace años", () => {
+  // Con movimientos esto pasa de dos años y se rechaza.
+  const antiguo = diezPorDiez({ start_date: "2023-01-02" });
+  assert.throws(() => movimientos(antiguo, "2026-12-31"), /dos años/);
+  const pasos = movimientosEntre(antiguo, "2026-11-01", "2026-12-31");
+  // 2023-01-02 + 1400 días (70 ciclos de 20) = 2026-11-02: una subida.
+  assert.deepEqual(pasos[0], { date: "2026-11-02", direction: "SUBIDA" });
+  assert.deepEqual(pasos[1], { date: "2026-11-12", direction: "BAJADA" });
+
+  const semanal = cuatroPorTres({ start_date: "2022-03-01" });
+  const semana = movimientosEntre(semanal, "2026-11-12", "2026-11-19");
+  assert.deepEqual(semana, [
+    { date: "2026-11-12", direction: "BAJADA" },
+    { date: "2026-11-16", direction: "SUBIDA" },
+    { date: "2026-11-19", direction: "BAJADA" },
+  ]);
 });

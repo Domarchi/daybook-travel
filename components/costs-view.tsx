@@ -2,8 +2,9 @@
 
 import { formatoCLP, registroDeCosto, cuentaParaCostos } from "../lib/costs";
 import { useMemo } from "react";
-import { ChevronRight, Route, Users, Wallet } from "lucide-react";
+import { ChevronRight, Download, Route, Users, Wallet } from "lucide-react";
 import EmptyState from "@/components/ui/empty-state";
+import { csvDeCostos } from "@/lib/trips-csv";
 import { Button } from "@/components/ui/button";
 import { Label, Select } from "@/components/ui/field";
 import { TRIP_STATUSES } from "@/lib/types";
@@ -57,6 +58,19 @@ export default function CostsView() {
   const planes = costTrips.filter((trip) => registroDeCosto(trip) === "planificado-sin-monto");
   const pendientes = costCategory === "reserva-sin-monto" ? reservas : planes;
 
+  // Los viajes del período y estado elegidos, para contabilidad (lib/trips-csv.ts).
+  const exportables = costTrips.filter(cuentaParaCostos);
+  function descargar() {
+    const url = URL.createObjectURL(
+      new Blob([csvDeCostos(exportables, personName)], { type: "text/csv;charset=utf-8;" }),
+    );
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = `daybook-travel-costos-${costMonth || "todos-los-meses"}.csv`;
+    enlace.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <section aria-label="Registro de costos">
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -77,6 +91,14 @@ export default function CostsView() {
         {(costMonth || costStatus !== "Todos") && <Button type="button" onClick={() => {
           setCostMonth(""); setCostStatus("Todos"); setCostCategory("");
         }}>Limpiar filtros</Button>}
+        <Button
+          type="button"
+          className="ml-auto max-[760px]:ml-0 max-[760px]:w-full"
+          onClick={descargar}
+          disabled={!exportables.length}
+        >
+          <Download size={16} /> Descargar para Excel
+        </Button>
       </div>
       <div className="mb-3 grid grid-cols-[1.3fr_1fr_1fr] gap-3 max-[760px]:grid-cols-2" aria-live="polite">
         <StaticOverviewCard className="grid-cols-1 [&>strong]:col-start-1 max-[760px]:col-span-full">

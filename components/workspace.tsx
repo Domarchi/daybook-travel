@@ -5,7 +5,9 @@ import BrandMark from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
 import CostsView from "@/components/costs-view";
+import ActivityView from "@/components/activity-view";
 import AgendaPanel from "@/components/agenda-panel";
+import Bita from "@/components/bita";
 import { LoadingView, LoginView } from "@/components/login-view";
 import MembersView from "@/components/members-view";
 import ModalLayer from "@/components/modal-layer";
@@ -122,6 +124,8 @@ export default function Workspace() {
                 <PeopleView />
               ) : view === "Costos" ? (
                 <CostsView />
+              ) : view === "Actividad" ? (
+                <ActivityView />
               ) : view === "Accesos" && isAdmin ? (
                 <MembersView />
               ) : (
@@ -171,6 +175,8 @@ export default function Workspace() {
       </div>
 
       <ModalLayer />
+      {/* Bita flota sobre la página, fuera del contenido que se vuelve inerte con un diálogo abierto. */}
+      {(accessStatus === "allowed" || demo) && <Bita />}
     </div>
   );
 }

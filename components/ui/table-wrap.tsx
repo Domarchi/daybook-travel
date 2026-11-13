@@ -1,8 +1,7 @@
 "use client";
 
 // El marco de las tablas: el borde, el radio y el desplazamiento horizontal
-// cuando la tabla no cabe. Las reglas de `table`, `th` y `td` siguen en la capa
-// daybook hasta que se migre la vista de Viajes, que es la que las usa de verdad.
+// cuando la tabla no cabe.
 //
 // `relative` no es decorativo: sin él, lo que va con posición absoluta dentro de
 // la tabla (el "Acciones" solo para lectores de pantalla, la cabecera escondida

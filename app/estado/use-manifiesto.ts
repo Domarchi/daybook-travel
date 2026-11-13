@@ -7,6 +7,7 @@ import { motivosDeAcreditacion, resumenDeMotivos } from "../../lib/accreditation
 import { localDate } from "../../lib/format";
 import { db } from "../../lib/supabase";
 import { csvDeViajes } from "../../lib/trips-csv";
+import { notasConMotivo } from "../../lib/notas";
 import { Trip } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
@@ -122,12 +123,7 @@ export function useManifiesto(e: Entrada) {
               ? {
                   ...trip,
                   status: "Solicitado",
-                  notes: [
-                    trip.notes.trim(),
-                    "Motivo del cambio: Solicitud enviada.",
-                  ]
-                    .filter(Boolean)
-                    .join("\n"),
+                  notes: notasConMotivo(trip.notes, "Solicitud enviada."),
                   updated_at: updatedAt,
                 }
               : trip,
@@ -144,12 +140,7 @@ export function useManifiesto(e: Entrada) {
                 .from("trips")
                 .update({
                   status: "Solicitado",
-                  notes: [
-                    trip.notes.trim(),
-                    "Motivo del cambio: Solicitud enviada.",
-                  ]
-                    .filter(Boolean)
-                    .join("\n"),
+                  notes: notasConMotivo(trip.notes, "Solicitud enviada."),
                   updated_at: updatedAt,
                 })
                 .eq("id", trip.id)

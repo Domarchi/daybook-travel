@@ -1,11 +1,14 @@
 "use client";
 
 import DialogActions from "@/components/ui/dialog-actions";
+import { Button } from "@/components/ui/button";
+import { Clock } from "lucide-react";
 import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
 import { Checkbox, Input, Label, Select } from "@/components/ui/field";
 import { BAGGAGE_OPTIONS as baggageOptions } from "../lib/types";
 import { formatDate, localDate, nextWeekday } from "../lib/format";
 import { personasConMismoNombre } from "../lib/personas-repetidas";
+import { viajesFuturosDe } from "../lib/cierre";
 import { useState } from "react";
 import { DIAS_SEMANA } from "../lib/cycles";
 import { useApp } from "../app/store";
@@ -19,6 +22,8 @@ export default function PersonDialog() {
     editPerson,
     people,
     savePerson,
+    trips,
+    showPersonHistory,
   } = useApp();
   const tiposActivos = documentTypes.filter((tipo) => tipo.active);
 
@@ -29,6 +34,11 @@ export default function PersonDialog() {
   // Aviso, no bloqueo: dos personas distintas pueden llamarse igual. Ver
   // lib/personas-repetidas.ts.
   const [nombre, setNombre] = useState(editPerson?.name ?? "");
+
+  // Si se desactiva a alguien que tenía viajes por delante, se ofrece anularlos.
+  const [activa, setActiva] = useState(editPerson?.active ?? true);
+  const futuros = editPerson ? viajesFuturosDe(editPerson.id, trips, localDate()) : null;
+  const seDesactiva = Boolean(editPerson?.active && !activa && futuros);
   const repetidas = personasConMismoNombre(nombre, people, editPerson?.id);
 
   return (
@@ -36,6 +46,15 @@ export default function PersonDialog() {
       className="flex min-h-0 flex-1 flex-col"
     >
       <DialogBody>
+        {editPerson && (
+          <Button
+            type="button"
+            className="mb-[18px] w-fit border-transparent bg-transparent"
+            onClick={() => void showPersonHistory(editPerson)}
+          >
+            <Clock size={16} /> Ver historial de la persona
+          </Button>
+        )}
         <FormSection aria-labelledby="person-main">
           <h3 id="person-main" className="text-foreground">Datos de la persona</h3>
           <Label>
@@ -172,7 +191,8 @@ export default function PersonDialog() {
             <Checkbox
               className="mt-[2px]"
               name="active"
-              defaultChecked={editPerson?.active ?? true}
+              checked={activa}
+              onChange={(event) => setActiva(event.target.checked)}
             />
             <span className="grid gap-[2px]">
               <strong className="text-foreground">Persona activa</strong>{" "}
@@ -183,6 +203,31 @@ export default function PersonDialog() {
               </small>
             </span>
           </Label>
+          {seDesactiva && futuros && (futuros.sinReserva.length > 0 || futuros.conReserva.length > 0) && (
+            <div className="grid gap-2 rounded-sm border border-l-2 border-line border-l-warning bg-surface-soft p-3" aria-live="polite">
+              {futuros.sinReserva.length > 0 && (
+                <Label className="grid-cols-[20px_1fr] items-start gap-[10px]">
+                  <Checkbox className="mt-[2px]" name="anular_futuros" />
+                  <span className="grid gap-[2px]">
+                    <strong className="text-foreground">
+                      Anular {futuros.sinReserva.length === 1 ? "su viaje futuro" : `sus ${futuros.sinReserva.length} viajes futuros`} sin reserva
+                    </strong>
+                    <small className="font-normal text-muted">
+                      Si no, {futuros.sinReserva.length === 1 ? "queda" : "quedan"} en la lista como por comprar. Cada uno queda
+                      Anulado con el motivo «La persona quedó inactiva».
+                    </small>
+                  </span>
+                </Label>
+              )}
+              {futuros.conReserva.length > 0 && (
+                <small className="text-foreground-soft">
+                  {futuros.conReserva.length === 1
+                    ? "Tiene 1 viaje futuro con reserva: no se anula solo, porque hay un pasaje comprado. Revísalo en Viajes."
+                    : `Tiene ${futuros.conReserva.length} viajes futuros con reserva: no se anulan solos, porque hay pasajes comprados. Revísalos en Viajes.`}
+                </small>
+              )}
+            </div>
+          )}
           <Hint>
             {shift === "4×3"
               ? "Planificar turnos generará las subidas y bajadas semanales según los días elegidos."

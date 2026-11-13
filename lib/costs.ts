@@ -164,6 +164,16 @@ export function avisoDePrecio(
 }
 
 /** Pesos chilenos, sin decimales, como se leen en Chile. */
+/**
+ * Si conviene pedir el monto: hay código de reserva y el monto está vacío. Es
+ * el momento en que quien carga tiene el precio delante; después nadie vuelve a
+ * buscarlo, y Costos solo suma lo que tiene monto. No obliga: puede quedar
+ * vacío y cargarse después.
+ */
+export function pideMonto(pnr: string, monto: string) {
+  return pnr.trim() !== "" && monto.trim() === "";
+}
+
 export const formatoCLP = (monto: number) =>
   new Intl.NumberFormat("es-CL", {
     style: "currency",

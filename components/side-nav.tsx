@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { CalendarDays, Coins, LogOut, Monitor, Moon, Plane, ShieldCheck, Sun, Users, X } from "lucide-react";
+import { CalendarDays, Coins, History, LogOut, Monitor, Moon, Plane, ShieldCheck, Sun, Users, X } from "lucide-react";
 import { OPCIONES_DE_TEMA, type PreferenciaDeTema } from "@/lib/tema";
 import BrandLogo from "@/components/ui/brand-logo";
 import { cn } from "@/lib/utils";
@@ -13,14 +13,15 @@ const navItems = [
   { label: "Personas", icon: Users },
   { label: "Viajes", icon: Plane },
   { label: "Costos", icon: Coins },
+  { label: "Actividad", icon: History },
 ];
 
 // Solo la ve quien administra los accesos.
 const accesosItem = { label: "Accesos", icon: ShieldCheck };
 
-// El hover va con `[&:hover]:` y no con `hover:` a propósito: en Tailwind 4,
-// `hover:` solo aplica donde hay mouse, y la barra lo aplicaba siempre. Traducir,
-// no rediseñar; si se quiere cambiar, es un paso aparte.
+// El hover solo donde hay mouse de verdad (`raton:`), como el resto de la
+// aplicación. En la traducción a Tailwind quedó con `[&:hover]:`, que en un
+// teléfono deja el resaltado pegado después de tocar.
 const FOCO = "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-rail-focus";
 
 // Debajo de 820 px el riel pasa a ser una franja superior y el enlace ya no se
@@ -28,13 +29,13 @@ const FOCO = "focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-v
 const ENLACE = cn(
   "flex min-h-[var(--db-rail-item-height)] w-full cursor-pointer items-center gap-3 rounded-sm border-none px-3 text-left",
   "text-rail-link transition-[translate,scale,color,background-color] duration-[160ms] ease-out",
-  "min-[820px]:[&:hover:not(:active)]:translate-x-[2px] min-[820px]:active:scale-[0.98]",
+  "min-[820px]:raton:hover:[&:not(:active)]:translate-x-[2px] min-[820px]:active:scale-[0.98]",
   FOCO,
 );
 
 const BOTON_RIEL = cn(
   "grid size-[34px] flex-none cursor-pointer place-items-center rounded-sm border-none bg-transparent",
-  "text-rail-link [&:hover]:bg-rail-hover [&:hover]:text-rail-link-hover",
+  "text-rail-link raton:hover:bg-rail-hover raton:hover:text-rail-link-hover",
   FOCO,
 );
 
@@ -145,7 +146,7 @@ export default function SideNav() {
                 // El activo lleva además la barra dorada de la familia Daybook.
                 actual
                   ? "bg-rail-active text-rail-foreground [box-shadow:inset_var(--db-rail-indicator-width)_0_0_var(--db-rail-indicator)]"
-                  : "bg-transparent [&:hover]:bg-rail-hover [&:hover]:text-rail-link-hover",
+                  : "bg-transparent raton:hover:bg-rail-hover raton:hover:text-rail-link-hover",
               )}
               aria-current={actual ? "page" : undefined}
               onClick={() => navigate(label)}

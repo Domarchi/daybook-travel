@@ -1,17 +1,13 @@
 "use client";
 
-// La tabla de Daybook Travel, traducida a Tailwind clase por clase desde las reglas
-// `table`, `th` y `td` de la capa daybook.
+// La tabla de Daybook Travel, traducida a Tailwind clase por clase desde las
+// reglas `table`, `th` y `td` que tenía la capa daybook (ya no existen).
 //
 // Lo importante de esta tabla no es como se ve ancha, es que a 760 px deja de
 // ser una tabla: la cabecera se esconde, cada fila se vuelve una tarjeta de dos
 // columnas y cada celda muestra su propio titulo sacado de `data-label`. Por eso
 // cada celda TIENE que llevar `data-label`: sin el, en el telefono queda un dato
 // suelto sin decir de que es.
-//
-// Mientras dure la migracion convive con las reglas `table/th/td` de la capa
-// daybook, que siguen vistiendo las tablas de Costos y del panel de Excel. Las
-// utilidades de Tailwind les ganan porque van en una capa posterior.
 import * as React from "react";
 import { cn } from "@/lib/utils";
 

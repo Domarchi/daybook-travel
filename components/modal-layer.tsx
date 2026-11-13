@@ -7,6 +7,7 @@ import ManifestDialog from "@/components/manifest-dialog";
 import { Button } from "@/components/ui/button";
 import { SectionKicker } from "@/components/ui/section-kicker";
 import PersonDialog from "@/components/person-dialog";
+import ReserveDialog from "@/components/reserve-dialog";
 import TripDialog from "@/components/trip-dialog";
 import ExcelSyncPanel from "../app/excel-sync-panel";
 import { X } from "lucide-react";
@@ -67,7 +68,9 @@ export default function ModalLayer() {
                         ? "SOLICITUD A LA AGENCIA"
                         : modal === "close"
                           ? "VIAJES SIN CERRAR"
-                          : "REGISTRO DE VIAJE"}
+                          : modal === "reserve"
+                            ? "RESPUESTA DE LA AGENCIA"
+                            : "REGISTRO DE VIAJE"}
             </SectionKicker>
             <h2
               id="dialog-title"
@@ -91,7 +94,11 @@ export default function ModalLayer() {
                         ? "Manifiesto para solicitar"
                         : modal === "close"
                           ? "Cerrar viajes pasados"
-                          : "Historial del viaje"}
+                          : modal === "reserve"
+                            ? "Registrar reserva"
+                            : editPerson
+                            ? "Historial de la persona"
+                            : "Historial del viaje"}
             </h2>
             <p
               id="dialog-description"
@@ -111,9 +118,13 @@ export default function ModalLayer() {
                         ? "Los viajes por solicitar, agrupados por día y ruta, listos para pegar en un correo."
                         : modal === "close"
                           ? "Anula los que no se volaron o registra la reserva con que se volaron."
-                          : editTrip
+                          : modal === "reserve"
+                            ? "El código que mandó la agencia, para todos los pasajeros de ese vuelo."
+                            : editTrip
                         ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
-                        : "Cambios registrados en este viaje."}
+                        : editPerson
+                          ? editPerson.name
+                          : "Cambios registrados en este viaje."}
             </p>
           </div>
           <Button
@@ -165,6 +176,8 @@ export default function ModalLayer() {
         {modal === "manifest" && <ManifestDialog />}
 
         {modal === "close" && <CloseDialog />}
+
+        {modal === "reserve" && <ReserveDialog />}
       </section>
     </div>
   );

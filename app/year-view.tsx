@@ -21,6 +21,7 @@ import { SectionKicker } from "@/components/ui/section-kicker";
 import { ShiftBadge } from "@/components/ui/shift-badge";
 import { cn } from "@/lib/utils";
 import YearDayDetail from "./year-day-detail";
+import { enObra } from "../lib/en-obra";
 
 // El día del calendario, sin los estados. Se arma fuera del componente porque
 // se repite treinta veces por mes y no cambia nunca.
@@ -205,6 +206,15 @@ export default function YearView({
   const monthTrips = monthRows.flatMap(([, rows]) => rows);
   const distinctPeople = new Set(monthTrips.map((trip) => trip.person_id)).size;
   const rows = selected ? (byDay.get(selected) ?? []) : [];
+
+  // Quién está en obra el día elegido, con el mismo filtro de turno (lib/en-obra.ts).
+  const presentes = useMemo(() => {
+    if (!selected) return [];
+    return enObra(trips, selected)
+      .filter((e) => shift === "Todos" || members.get(e.person_id)?.shift === shift)
+      .map((e) => ({ ...e, nombre: members.get(e.person_id)?.name ?? "Persona" }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [trips, selected, shift, members]);
 
   function navigateMonth(next: string) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(next)) return;
@@ -492,7 +502,7 @@ export default function YearView({
               <ChevronLeft size={18} />
             </Button>
             <Input
-              className="w-[190px] border-0 bg-transparent px-[9px] py-[6px] text-meta font-bold max-[760px]:w-[100px] max-[760px]:flex-1"
+              className="w-[190px] border-0 bg-transparent px-[9px] py-[6px] text-meta font-bold max-[760px]:w-[100px] max-[760px]:flex-1 max-[760px]:px-1"
               aria-label="Ir a mes y año"
               type="month"
               min="0001-01"
@@ -628,6 +638,7 @@ export default function YearView({
           detailRef={detailRef}
           titulo={longDate(selected)}
           rows={rows}
+          presentes={presentes}
           members={members}
           onAdd={() => onAdd(selected)}
           onClose={() => {

@@ -5,6 +5,9 @@
 
 import { FormEvent } from "react";
 import { db } from "../../lib/supabase";
+import { localDate } from "../../lib/format";
+import { MOTIVO_PERSONA_INACTIVA, viajesFuturosDe } from "../../lib/cierre";
+import { viajesARevisar } from "../../lib/revision";
 import { Person } from "../../lib/types";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
@@ -19,6 +22,7 @@ type Entrada = Avisos & Sesion & Datos & Dialogos & Acreditacion & AccionesViaje
 export function useAccionesPersonas(e: Entrada) {
   const {
     abrirModal,
+    anularViajes,
     clearMessages,
     closeModal,
     demo,
@@ -33,6 +37,7 @@ export function useAccionesPersonas(e: Entrada) {
     setNotice,
     setPendingTripDate,
     setPeople,
+    trips,
   } = e;
 
   function openPerson(person: Person | null = null) {
@@ -114,6 +119,29 @@ export function useAccionesPersonas(e: Entrada) {
         }
         await reload();
       }
+      // Al desactivarla, si se pidió, sus viajes futuros sin reserva se anulan
+      // con un motivo fijo. Los que tienen reserva no se tocan (ver lib/cierre.ts).
+      let anulados = 0;
+      if (editPerson && editPerson.active && !person.active && form.get("anular_futuros") === "on") {
+        const { sinReserva } = viajesFuturosDe(editPerson.id, trips, localDate());
+        if (sinReserva.length) {
+          await anularViajes(sinReserva, MOTIVO_PERSONA_INACTIVA);
+          anulados = sinReserva.length;
+          if (!demo) await reload();
+        }
+      }
+      // Cambiar el turno no mueve los viajes ya generados (a propósito: pueden
+      // estar pedidos). Si alguno planificado quedó fuera, se dice aquí, que es
+      // cuando se entiende por qué; después siguen en "para revisar".
+      const fueraDeTurno = editPerson && person.active
+        ? [
+            ...viajesARevisar(
+              trips.filter((trip) => trip.person_id === editPerson.id),
+              [{ ...person, id: editPerson.id }],
+              localDate(),
+            ).values(),
+          ].filter((motivos) => motivos.includes("fuera_de_turno")).length
+        : 0;
       const resumeDate = pendingTripDate;
       closeModal();
       setPendingTripDate(null);
@@ -125,9 +153,15 @@ export function useAccionesPersonas(e: Entrada) {
         setNotice(
           avisoDeDocumentos
             ? avisoDeError(avisoDeDocumentos)
-            : avisoDeExito(
-                "Persona guardada. Sus viajes existentes conservaron sus fechas.",
-              ),
+            : avisoDeExito(anulados
+              ? `Persona guardada como inactiva. Se ${anulados === 1 ? "anuló 1 viaje futuro" : `anularon ${anulados} viajes futuros`}.`
+              : fueraDeTurno
+                ? `Persona guardada. Sus viajes existentes conservaron sus fechas: ${
+                    fueraDeTurno === 1
+                      ? "1 planificado ya no calza con su turno y quedó"
+                      : `${fueraDeTurno} planificados ya no calzan con su turno y quedaron`
+                  } para revisar en Viajes.`
+                : "Persona guardada. Sus viajes existentes conservaron sus fechas."),
         );
       }
     }, "form");

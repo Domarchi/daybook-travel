@@ -28,8 +28,20 @@ const SIN_DATO = "Por confirmar";
 const comparar = (a: string, b: string) =>
   a.localeCompare(b, "es-CL", { sensitivity: "base" });
 
-// Agrupa por fecha y ruta; dentro de cada bloque, por nombre.
-// Devuelve los bloques ordenados: primero por fecha, luego por ruta.
+// La hora más temprana de un bloque, o null si nadie tiene hora todavía.
+export const horaDelBloque = (bloque: Pick<Bloque, "pasajeros">) =>
+  bloque.pasajeros.map((p) => p.hora).filter((h): h is string => Boolean(h)).sort()[0] ?? null;
+
+// Lo que no tiene hora va después de lo que sí, en vez de primero ("" < "08:00").
+const porHora = (a: string | null, b: string | null) =>
+  a === b ? 0 : a === null ? 1 : b === null ? -1 : a.localeCompare(b);
+
+// Agrupa por fecha y ruta. Dentro de un día, los bloques van por hora de vuelo,
+// como un itinerario (decisión de noviembre de 2026; antes iban por orden
+// alfabético de origen y la bajada salía antes que la subida): la hora de un
+// bloque es la más temprana de sus pasajeros, y los bloques sin hora ("Por
+// confirmar") van al final del día. Con la misma hora, por ruta.
+// Dentro de un bloque, los pasajeros van por hora y, con la misma hora, por nombre.
 export function agruparManifiesto(
   viajes: Trip[],
   nombreDe: (personId: string) => string,
@@ -56,11 +68,12 @@ export function agruparManifiesto(
   }
   const lista = [...bloques.values()];
   for (const bloque of lista) {
-    bloque.pasajeros.sort((a, b) => comparar(a.nombre, b.nombre));
+    bloque.pasajeros.sort((a, b) => porHora(a.hora, b.hora) || comparar(a.nombre, b.nombre));
   }
   return lista.sort(
     (a, b) =>
       a.fecha.localeCompare(b.fecha) ||
+      porHora(horaDelBloque(a), horaDelBloque(b)) ||
       comparar(a.origen, b.origen) ||
       comparar(a.destino, b.destino),
   );

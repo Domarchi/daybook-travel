@@ -16,6 +16,8 @@ import {
 import { movimientos } from "../../lib/cycles";
 import { localDate, normalize } from "../../lib/format";
 import { estadoDeCompra, porComprarAhora, resumenDeCompra } from "../../lib/purchase";
+import { diasEsperando } from "../../lib/solicitudes";
+import { viajesARevisar } from "../../lib/revision";
 import { esTurnoRotativo, Person, Trip } from "../../lib/types";
 import type { Datos } from "./use-datos";
 import type { Navegacion } from "./use-navegacion";
@@ -93,6 +95,13 @@ export function useDerivados(e: Entrada) {
     });
   }, [people, peopleFilter, peopleQuery]);
 
+  // Los viajes que vienen y conviene revisar: repetidos, fuera de orden o que
+  // ya no calzan con el turno (lib/revision.ts). Son avisos, no bloquean nada.
+  const revision = useMemo(
+    () => viajesARevisar(trips, people, localDate()),
+    [trips, people],
+  );
+
   const visibleTrips = useMemo(() => {
     const needle = normalize(query);
     return trips
@@ -118,7 +127,8 @@ export function useDerivados(e: Entrada) {
             (purchaseFilter === "abiertos" &&
               porComprarAhora(estadoDeCompra(trip, localDate(), purchaseWindow))) ||
             (purchaseFilter === "sin_cerrar" &&
-              estadoDeCompra(trip, localDate(), purchaseWindow) === "sin_cerrar"))
+              estadoDeCompra(trip, localDate(), purchaseWindow) === "sin_cerrar") ||
+            (purchaseFilter === "revisar" && revision.has(trip.id)))
         );
       })
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -132,6 +142,7 @@ export function useDerivados(e: Entrada) {
     peopleById,
     purchaseFilter,
     purchaseWindow,
+    revision,
   ]);
 
   // En que situacion de compra esta cada viaje, segun la ventana vigente.
@@ -193,6 +204,11 @@ export function useDerivados(e: Entrada) {
   const requestedCount = upcomingTrips.filter(
     (trip) => trip.status === "Solicitado",
   ).length;
+  // Cuántos días lleva esperando la solicitud más antigua (lib/solicitudes.ts).
+  const esperaMasLarga = upcomingTrips.reduce<number | null>((max, trip) => {
+    const dias = diasEsperando(trip, localDate());
+    return dias === null ? max : Math.max(max ?? 0, dias);
+  }, null);
   const nextTrip = upcomingTrips[0];
 
   const generationPeople = useMemo(() => {
@@ -238,6 +254,7 @@ export function useDerivados(e: Entrada) {
     activePeople,
     planificables,
     visiblePeople,
+    revision,
     visibleTrips,
     compraDe,
     resumenCompra,
@@ -248,6 +265,7 @@ export function useDerivados(e: Entrada) {
     upcomingTrips,
     plannedCount,
     requestedCount,
+    esperaMasLarga,
     nextTrip,
     generationPeople,
     porGenerar,
