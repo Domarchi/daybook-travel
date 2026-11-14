@@ -33,9 +33,9 @@
    clase, y Tailwind la genera mal si se le escapa un espacio. */
 @custom-variant raton (@media (hover: hover) and (pointer: fine));
 
-/* "claro" es el tema claro, que se elige con data-theme en <html>. Lo usa la
-   marca para mostrar la variante del logo que corresponde al fondo. No es el
-   `dark:` de Tailwind, que sigue a la preferencia del sistema y no al botón. */
+/* "claro" es el tema claro, que se elige con data-theme en <html>. No es el
+   `dark:` de Tailwind, que sigue a la preferencia del sistema y no al botón.
+   (La marca ya no lo usa: el símbolo cambia de dibujo desde @daybook/design/marca.css.) */
 @custom-variant claro (&:where(:root[data-theme="light"] *));
 
 @theme inline {

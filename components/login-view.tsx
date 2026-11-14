@@ -67,8 +67,9 @@ export function LoginView({
           data-login-card
           className="rounded-lg border border-line bg-surface p-[clamp(24px,3.5vw,34px)] text-center shadow-[var(--shadow)] max-[760px]:px-6 max-[760px]:py-4"
         >
-          <BrandMark className="mb-4 inline-block w-14" />
-          <SectionKicker className="text-caption tracking-[0.08em] text-[color:var(--focus)]">
+          <BrandMark grande className="mb-4" />
+          {/* El dorado de la marca, en los dos temas, como en Ticket y Parte Diario. */}
+          <SectionKicker className="text-caption font-bold tracking-[0.08em] text-[color:var(--db-brand)]">
             Acceso seguro
           </SectionKicker>
           <h1 className="text-display leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">

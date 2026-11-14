@@ -115,16 +115,12 @@ export default function SideNav() {
       >
         <X size={18} />
       </button>
-      <div
-        className={cn(
-          "flex min-h-[108px] flex-none flex-col items-start gap-[2px] border-b border-b-rail-line px-[22px] py-[18px]",
-        )}
-      >
-        {/* El riel es oscuro aunque el tema sea claro: siempre la variante para fondo oscuro. */}
-        <BrandLogo tono="oscuro" className="w-[168px]" />
-        <span className="ml-[5px] text-overline leading-[1.4] font-semibold tracking-[0.12em] text-rail-caption uppercase">
-          Traslados · Copiapó
-        </span>
+      {/* El bloque de marca de la familia (`@daybook/design/marca.css`): mismo
+          alto, aire y línea que en Ticket y Parte Diario. El riel es oscuro
+          aunque el tema sea claro, por eso `db-on-dark`. */}
+      <div className="db-brand-block db-on-dark">
+        <BrandLogo />
+        <span className="db-lockup-descriptor">Traslados · Copiapó</span>
       </div>
 
       <nav

@@ -24,7 +24,7 @@ export default function PasswordFrame({ title, children }: { title: string; chil
       </header>
       <section className="relative z-[1] mx-auto my-8 grid w-[min(100%,430px)] content-center max-[760px]:my-4">
         <div className="rounded-lg border border-line bg-surface p-[clamp(28px,4vw,40px)] shadow-[var(--shadow)] max-[760px]:p-6">
-          <BrandMark className="mb-4 inline-block w-14" />
+          <BrandMark grande className="mb-4" />
           <h1 tabIndex={-1} className="text-display leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">{title}</h1>
           <p className="mt-2 mb-[22px] text-meta text-muted">La nueva contraseña también se usará en Daybook Asistencia. Recuperar tu cuenta no cambia tus permisos de acceso.</p>
           {children}
