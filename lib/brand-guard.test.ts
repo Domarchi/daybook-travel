@@ -182,31 +182,70 @@ test("el catch de lectura de Excel no expone el alias histórico de un encabezad
   );
 });
 
-test("BrandLogo referencia los dos SVG de Daybook (tema oscuro y claro)", async () => {
+// El logo es el sello común de `@daybook/design/marca.css`: el mismo marcado y
+// las mismas medidas en Parte Diario, Travel y Ticket. Antes era un SVG de 328×96
+// mostrado a 168 px y el nombre del producto quedaba en unos 5 px.
+test("el diseño compartido trae el sello de la familia", async () => {
+  const layout = await readFile(path("app/layout.tsx"), "utf8");
+  const tokens = layout.indexOf('import "@daybook/design/tokens.css";');
+  const estados = layout.indexOf('import "@daybook/design/estados.css";');
+  const marca = layout.indexOf('import "@daybook/design/marca.css";');
+  assert.ok(tokens >= 0 && estados > tokens && marca > estados, "marca.css va después de estados.css");
+});
+
+test("BrandLogo usa el marcado del sello: símbolo, DAYBOOK y TRAVEL, sin imagen ni tamaño propio", async () => {
   const content = await readFile(path("components/ui/brand-logo.tsx"), "utf8");
-  assert.match(content, /daybook-travel-logo-on-dark\.svg/);
-  assert.match(content, /daybook-travel-logo-on-light\.svg/);
+  assert.match(content, /className=\{cn\("db-lockup", className\)\}/);
+  assert.match(content, /role="img"/);
+  assert.match(content, /aria-label="Daybook Travel"/);
+  assert.match(content, /<span className="db-mark" aria-hidden="true" \/>/);
+  assert.match(content, /<span className="db-lockup__type" aria-hidden="true">/);
+  assert.match(content, /<span className="db-lockup__name">Daybook<\/span>/);
+  assert.match(content, /<span className="db-lockup__product">Travel<\/span>/);
+  assert.doesNotMatch(content, /<img\b/, "el logo no es una imagen");
+  assert.doesNotMatch(content, /logo-on-(dark|light)\.svg/);
+  assert.doesNotMatch(content, /w-\[\d+px\]|text-\[\d+px\]|tracking-/, "el tamaño lo pone el paquete");
+  // El descriptor nunca es parte del logo ni de su nombre accesible.
+  assert.doesNotMatch(content, /db-lockup-descriptor|Gestión de traslados|Copiapó/);
 });
 
-test("BrandMark referencia los dos isotipos de Daybook (tema oscuro y claro)", async () => {
+test("BrandMark es el símbolo del paquete: 48 px, o 56 px en la tarjeta", async () => {
   const content = await readFile(path("components/ui/brand-mark.tsx"), "utf8");
-  assert.match(content, /daybook-mark-on-dark\.svg/);
-  assert.match(content, /daybook-mark-on-light\.svg/);
+  assert.match(content, /"db-mark"/);
+  assert.match(content, /grande && "db-mark--large"/);
+  assert.match(content, /aria-label="Daybook"/);
+  assert.doesNotMatch(content, /<img\b/);
 });
 
-// El isotipo escondido que tenía la identidad de la entrada nunca se veía (la
-// entrada lo anulaba en todos los anchos) y se quitó al pasar la marca a
-// Tailwind. El cambio de logo a isotipo lo hace la barra lateral.
-test("el riel lleva el logo completo; el isotipo va en el espacio compacto, la cabecera del teléfono", async () => {
+test("ningún componente dibuja el logo completo con una imagen", async () => {
+  const carpetas = ["components", "components/ui", "app"];
+  for (const carpeta of carpetas) {
+    for (const nombre of await readdir(path(carpeta))) {
+      if (!/\.tsx?$/.test(nombre)) continue;
+      const content = await readFile(path(`${carpeta}/${nombre}`), "utf8");
+      assert.doesNotMatch(content, /daybook-travel-logo-on-(dark|light)\.svg/, `${carpeta}/${nombre}`);
+      assert.doesNotMatch(content, /daybook-mark-on-(dark|light)\.svg/, `${carpeta}/${nombre}`);
+    }
+  }
+});
+
+test("el riel lleva el bloque de marca común; la cabecera del teléfono no lleva símbolo", async () => {
   // Desde el menú hamburguesa (Fase 4b) el riel es siempre de 232 px, también
-  // como cajón en el teléfono: ahí cabe el logo. El isotipo vive en la cabecera.
+  // como cajón en el teléfono: ahí vive la marca. La barra superior es ☰ · título.
   const barra = await readFile(path("components/side-nav.tsx"), "utf8");
-  assert.match(barra, /<BrandLogo\b/);
+  assert.match(
+    barra,
+    /<div className="db-brand-block db-on-dark">\s*<BrandLogo \/>\s*<span className="db-lockup-descriptor">Traslados · Copiapó<\/span>\s*<\/div>/,
+  );
   const cabecera = await readFile(path("components/workspace.tsx"), "utf8");
-  assert.match(cabecera, /<BrandMark\b/);
+  assert.doesNotMatch(cabecera, /<BrandMark\b|<BrandLogo\b|db-mark|db-lockup/);
 
   const identidad = await readFile(path("components/ui/brand-identity.tsx"), "utf8");
-  assert.match(identidad, /<BrandLogo\b/);
+  assert.match(
+    identidad,
+    /<BrandLogo \/>\s*<span className="db-lockup-descriptor">Gestión de traslados<\/span>/,
+    "el descriptor va fuera del logo",
+  );
 });
 
 test("el PNG de exportación es válido y conserva la proporción del SVG (328:96)", async () => {

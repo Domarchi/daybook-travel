@@ -8,12 +8,17 @@ const read = (relative: string) => readFile(new URL(relative, root), "utf8");
 test("el login conserva la identidad completa y la jerarquía de Daybook Asistencia", async () => {
   const view = await read("components/login-view.tsx");
 
-  // Los tamaños (logo de 168 px, isotipo de 56 px, tarjeta) los mide el navegador
+  // Los tamaños (logo común de @daybook/design, símbolo de 56 px, tarjeta) los mide el navegador
   // en `scripts/browser-login.mjs`, con el CSS ya aplicado. Aquí solo se exige que
   // las piezas estén y que el texto sea el aprobado: leer el CSS con expresiones
   // regulares rompía con cualquier cambio de clases aunque se viera igual.
   assert.match(view, /<BrandIdentity\b/, "la cabecera debe mostrar la identidad completa");
-  assert.match(view, /<BrandMark\b/, "la tarjeta debe mostrar el isotipo Daybook");
+  assert.match(view, /<BrandMark grande\b/, "la tarjeta debe mostrar el símbolo Daybook de 56 px");
+  assert.match(
+    view,
+    /<SectionKicker className="[^"]*text-caption[^"]*font-bold[^"]*tracking-\[0\.08em\][^"]*text-\[color:var\(--db-brand\)\][^"]*">\s*Acceso seguro/,
+    "«Acceso seguro» va en el dorado de la marca, 12 px bold, .08em",
+  );
   assert.match(view, />\s*Bienvenido a Daybook Travel\s*</);
   assert.match(
     view,
@@ -28,7 +33,7 @@ test("la identidad usa el descriptor aprobado de Travel", async () => {
 
   assert.match(
     identity,
-    />\s*Gestión de traslados\s*</,
+    /<span className="db-lockup-descriptor">Gestión de traslados<\/span>/,
     "la identidad debe mostrar el descriptor exacto aprobado",
   );
   assert.doesNotMatch(identity, /Coordinación de viajes/);

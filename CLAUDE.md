@@ -337,8 +337,14 @@ rota. Nada de reescritura de una sentada.
    - Sus colores son los tokens `--rail-*`, solo en `:root`: el riel es oscuro en los dos
      temas, así que el tema claro **no** los redefine. En Tailwind son `bg-rail`,
      `text-rail-link`, `border-rail-line`, etc.
-   - El logo y el isotipo eligen su dibujo con la variante `claro:` (ver abajo).
-     `tono="oscuro"` fija la variante para fondo oscuro; lo usa la barra.
+   - El logo es el sello común de `@daybook/design/marca.css` (desde la 0.8.0): `BrandLogo`
+     dibuja `.db-lockup` (símbolo de 48 px + DAYBOOK + TRAVEL en texto), `BrandMark` el
+     `.db-mark` (56 px con `grande`, en la tarjeta de entrada) y el riel usa
+     `.db-brand-block.db-on-dark`. El símbolo viene en el CSS y sigue al tema solo; los
+     tamaños los pone el paquete, igual en Ticket y Parte Diario: no se les pone ancho propio.
+     La barra superior del teléfono no lleva símbolo (☰ · título): la marca vive en el riel.
+     `public/brand/daybook-travel-logo-on-*.svg` ya no los usa la aplicación; quedan por el
+     manual (`docs/manual/hacer_manual.py`).
    - El hover de la barra se tradujo primero literal (`[&:hover]:`, que aplica también en un
      teléfono) y después, en un paso aparte, se pasó a `raton:hover:` como el resto.
    - Se midió a 1440, 800 y 400 px en los dos temas, más el hover. Coincide todo salvo el
@@ -350,7 +356,7 @@ rota. Nada de reescritura de una sentada.
      El `<main>` ya usaba `max-[820px]`, así que ahora barra y contenido cambian juntos.
    - La identidad de la entrada tenía un isotipo escondido que nunca se veía (la entrada lo
      anulaba en todos los anchos); se quitó. Los arneses de navegador buscan la marca por
-     `data-brand-identity`, `data-brand-logo` y `data-brand-mark`, no por clases.
+     `data-brand-identity`, `data-brand-logo` y `data-brand-mark`, y el logo por `.db-lockup`.
 6. **Limpieza. HECHO** — `app/globals.css` pasó de 3.286 líneas a ~435, y lo que queda es lo
    que Tailwind no cubre: los tokens de los dos temas, la tipografía base de los elementos
    (`h1`–`h3`, `p`, `small`, `strong`), el armazón (`.shell`, `.app-content`), el velo y la

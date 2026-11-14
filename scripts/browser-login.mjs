@@ -451,9 +451,9 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     );
     await waitUntil(
       cdp,
-      `[...document.querySelectorAll("[data-brand-identity] img, [data-login-card] [data-brand-mark] img")]
-        .filter((image) => getComputedStyle(image).display !== "none")
-        .every((image) => image.complete && image.naturalWidth > 0)`,
+      // El símbolo viaja dentro de @daybook/design/marca.css como data URI.
+      `[...document.querySelectorAll("[data-brand-identity] .db-mark, [data-login-card] .db-mark")]
+        .every((mark) => getComputedStyle(mark).backgroundImage.startsWith('url("data:image/svg+xml'))`,
       `activos de marca en ${label}`,
     );
 
@@ -479,8 +479,22 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
           bodyScrollWidth: document.body.scrollWidth,
           bodyScrollHeight: document.body.scrollHeight,
         },
-        logo: rect("[data-brand-identity] [data-brand-logo]"),
-        mark: rect("[data-login-card] [data-brand-mark]"),
+        logo: rect("[data-brand-identity] .db-lockup"),
+        logoMark: rect("[data-brand-identity] .db-lockup > .db-mark"),
+        logoName: rect("[data-brand-identity] .db-lockup__name"),
+        logoProduct: rect("[data-brand-identity] .db-lockup__product"),
+        descriptor: rect("[data-brand-identity] .db-lockup-descriptor"),
+        lockup: (() => {
+          const lockup = document.querySelector("[data-brand-identity] .db-lockup");
+          return {
+            role: lockup?.getAttribute("role"),
+            label: lockup?.getAttribute("aria-label"),
+            product: lockup?.querySelector(".db-lockup__product")?.textContent,
+            descriptorInside: !!lockup?.querySelector(".db-lockup-descriptor"),
+            images: document.querySelectorAll("[data-brand-identity] img, [data-login-card] [data-brand-mark] img").length,
+          };
+        })(),
+        mark: rect("[data-login-card] .db-mark.db-mark--large"),
         title: rect("h1"),
         card: rect("[data-login-card]"),
         email: rect('input[name="email"]'),
@@ -498,8 +512,21 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       screenWidth: width,
       screenHeight: height,
     }, `viewport efectivo ${label}: ${JSON.stringify(metrics.viewport)}`);
-    assertNear(metrics.logo.width, 168, 0.5, `logo ${label}`);
-    assertNear(metrics.logo.height, 49.17, 1, `alto de logo ${label}`);
+    // El sello común de @daybook/design: símbolo de 48 px, DAYBOOK 16 px, producto 11 px.
+    assert.deepEqual(metrics.lockup, {
+      role: "img",
+      label: "Daybook Travel",
+      product: "Travel",
+      descriptorInside: false,
+      images: 0,
+    }, `contrato del logo ${label}`);
+    assertNear(metrics.logoMark.width, 48, 0.5, `símbolo del logo ${label}`);
+    assertNear(metrics.logoMark.height, 48, 0.5, `alto del símbolo del logo ${label}`);
+    assertNear(metrics.logo.height, 48, 0.5, `alto de logo ${label}`);
+    assert.equal(metrics.logoName.fontSize, "16px", `DAYBOOK ${label}`);
+    assert.equal(metrics.logoProduct.fontSize, "11px", `producto ${label}`);
+    assert.equal(metrics.descriptor.fontSize, "11px", `descriptor ${label}`);
+    assert.ok(metrics.descriptor.y >= metrics.logo.y + metrics.logo.height, `el descriptor va bajo el logo ${label}`);
     assertNear(metrics.mark.width, 56, 0.5, `isotipo ${label}`);
     assertNear(metrics.mark.height, 56, 0.5, `alto de isotipo ${label}`);
     assertNear(metrics.card.width, mobile ? 354 : 430, 0.5, `tarjeta ${label}`);
@@ -566,7 +593,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     assert.deepEqual(collector.errors, [], `errores de navegador ${label}`);
     assert.equal(externalRequests, 0, `requests externos ${label}`);
 
-    return `${label}: logo 168×${metrics.logo.height.toFixed(2)}, isotipo 56×56, tarjeta ${metrics.card.width.toFixed(0)}×${metrics.card.height.toFixed(2)}, sin overflow ni errores`;
+    return `${label}: logo ${metrics.logo.width.toFixed(1)}×${metrics.logo.height.toFixed(1)} (símbolo 48×48), isotipo 56×56, tarjeta ${metrics.card.width.toFixed(0)}×${metrics.card.height.toFixed(2)}, sin overflow ni errores`;
   } finally {
     collector.stop();
     try { await cdp.send("Page.close"); } catch {}
