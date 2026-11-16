@@ -2,7 +2,8 @@
 // demostración (sin Supabase): planificar turnos, armar el manifiesto, marcar
 // como solicitado, editar un viaje con su motivo, el aviso de persona repetida,
 // cerrar en bloque los viajes pasados sin reserva, los viajes para revisar, la
-// reserva en bloque y que lo escrito en un diálogo no se pierda sin preguntar.
+// reserva en bloque, que lo escrito en un diálogo no se pierda sin preguntar y
+// el motivo que se anota solo al registrar un dato que faltaba.
 //
 // Hasta ahora el CI probaba en navegador solo la entrada y la recuperación de
 // clave; el resto se comprobaba a mano. Esto no reemplaza las pruebas de
@@ -133,6 +134,12 @@ async function planificarYSolicitar(cdpPort, appUrl) {
     await waitUntil(cdp, `!!document.getElementById("pedir-monto")`, "el pedido de monto");
     await cdp.evaluate(`window.__valor(".dialog input[name=amount]", "85990")`);
     await waitUntil(cdp, `!document.getElementById("pedir-monto")`, "el pedido de monto resuelto");
+    // Registrar el código y el monto que faltaban no pide motivo: se anota solo.
+    await waitUntil(
+      cdp,
+      `!document.querySelector(".dialog textarea[name=change_reason]") && document.getElementById("motivo-automatico")?.textContent.includes("«Se registró la reserva ABC123 y el monto.»")`,
+      "el motivo que se anota solo",
+    );
     await cdp.evaluate(`window.__valor(".dialog input[name=pnr]", "")`);
     await cdp.evaluate(`window.__valor(".dialog input[name=amount]", "")`);
     await cdp.evaluate(`window.__valor(".dialog textarea[name=change_reason]", ".")`);
@@ -404,9 +411,69 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
   }
 }
 
+// El motivo de un cambio: cargar el monto que faltaba se guarda sin escribir
+// nada; cambiar la fecha lo pide, avisa del mínimo al salir del campo (no al
+// guardar) y ofrece opciones de un toque. La anticipación de la Agenda dice que
+// es para todo el equipo y avisa al guardarse.
+async function motivoYAnticipacion(cdpPort, appUrl) {
+  const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  const dialogo = `document.querySelector(".dialog")`;
+  const motivo = `document.querySelector(".dialog textarea[name=change_reason]")`;
+  try {
+    await ir(cdp, "Viajes");
+    await waitUntil(cdp, `!!window.__boton("Abrir", document.querySelector("tbody"))`, "la lista de viajes");
+    await clicReal(cdp, `window.__boton("Abrir", document.querySelector("tbody"))`);
+    await waitUntil(cdp, `!!${motivo}`, "el diálogo de viaje");
+    await delay(500);
+    // Sin cambios todavía se ve el campo; al cargar el monto se va.
+    const datos = `[...document.querySelectorAll(".dialog summary")].find((s) => s.textContent.includes("Datos de reserva"))`;
+    if (!(await cdp.evaluate(`${datos}.parentElement.open`))) await clicReal(cdp, datos);
+    await clicReal(cdp, `document.querySelector(".dialog input[name=amount]")`);
+    await cdp.send("Input.insertText", { text: "85990" });
+    await waitUntil(cdp, `!${motivo} && document.getElementById("motivo-automatico")?.textContent.includes("«Se registró el monto.»")`, "el motivo automático del monto");
+    await clicReal(cdp, `window.__boton("Guardar viaje", ${dialogo})`);
+    await waitUntil(cdp, `window.__aviso() === "Viaje guardado." && !${dialogo}`, "guardar sin escribir motivo");
+
+    // Cambiar la fecha sí pide motivo.
+    await clicReal(cdp, `window.__boton("Abrir", document.querySelector("tbody"))`);
+    await waitUntil(cdp, `!!${motivo}`, "el diálogo de viaje otra vez");
+    await delay(500);
+    const fecha = await cdp.evaluate(`document.querySelector(".dialog input[name=date]").value`);
+    const otroDia = new Date(Date.parse(fecha + "T12:00:00Z") + 86400000).toISOString().slice(0, 10);
+    await cdp.evaluate(`window.__valor(".dialog input[name=date]", "${otroDia}")`);
+    await waitUntil(cdp, `!!${motivo} && !document.getElementById("motivo-automatico")`, "el motivo pedido al cambiar la fecha");
+    // Un motivo corto se avisa al salir del campo, junto a él, sin apretar Guardar.
+    await clicReal(cdp, motivo);
+    await cdp.send("Input.insertText", { text: "ok" });
+    await clicReal(cdp, `[...document.querySelectorAll(".dialog h3")].find((h) => h.textContent === "Observaciones")`);
+    await waitUntil(cdp, `document.getElementById("motivo-error")?.textContent.includes("al menos 5 letras")`, "el aviso del mínimo al salir del campo");
+    assert.equal(await cdp.evaluate(`${motivo}.getAttribute("aria-invalid")`), "true");
+    assert.equal(await cdp.evaluate(`!!document.querySelector(".dialog-error")`), false, "no hay error arriba del diálogo");
+    // Una opción de un toque llena el campo y quita el aviso.
+    await clicReal(cdp, `window.__boton("Cambio de fecha", ${dialogo})`);
+    await waitUntil(cdp, `${motivo}.value === "Cambio de fecha" && !document.getElementById("motivo-error")`, "la opción de un toque");
+    const alto = await cdp.evaluate(`window.__boton("Corrección", ${dialogo}).getBoundingClientRect().height`);
+    assert.ok(alto >= 44, `las opciones miden ${alto} px de alto`);
+    await clicReal(cdp, `window.__boton("Guardar viaje", ${dialogo})`);
+    await waitUntil(cdp, `window.__aviso() === "Viaje guardado." && !${dialogo}`, "guardar con el motivo de un toque");
+
+    // La anticipación es del equipo y avisa al guardarse.
+    await ir(cdp, "Agenda");
+    await waitUntil(cdp, `document.querySelector("main").innerText.includes("Avisar compras con")`, "la anticipación");
+    assert.match(await cdp.evaluate(`document.querySelector("main select").closest("label").textContent`), /Avisar compras con.*de anticipación\(para todo el equipo\)/);
+    await cdp.evaluate(`window.__valor("main select", "30")`);
+    await waitUntil(cdp, `window.__aviso() === "Anticipación guardada: 30 días, para todo el equipo."`, "el aviso de anticipación guardada");
+
+    assert.deepEqual(lista, [], "sin errores en la consola");
+    return "motivo: el monto se anota solo, la fecha lo pide, mínimo al salir del campo, opción de un toque; anticipación para todo el equipo";
+  } finally {
+    cdp.close();
+  }
+}
+
 async function main() {
   const { cdpPort, appUrl } = await startBrowser();
-  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita, noPerderLoEscrito]) {
+  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita, noPerderLoEscrito, motivoYAnticipacion]) {
     console.log(`✓ ${await escenario(cdpPort, appUrl)}`);
   }
 }

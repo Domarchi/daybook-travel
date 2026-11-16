@@ -41,6 +41,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `lib/revision.ts` | **Viajes para revisar.** Los que vienen y probablemente están mal: **repetidos** (misma persona, día y sentido), **fuera de orden** (dos subidas o dos bajadas seguidas, mirando lo registrado como `lib/en-obra.ts`, con el pasado como contexto) y **fuera de turno** (un Planificado que ya no calza con `lib/cycles.ts`, porque se cambió la ficha; los solicitados o con reserva no se miran: si se movieron fue a propósito). Solo avisa, y solo de hoy en adelante. La Agenda lo cuenta bajo las tarjetas («N viajes próximos para revisar», abre Viajes filtrado) y cada fila de Viajes dice el motivo. Al guardar una ficha, el aviso dice cuántos quedaron fuera de turno. Usa `movimientosEntre` de `lib/cycles.ts`, que no tiene el tope de dos años desde el inicio. 13 pruebas. |
 | `lib/reserva.ts` y `components/reserve-dialog.tsx` | **Registrar una reserva en bloque.** En Viajes filtrado por **Solicitado** (la tarjeta «Pendientes de confirmación» lleva ahí), la selección sirve para registrar la reserva que mandó la agencia: código, vuelo y monto por pasajero (los dos últimos opcionales). Quedan **Emitido**. Como en el cierre en bloque, un código es un vuelo: solo si son del mismo día y la misma ruta. El motivo es fijo y dice el código. 4 pruebas. |
 | `lib/marcar-solicitados.ts` y `components/ui/confirm-dialog.tsx` | **Marcar como solicitados** va de a diez viajes (`porTandas`); el aviso ofrece «Deshacer» 10 s (vuelven a Planificado) y, si una tanda falla, dice cuántos quedaron y deja seleccionados los que faltan. La **confirmación** común (botón rojo, foco en la salida segura) la usan el descarte de un formulario con cambios (`pedirCierre` en `use-dialogos`: el velo no cierra un formulario; Escape, la ✕ y «Cancelar» preguntan) y cerrar sesión. 6 pruebas, 4 más en `lib/dialogos.test.ts` y el escenario «formulario» de `scripts/browser-flujos.mjs`. |
+| `lib/errores.ts` | **Qué dice un error al guardar.** `runAction` ya no muestra el `message` tal cual: sin señal dice «Sin conexión…» y que lo escrito sigue en el formulario (como Parte Diario); los rechazos de Postgres se traducen (23505, 23xxx, 42501, sesión vencida); los de los triggers (P0001) y los `Error` de la pantalla pasan tal cual. El párrafo de error del diálogo lleva `dialog-error` y recibe el foco. 5 pruebas. |
 | `lib/trips-csv.ts` | El CSV de la solicitud a la agencia y el de **Costos** («Descargar para Excel»: los viajes del período y estado elegidos, con el monto como número para que Excel sume), con la defensa contra fórmulas de Excel. 6 pruebas. |
 | `app/globals.css` | ~435 líneas. Tokens en `:root` y `:root[data-theme="light"]`, el velo y la caja de los diálogos y lo que Tailwind no cubre. |
 | `lib/costs.ts` | **Las cuentas de costos.** Totales por mes, ruta y persona, cobertura, precio de referencia (mediana) y aviso de precio fuera de lo normal. 17 pruebas. |
@@ -77,6 +78,13 @@ Todo esto está implementado en SQL y es deliberado:
    Además la pantalla exige un motivo de **al menos 5 letras** (`lib/motivo.ts`): en producción
    había viajes anulados con el motivo ".". Es de letras y no de palabras porque «Duplicado» o
    «No viajó» son motivos buenos.
+   **Registrar un dato que faltaba no pide motivo escrito** (`motivoAutomatico` en `lib/motivo.ts`):
+   si en el diálogo de viaje solo se carga el código, el vuelo, el monto o la hora que estaban
+   vacíos (y, como en la reserva en bloque, un Planificado/Solicitado que recibe su código pasa a
+   Emitido), el motivo se escribe solo («Se registró la reserva ABC123 y el monto.») y el diálogo
+   lo muestra en vez del campo. Todo lo demás (fecha, estado, ruta, observaciones, corregir o
+   borrar un dato) sigue pidiendo motivo, con opciones de un toque («No viajó», «Cambio de
+   fecha», «Corrección») y el mínimo avisado junto al campo al salir de él.
    **Las notas guardan las observaciones y solo el último motivo** (`lib/notas.ts`). Antes cada
    edición sumaba su motivo y volvía a guardar los anteriores, y «Información útil» se llenaba
    de motivos; los anteriores están en el historial. Una columna aparte para el motivo (para que

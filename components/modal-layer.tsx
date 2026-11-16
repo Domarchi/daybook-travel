@@ -158,7 +158,7 @@ export default function ModalLayer() {
           <p
             role="alert"
             tabIndex={-1}
-            className="mx-6 mt-[14px] shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger max-[760px]:mx-4 max-[760px]:mt-3"
+            className="dialog-error mx-6 mt-[14px] shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger max-[760px]:mx-4 max-[760px]:mt-3"
           >
             {formError}
           </p>

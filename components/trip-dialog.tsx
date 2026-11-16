@@ -7,7 +7,14 @@ import { cn } from "@/lib/utils";
 import { observacionesDe } from "../lib/notas";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
 import { ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { FormEvent, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  MOTIVOS_RAPIDOS,
+  camposDelFormulario,
+  motivoAutomatico,
+  problemaDeMotivo,
+} from "../lib/motivo";
 import { avisoDePrecio, formatoCLP, pideMonto } from "../lib/costs";
 import { useApp } from "../app/store";
 import { HistorialEnFicha } from "@/components/history-dialog";
@@ -18,6 +25,7 @@ export default function TripDialog() {
     busy,
     pedirCierre,
     editTrip,
+    marcarModificado,
     newDate,
     newPerson,
     people,
@@ -51,6 +59,33 @@ export default function TripDialog() {
     };
   });
 
+  // El motivo: si el cambio es solo registrar un dato que faltaba (código,
+  // vuelo, monto u hora), se anota solo y el campo no se muestra. Si hace falta,
+  // el mínimo de letras se avisa al salir del campo, junto a él.
+  const [motivoSolo, setMotivoSolo] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [errorDeMotivo, setErrorDeMotivo] = useState("");
+  const campoMotivo = useRef<HTMLTextAreaElement>(null);
+  const pideMotivo = Boolean(editTrip) && motivoSolo === null;
+
+  function revisarCambios(form: HTMLFormElement) {
+    if (!editTrip) return;
+    setMotivoSolo(motivoAutomatico(editTrip, camposDelFormulario(new FormData(form))));
+  }
+
+  function enviar(event: FormEvent<HTMLFormElement>) {
+    if (pideMotivo) {
+      const problema = problemaDeMotivo(motivo);
+      if (problema) {
+        event.preventDefault();
+        setErrorDeMotivo(problema);
+        campoMotivo.current?.focus();
+        return;
+      }
+    }
+    void saveTrip(event);
+  }
+
   function revisarMonto(campo: HTMLInputElement) {
     const form = campo.form;
     const valor = (nombre: string) =>
@@ -71,7 +106,8 @@ export default function TripDialog() {
   }
 
   return (
-    <form onSubmit={saveTrip} aria-busy={busy}
+    <form onSubmit={enviar} aria-busy={busy}
+      onChange={(event) => revisarCambios(event.currentTarget)}
       className="flex min-h-0 flex-1 flex-col"
     >
       <DialogBody>
@@ -329,15 +365,56 @@ export default function TripDialog() {
               placeholder="Restricciones horarias, equipaje o acuerdos."
             />
           </Label>
-          {editTrip && (
-            <Label>
-              Motivo de este cambio
-              <Textarea
-                name="change_reason"
-                required
-                placeholder="Describe brevemente qué cambió y por qué."
-              />
-            </Label>
+          {editTrip && motivoSolo !== null && (
+            <Hint id="motivo-automatico">
+              No hace falta escribir un motivo: queda anotado «{motivoSolo}»
+            </Hint>
+          )}
+          {pideMotivo && (
+            <div className="grid gap-2">
+              <Label>
+                Motivo de este cambio
+                <Textarea
+                  ref={campoMotivo}
+                  name="change_reason"
+                  aria-required="true"
+                  aria-invalid={errorDeMotivo ? true : undefined}
+                  aria-describedby={errorDeMotivo ? "motivo-error" : undefined}
+                  placeholder="Describe brevemente qué cambió y por qué."
+                  value={motivo}
+                  onChange={(event) => {
+                    setMotivo(event.target.value);
+                    if (errorDeMotivo && !problemaDeMotivo(event.target.value)) setErrorDeMotivo("");
+                  }}
+                  onBlur={(event) => {
+                    // Vacío no se marca al pasar: se avisa al guardar.
+                    if (event.target.value.trim()) setErrorDeMotivo(problemaDeMotivo(event.target.value) ?? "");
+                  }}
+                />
+              </Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Motivos frecuentes">
+                {MOTIVOS_RAPIDOS.map((opcion) => (
+                  <Button
+                    key={opcion}
+                    type="button"
+                    aria-pressed={motivo === opcion}
+                    onClick={() => {
+                      setMotivo(opcion);
+                      setErrorDeMotivo("");
+                      marcarModificado();
+                      campoMotivo.current?.focus();
+                    }}
+                  >
+                    {opcion}
+                  </Button>
+                ))}
+              </div>
+              {errorDeMotivo && (
+                <p id="motivo-error" role="alert" className="m-0 text-meta font-semibold text-danger">
+                  {errorDeMotivo}
+                </p>
+              )}
+            </div>
           )}
           <Hint>
             Solicitado significa que la solicitud ya se envió a la agencia.

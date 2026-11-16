@@ -164,8 +164,10 @@ export default function AgendaView({
         >
           <CalendarDays size={17} /> Planificar turnos
         </Button>
-        <label className="m-0 inline-flex items-center gap-2 text-caption font-semibold text-foreground-soft">
-          Anticipación
+        {/* Es un ajuste del proyecto (la tabla settings), no de esta vista: el
+            rótulo lo dice y guardar lo confirma con un aviso. */}
+        <label className="m-0 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-caption font-semibold text-foreground-soft">
+          Avisar compras con
           <Select
             className="min-h-11 w-auto px-2 py-1 font-bold"
             value={purchaseWindow}
@@ -177,6 +179,8 @@ export default function AgendaView({
               </option>
             ))}
           </Select>
+          de anticipación
+          <span className="font-normal text-muted">(para todo el equipo)</span>
         </label>
       </div>
       {children}

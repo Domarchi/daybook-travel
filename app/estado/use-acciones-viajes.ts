@@ -8,7 +8,7 @@ import { FormEvent } from "react";
 import { localDate } from "../../lib/format";
 import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
-import { problemaDeMotivo } from "../../lib/motivo";
+import { camposDelFormulario, motivoAutomatico, problemaDeMotivo } from "../../lib/motivo";
 import { cambioDeReserva, esReservable, problemaDeReserva } from "../../lib/reserva";
 import { notasConMotivo } from "../../lib/notas";
 import { db } from "../../lib/supabase";
@@ -92,8 +92,14 @@ export function useAccionesViajes(e: Entrada) {
       const person = peopleById.get(String(form.get("person_id")));
       if (!person) throw new Error("Selecciona una persona activa.");
       const direction = String(form.get("direction"));
-      const changeReason = String(form.get("change_reason") ?? "").trim();
       const observations = String(form.get("notes") ?? "").trim();
+      // Registrar un dato que faltaba (código, vuelo, monto u hora) anota su
+      // motivo solo; lo demás lo pide escrito (ver motivoAutomatico).
+      const escrito = String(form.get("change_reason") ?? "").trim();
+      const automatico = editTrip
+        ? motivoAutomatico(editTrip, camposDelFormulario(form))
+        : null;
+      const changeReason = escrito || automatico || "";
       if (editTrip) {
         const problema = problemaDeMotivo(changeReason);
         if (problema) throw new Error(problema);
@@ -195,7 +201,12 @@ export function useAccionesViajes(e: Entrada) {
     }
     const anterior = purchaseWindow;
     setPurchaseWindow(dias);
-    if (demo) return;
+    // El ajuste es del proyecto, no de esta pantalla: el aviso lo dice.
+    const guardado = `Anticipación guardada: ${dias} días, para todo el equipo.`;
+    if (demo) {
+      setNotice(avisoDeExito(guardado));
+      return;
+    }
     const { error } = await db()
       .from("settings")
       .update({
@@ -205,7 +216,9 @@ export function useAccionesViajes(e: Entrada) {
       .eq("id", "00000000-0000-0000-0000-000000000001");
     if (error) {
       setPurchaseWindow(anterior);
-      setNotice(avisoDeError("No se pudo guardar la ventana de compra."));
+      setNotice(avisoDeError("No se pudo guardar la ventana de compra. Intenta de nuevo."));
+    } else {
+      setNotice(avisoDeExito(guardado));
     }
   }
 

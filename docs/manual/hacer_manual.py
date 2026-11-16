@@ -95,8 +95,8 @@ pagina("Agenda", "Por dónde conviene empezar",
       "Un viaje anulado no se vuelve a comprar.",
     ])),
     col("Dónde se cambia", lista([
-      "El selector <strong>Anticipación</strong>, arriba a la derecha de la agenda: 7, 14, 21, 30, 45 o 60 días. Por omisión son 21.",
-      "Es una decisión del proyecto, no de cada persona: lo que cambie una lo ve la otra.",
+      "El selector <strong>Avisar compras con … días de anticipación</strong>, arriba a la derecha de la agenda: 7, 14, 21, 30, 45 o 60 días. Por omisión son 21.",
+      "Es para todo el equipo, no para cada persona: lo que cambie una lo ve la otra. Al cambiarlo, un aviso confirma que quedó guardado.",
       "Cada fila de Viajes muestra «Faltan N días», con color según la urgencia.",
     ]))) +
   nota("Mi recomendación", "Al comenzar el día, revisemos <strong>Por comprar ahora</strong>, <strong>Próximo movimiento</strong> y <strong>Pendientes de confirmación</strong>. Con eso sabemos de inmediato qué falta hacer."))
@@ -208,7 +208,7 @@ pagina("Viajes", "Dónde revisar cada pasaje",
     col("Reserva y control", lista([
       "Código de reserva (PNR), vuelo, monto y observaciones. Al poner el código, el diálogo pide el monto si falta.",
       "No se puede repetir la misma persona, fecha y sentido.",
-      "Al modificar un viaje existente hay que anotar el motivo, de al menos 5 letras.",
+      "Editar pide motivo (5 letras o más), salvo al cargar un dato que faltaba.",
       "Si el monto se aparta mucho del precio de referencia de esa ruta, el diálogo lo avisa, pero no lo impide.",
     ]))))
 
@@ -227,7 +227,7 @@ pagina("Seguimiento", "Qué significa cada estado",
   '<h2>Reglas que vamos a seguir</h2>' +
   lista([
     "<strong>No borramos viajes.</strong> Si se cancela, queda como Anulado para conservar el historial.",
-    "Cuando editamos un viaje, anotamos el <strong>motivo del cambio</strong>: algo que se entienda después, como «No viajó» o «Duplicado». Un punto no sirve.",
+    "Cuando editamos un viaje, anotamos el <strong>motivo del cambio</strong>: algo que se entienda después, como «No viajó» o «Duplicado». Un punto no sirve. Hay botones para «No viajó», «Cambio de fecha» y «Corrección». Si solo se registra el código, el vuelo, el monto o la hora que faltaban, el motivo se anota solo («Se registró el monto.»).",
     "El código de reserva (PNR) es obligatorio en Emitido, Completado y No presentado.",
     "Para cambiar la persona o el sentido, se anula el viaje y se crea uno nuevo.",
     "Cada cambio queda en el historial con quién lo hizo y qué cambió: se ve con el reloj de cada viaje.",
