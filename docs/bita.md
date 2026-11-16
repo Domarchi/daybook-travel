@@ -1,10 +1,10 @@
-# Bita en Daybook Travel (fase 1, 12 nov 2026)
+# Bita en Daybook Travel (fase 1, 12 nov 2026; encendida el 16 nov 2026)
 
 Bita es la misma asistente de Daybook Parte Diario y Daybook Ticket: mismo nombre, mismo casco dorado y mismo tono. En Travel ayuda a quienes organizan los viajes a saber quién sube y baja, qué hay que comprar, cuánto se ha gastado y qué documentos faltan.
 
 **Solo lee.** No crea, edita, anula ni marca viajes, y no cambia personas ni documentos. Si se lo piden, responde que eso se hace en la pantalla.
 
-**Viene apagada.** Sin `BITA_ENABLED`, `/api/bita/estado` y `/api/bita` responden 404 sin leer nada, y la pantalla no muestra el botón. Encenderla en producción es una decisión aparte (ver «Activarla»).
+**Encendida en producción desde el 16 nov 2026** para todos los miembros de Travel (ver «Estado en producción»). Sin `BITA_ENABLED`, `/api/bita/estado` y `/api/bita` responden 404 sin leer nada, y la pantalla no muestra el botón.
 
 ## Qué hace
 
@@ -118,15 +118,32 @@ Requiere autorización explícita del dueño.
 
 1. Aplicar `supabase/014_bita_uso.sql` en Supabase y registrarla como `travel_014_bita_uso`.
 2. En la Console de Anthropic, crear un workspace propio de Travel con tope de gasto (sugerido: USD 10 al mes) y una clave en ese workspace. No reutilizar la de Ticket.
-3. En Vercel, solo en Production:
+3. En Supabase, crear una llave secreta propia de Travel (no usar la `default`, que es de Daybook Asistencia): así se puede revocar sin tocar Asistencia.
+4. En Vercel, solo en Production:
    - `ANTHROPIC_API_KEY` (Sensitive);
-   - `BITA_ENABLED=1`;
-   - `SUPABASE_SERVICE_ROLE_KEY`, que ya existe por el cron.
+   - `SUPABASE_SERVICE_ROLE_KEY` (Sensitive), con la llave del paso 3. **No existía en Vercel**: el cron de alertas también la necesita, pero nunca se había configurado. Agregarla no enciende los correos del cron, que además exige `CRON_SECRET`, `RESEND_API_KEY`, `ALERT_FROM` y `ALERT_RECIPIENTS`;
+   - `BITA_ENABLED=1`.
 
    Opcionales: `BITA_MODEL` y `BITA_DAILY_LIMIT`.
-4. Redesplegar.
+5. Redesplegar.
+
+**Ojo con el orden.** Una variable nueva entra en el siguiente despliegue de producción, sea un redespliegue o la fusión de cualquier PR. Si `BITA_ENABLED` llega antes que las llaves, la pantalla muestra el botón con el resumen y avisa que las preguntas no están configuradas (pasó entre el 13 y el 16 nov 2026). Conviene dejar `BITA_ENABLED` para el final.
 
 **Apagarla:** quitar `BITA_ENABLED` y redesplegar.
+
+## Estado en producción (16 nov 2026)
+
+| Qué | Valor |
+| --- | --- |
+| Quién la ve | Todos los miembros activos de Travel |
+| Cupo | 20 mensajes por persona y día (el valor por omisión) |
+| Costos | Solo totales por mes o por ruta, con su cobertura |
+| Workspace de Anthropic | `daybook-travel-bita`, tope USD 10 al mes |
+| Clave de Anthropic | `daybook-travel-bita-prod-2`, vence el 16 nov 2027 |
+| Llave de Supabase | llave secreta `daybook_travel` |
+| Migración | `travel_014_bita_uso`, aplicada |
+
+Primera prueba con una sesión real: nueve preguntas (agenda, cola de compra, costos), todas con resultado `ok` en el registro; los nombres vuelven en pantalla, los enlaces «ver viaje» abren el viaje y el contador de la 014 sumó una por pregunta.
 
 ## Pruebas
 
@@ -160,8 +177,9 @@ Requiere autorización explícita del dueño.
 
 ## Pendiente y límites conocidos
 
-- **El chat con una sesión real no está probado en navegador.** El arnés usa la demostración, que no tiene sesión. Las rutas y el bucle se prueban con dobles; la primera prueba real es al activarla.
-- **El manual (`docs/Manual_Daybook_Travel.pdf`) no menciona a Bita:** conviene agregarla cuando se active.
+- **El arnés de navegador no prueba el chat.** Usa la demostración, que no tiene sesión; las rutas y el bucle se prueban con dobles. El chat real se probó a mano al activarla (ver «Estado en producción»).
+- **Respuestas que no llegan a la pantalla.** En los primeros minutos tras activarla, dos de las primeras cuatro preguntas terminaron `ok` en el servidor pero el panel mostró «se cortó la conexión» (una vez el navegador recibió un 503). Las siete siguientes llegaron bien, con Enter y con el botón, y Vercel no registró errores. Esos mensajes cuentan en el cupo, porque el modelo sí contestó. Si se repite, mirar primero el registro de Vercel por id de petición.
+- **El manual (`docs/Manual_Daybook_Travel.pdf`) no menciona a Bita:** conviene agregarla.
 - **Fases siguientes, cada una con aprobación aparte:**
   - fase 2: explicar el manifiesto y revisar consistencias;
   - fase 3: acciones con confirmación, reutilizando la migración 008, con motivo y auditadas.
