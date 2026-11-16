@@ -17,6 +17,8 @@ export function useSesion(e: Entrada) {
 
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  // El id de la cuenta: el historial guarda al autor por id, no por correo.
+  const [userId, setUserId] = useState<string | null>(null);
   const [demo, setDemo] = useState(false);
 
   useEffect(() => {
@@ -39,10 +41,12 @@ export function useSesion(e: Entrada) {
     }
     sesion.getSession().then(({ data }) => {
       setEmail(data.session?.user.email ?? null);
+      setUserId(data.session?.user.id ?? null);
       setReady(true);
     });
     const { data } = sesion.onAuthStateChange((_event, session) => {
       setEmail(session?.user.email ?? null);
+      setUserId(session?.user.id ?? null);
       setReady(true);
     });
     return () => data.subscription.unsubscribe();
@@ -53,6 +57,7 @@ export function useSesion(e: Entrada) {
     setReady,
     email,
     setEmail,
+    userId,
     demo,
     setDemo,
   };
