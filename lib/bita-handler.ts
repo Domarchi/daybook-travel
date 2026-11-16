@@ -149,7 +149,7 @@ export async function manejarPregunta({ request, env, deps }: { request: Request
   } catch {
     await devolver();
     registrar("bita_datos_no_disponibles", {});
-    return json({ error: "No pude leer los viajes ahora. Intenta de nuevo en un momento." }, 503);
+    return json({ error: "Bita no pudo leer los viajes. Intenta de nuevo." }, 503);
   }
   const seud = crearSeudonimos(datos.personas, datos.viajes);
 

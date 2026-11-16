@@ -446,7 +446,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     await cdp.send("Page.navigate", { url: appUrl });
     await waitUntil(
       cdp,
-      `document.querySelector("h1")?.textContent?.trim() === "Bienvenido a Daybook Travel"`,
+      `document.querySelector("h1")?.textContent?.trim() === "Inicia sesión"`,
       `título de login en ${label}`,
     );
     await waitUntil(
@@ -538,7 +538,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       metrics.card.height >= 450 && metrics.card.height <= 700,
       `alto de tarjeta ${label}: ${metrics.card.height.toFixed(2)} fuera de 450–700`,
     );
-    assert.equal(metrics.titleText, "Bienvenido a Daybook Travel");
+    assert.equal(metrics.titleText, "Inicia sesión");
     assert.equal(metrics.title.fontSize, "28px");
     assert.equal(metrics.copy, "Usa el mismo correo y contraseña de Daybook Asistencia.");
     for (const [name, control] of Object.entries({

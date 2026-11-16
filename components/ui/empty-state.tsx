@@ -21,7 +21,7 @@ export default function EmptyState({
 }: {
   icon: React.ReactNode;
   title: string;
-  description: string;
+  description?: string;
   action?: string;
   onAction?: () => void;
   bare?: boolean;
@@ -32,7 +32,7 @@ export default function EmptyState({
         {icon}
       </span>
       <h3 className="db-empty__title">{title}</h3>
-      <p className="db-empty__text">{description}</p>
+      {description && <p className="db-empty__text">{description}</p>}
       {action && onAction && (
         <div className="db-empty__action">
           <Button type="button" onClick={onAction}>

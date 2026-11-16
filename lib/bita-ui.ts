@@ -18,7 +18,7 @@ export const saludoPara = (hora: number) => (hora < 12 ? "Buenos días" : hora <
 
 export function presentacion(hora: number, demo: boolean, soloResumen = demo): string {
   return (
-    `${saludoPara(hora)}. Soy ${NOMBRE_DE_BITA} y llevo la bitácora de los viajes: te cuento quién sube y baja, qué hay que comprar y cuánto se ha gastado. ` +
+    `${saludoPara(hora)}. Soy ${NOMBRE_DE_BITA}: resumo quién sube y baja, qué hay que comprar y cuánto se ha gastado. ` +
     (demo
       ? "En la demostración solo muestro este resumen; las preguntas funcionan con una cuenta real."
       : soloResumen

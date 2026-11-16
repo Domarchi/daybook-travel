@@ -15,15 +15,14 @@ export default function AccessState() {
         <>
           <LoadingMark />
           <StateTitle as="h1">Comprobando tu acceso…</StateTitle>
-          <StateText>Estamos conectando con la agenda del proyecto.</StateText>
         </>
       ) : accessStatus === "error" ? (
         <>
           <RefreshCw size={25} />
-          <StateTitle as="h1">No pudimos comprobar tu acceso</StateTitle>
-          <StateText>Revisa la conexión y vuelve a intentarlo.</StateText>
+          <StateTitle as="h1">No se pudo comprobar tu acceso</StateTitle>
+          <StateText>Revisa la conexión.</StateText>
           <Button type="button" variant="primary" onClick={reload}>
-            Intentar nuevamente
+            Reintentar
           </Button>
         </>
       ) : (

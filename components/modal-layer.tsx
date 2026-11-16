@@ -38,6 +38,44 @@ export default function ModalLayer() {
 
   if (!modal) return null;
 
+  // El renglón sobre el título nombra la pantalla del menú a la que pertenece el
+  // diálogo. Planificar turnos se abre desde Agenda y desde Personas: no lleva.
+  const kicker =
+    modal === "excel"
+      ? "PERSONAS"
+      : modal === "person"
+        ? "PERSONAS"
+        : modal === "generate"
+          ? null
+          : modal === "history"
+            ? editPerson
+              ? "PERSONAS"
+              : "VIAJES"
+            : "VIAJES";
+
+  const description =
+    modal === "excel"
+      ? null
+      : modal === "person"
+        ? pendingTripDate
+          ? `Al guardarla, continuaremos con el viaje del ${formatDate(pendingTripDate)}.`
+          : null
+        : modal === "trip"
+          ? null
+          : modal === "generate"
+            ? "Crea las subidas y bajadas de cada turno."
+            : modal === "manifest"
+              ? "Los viajes por solicitar, agrupados por día y ruta, listos para pegar en un correo."
+              : modal === "close"
+                ? "Anula los que no se volaron o registra la reserva con que se volaron."
+                : modal === "reserve"
+                  ? "El código que mandó la agencia, para todos los pasajeros de ese vuelo."
+                  : editTrip
+                    ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
+                    : editPerson
+                      ? editPerson.name
+                      : "Cambios registrados en este viaje.";
+
   return (
     <div
       className="overlay"
@@ -51,27 +89,11 @@ export default function ModalLayer() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
-        aria-describedby="dialog-description"
+        aria-describedby={description ? "dialog-description" : undefined}
       >
         <div className="flex shrink-0 items-start justify-between gap-[22px] border-b border-line bg-surface px-6 pt-[23px] pb-[19px]">
           <div>
-            <SectionKicker>
-              {modal === "excel"
-                ? "CONTROL DE DATOS"
-                : modal === "person"
-                  ? "DIRECTORIO"
-                  : modal === "generate"
-                    ? "PLANIFICACIÓN DE TURNOS"
-                    : modal === "history"
-                      ? "TRAZABILIDAD"
-                      : modal === "manifest"
-                        ? "SOLICITUD A LA AGENCIA"
-                        : modal === "close"
-                          ? "VIAJES SIN CERRAR"
-                          : modal === "reserve"
-                            ? "RESPUESTA DE LA AGENCIA"
-                            : "REGISTRO DE VIAJE"}
-            </SectionKicker>
+            {kicker && <SectionKicker>{kicker}</SectionKicker>}
             <h2
               id="dialog-title"
               className="text-display leading-[1.1] tracking-[-0.035em] text-foreground"
@@ -100,32 +122,14 @@ export default function ModalLayer() {
                             ? "Historial de la persona"
                             : "Historial del viaje"}
             </h2>
-            <p
-              id="dialog-description"
-              className="mt-[7px] max-w-[520px] text-caption text-muted"
-            >
-              {modal === "excel"
-                ? "Descarga, revisa y aplica cambios sin reemplazar información a ciegas."
-                : modal === "person"
-                  ? pendingTripDate
-                    ? `Al guardarla, continuaremos con el viaje del ${formatDate(pendingTripDate)}.`
-                    : "Define su ruta habitual, turno y vigencia."
-                  : modal === "trip"
-                    ? "Registra el movimiento y completa la reserva cuando corresponda."
-                    : modal === "generate"
-                      ? "Crea las subidas y bajadas de cada turno sin duplicar viajes."
-                      : modal === "manifest"
-                        ? "Los viajes por solicitar, agrupados por día y ruta, listos para pegar en un correo."
-                        : modal === "close"
-                          ? "Anula los que no se volaron o registra la reserva con que se volaron."
-                          : modal === "reserve"
-                            ? "El código que mandó la agencia, para todos los pasajeros de ese vuelo."
-                            : editTrip
-                        ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
-                        : editPerson
-                          ? editPerson.name
-                          : "Cambios registrados en este viaje."}
-            </p>
+            {description && (
+              <p
+                id="dialog-description"
+                className="mt-[7px] max-w-[520px] text-caption text-muted"
+              >
+                {description}
+              </p>
+            )}
           </div>
           <Button
             type="button"

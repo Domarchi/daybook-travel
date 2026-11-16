@@ -19,7 +19,7 @@ test("el login conserva la identidad completa y la jerarquía de Daybook Asisten
     /<SectionKicker className="[^"]*text-caption[^"]*font-bold[^"]*tracking-\[0\.08em\][^"]*text-\[color:var\(--db-brand\)\][^"]*">\s*Acceso seguro/,
     "«Acceso seguro» va en el dorado de la marca, 12 px bold, .08em",
   );
-  assert.match(view, />\s*Bienvenido a Daybook Travel\s*</);
+  assert.match(view, />\s*Inicia sesión\s*</);
   assert.match(
     view,
     /Usa el mismo correo y contraseña de Daybook Asistencia\./,

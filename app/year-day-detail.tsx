@@ -142,7 +142,7 @@ export default function YearDayDetail({
               </span>
               <span className="col-start-2 row-start-2 flex min-w-0 flex-wrap items-center gap-2">
                 <strong className="overflow-hidden text-meta text-ellipsis whitespace-nowrap text-foreground">
-                  {trip.requested_time?.slice(0, 5) || "Hora pendiente"}
+                  {trip.requested_time?.slice(0, 5) || "Hora por confirmar"}
                 </strong>
                 <ShiftBadge tono={tonoDeJornada(member?.shift ?? "")}>
                   {member?.shift ?? "Por confirmar"}
@@ -162,14 +162,7 @@ export default function YearDayDetail({
     ) : (
       <div className="flex min-h-24 items-center justify-center gap-3 p-[22px] text-muted">
         <CalendarDays size={20} />
-        <span className="grid gap-[2px]">
-          <strong className="text-foreground">
-            Este día está libre
-          </strong>
-          <small>
-            Agrega un viaje si necesitas registrar un movimiento.
-          </small>
-        </span>
+        <strong className="text-foreground">Este día está libre</strong>
       </div>
     )}
   </section>

@@ -118,7 +118,7 @@ export function useDatos(e: Entrada) {
       setAccessStatus((current) => (current === "allowed" ? current : "error"));
       setNotice(
         avisoDeError(
-          "No pudimos cargar la información. Revisa la conexión e inténtalo nuevamente.",
+          "No se pudo cargar la información. Revisa la conexión e intenta de nuevo.",
         ),
       );
     } finally {

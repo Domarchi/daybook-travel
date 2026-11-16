@@ -73,7 +73,7 @@ export function LoginView({
             Acceso seguro
           </SectionKicker>
           <h1 className="text-display leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
-            Bienvenido a Daybook Travel
+            Inicia sesión
           </h1>
           <p className="mt-2 mb-[22px] text-meta text-muted max-[760px]:mb-4">
             Usa el mismo correo y contraseña de Daybook Asistencia.

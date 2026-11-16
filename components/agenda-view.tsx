@@ -84,7 +84,7 @@ export default function AgendaView({
               <strong>{formatDate(nextTrip.date)}</strong>
               <small>
                 {personName(nextTrip.person_id)} ·{" "}
-                {nextTrip.requested_time?.slice(0, 5) || "hora pendiente"}
+                {nextTrip.requested_time?.slice(0, 5) || "hora por confirmar"}
               </small>
             </>
           ) : (

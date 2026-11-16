@@ -152,7 +152,7 @@ export function useManifiesto(e: Entrada) {
             if (result.error) throw result.error;
             if (!result.data?.length) {
               throw new Error(
-                "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
+                "Uno de los viajes cambió mientras trabajabas. Actualiza la lista e intenta de nuevo.",
               );
             }
           }

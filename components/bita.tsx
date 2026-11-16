@@ -148,21 +148,21 @@ export default function Bita() {
           messages: conversacion.slice(-MENSAJES_ENVIADOS).map((e) => ({ role: e.rol, content: e.texto.slice(0, 2000) })),
         }),
       }).catch(() => {
-        throw new Error(`${NOMBRE_DE_BITA} no pudo contestar: se cortó la conexión. Intenta de nuevo.`);
+        throw new Error(`${NOMBRE_DE_BITA} no pudo responder: se cortó la conexión. Intenta de nuevo.`);
       });
       const datos = await leerJson(r);
       if (!r.ok) {
         const mensaje = datos && typeof (datos as { error?: unknown }).error === "string" ? (datos as { error: string }).error : "";
-        throw new Error(mensaje || `${NOMBRE_DE_BITA} no pudo contestar. Intenta de nuevo.`);
+        throw new Error(mensaje || `${NOMBRE_DE_BITA} no pudo responder. Intenta de nuevo.`);
       }
-      if (!esRespuestaChat(datos)) throw new Error(`${NOMBRE_DE_BITA} respondió algo que no entiendo. Intenta de nuevo.`);
+      if (!esRespuestaChat(datos)) throw new Error(`La respuesta de ${NOMBRE_DE_BITA} no se pudo leer. Intenta de nuevo.`);
       setEntradas((actual) => [...actual, { id: siguiente.current++, rol: "assistant", texto: datos.respuesta, viajes: datos.viajes }]);
       setRestantes(datos.restantes);
     } catch (fallo) {
       // La pregunta sin respuesta sale de la conversación y vuelve al campo, para reenviarla con un toque.
       setEntradas((actual) => actual.filter((e) => e.id !== mia.id));
       setTexto(limpio);
-      setError(fallo instanceof Error ? fallo.message : `${NOMBRE_DE_BITA} no pudo contestar.`);
+      setError(fallo instanceof Error ? fallo.message : `${NOMBRE_DE_BITA} no pudo responder.`);
     } finally {
       setEnviando(false);
       if (window.matchMedia("(pointer: fine)").matches) campo.current?.focus();

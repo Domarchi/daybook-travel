@@ -126,7 +126,7 @@ export function issuePublicoAlLeerExcel(error: unknown) {
   const message =
     error instanceof Error
       ? error.message
-      : "No pudimos leer el archivo. Descarga la plantilla e inténtalo nuevamente.";
+      : "No se pudo leer el archivo. Descarga la plantilla e intenta de nuevo.";
   return {
     entity: "Archivo" as const,
     message: mensajePublicoExcel(message),
