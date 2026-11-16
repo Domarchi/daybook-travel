@@ -7,6 +7,7 @@ import BrandLogo from "@/components/ui/brand-logo";
 import { cn } from "@/lib/utils";
 import { useApp } from "../app/store";
 import { db } from "../lib/supabase";
+import { cifraDeNovedades, textoDeNovedades } from "../lib/novedades";
 
 const navItems = [
   { label: "Agenda", icon: CalendarDays },
@@ -53,6 +54,7 @@ export default function SideNav() {
     demo,
     email,
     isAdmin,
+    novedades,
     setDemo,
     setAccessStatus,
     setPeople,
@@ -151,6 +153,16 @@ export default function SideNav() {
               <span className="flex-1 text-meta leading-[1.4] font-medium">
                 {label}
               </span>
+              {/* Cambios de otras personas desde la última visita (lib/novedades.ts). */}
+              {label === "Actividad" && novedades > 0 && !actual && (
+                <span
+                  data-novedades
+                  className="min-w-5 flex-none rounded-full bg-rail-badge px-1.5 text-center text-overline font-bold tabular-nums text-rail-badge-foreground leading-[18px]"
+                >
+                  <span aria-hidden="true">{cifraDeNovedades(novedades)}</span>
+                  <span className="sr-only">{`, ${textoDeNovedades(novedades)}`}</span>
+                </span>
+              )}
             </button>
           );
         })}

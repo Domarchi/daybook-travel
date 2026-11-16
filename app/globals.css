@@ -105,6 +105,8 @@
   --color-rail-avatar-foreground: var(--rail-avatar-fg);
   --color-rail-name: var(--rail-name);
   --color-rail-sub: var(--rail-sub);
+  --color-rail-badge: var(--rail-badge);
+  --color-rail-badge-foreground: var(--rail-badge-fg);
   --radius-xs: var(--db-radius-small);
   --radius-sm: var(--rad-sm);
   --radius-md: var(--rad);
@@ -203,6 +205,9 @@
   --rail-avatar-fg: #c7c7c7;
   --rail-name: #ededed;
   --rail-sub: #a1a1a1;
+  /* La cifra de cambios nuevos junto a Actividad: el dorado del foco del riel. */
+  --rail-badge: var(--db-rail-focus);
+  --rail-badge-fg: var(--db-rail-bg);
 }
 
 :root[data-theme="light"] {

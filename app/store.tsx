@@ -18,6 +18,7 @@ import { useAccionesViajes } from "./estado/use-acciones-viajes";
 import { useAccionesPersonas } from "./estado/use-acciones-personas";
 import { useAccionesGenerar } from "./estado/use-acciones-generar";
 import { useManifiesto } from "./estado/use-manifiesto";
+import { useNovedades } from "./estado/use-novedades";
 
 function useStoreValue() {
   const tema = useTema();
@@ -33,8 +34,9 @@ function useStoreValue() {
   const acciones_personas = useAccionesPersonas({ ...avisos, ...sesion, ...datos, ...dialogos, ...acreditacion, ...acciones_viajes });
   const acciones_generar = useAccionesGenerar({ ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados });
   const manifiesto = useManifiesto({ ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion });
+  const novedades = useNovedades({ ...sesion, ...datos, ...navegacion });
 
-  return { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes, ...acciones_personas, ...acciones_generar, ...manifiesto };
+  return { ...tema, ...avisos, ...sesion, ...datos, ...navegacion, ...dialogos, ...derivados, ...acreditacion, ...acciones_sesion, ...acciones_viajes, ...acciones_personas, ...acciones_generar, ...manifiesto, ...novedades };
 }
 
 type Store = ReturnType<typeof useStoreValue>;
