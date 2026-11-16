@@ -64,7 +64,7 @@ El servidor no guarda conversaciones. El registro (`bita_pregunta`) anota el res
 | Tope | Valor | Dónde |
 | --- | --- | --- |
 | Modelo | `claude-haiku-5-5` | `BITA_MODEL` |
-| Mensajes por persona y día de Santiago | 20 (rango 1–200) | `BITA_DAILY_LIMIT` |
+| Mensajes por persona y día de Santiago | 10 (rango 1–200) | `BITA_DAILY_LIMIT` |
 | Historial que se paga por mensaje | últimos 8 | `lib/bita-agente.ts` |
 | Vueltas de herramientas por mensaje | 3 | `lib/bita-agente.ts` |
 | Herramientas por vuelta | 3 | `lib/bita-agente.ts` |
@@ -88,7 +88,7 @@ Se usa esfuerzo `low` y caché del prompt: el prompt de sistema y las herramient
 | Ruta | Qué hace |
 | --- | --- |
 | `GET /api/bita/estado` | 404 con Bita apagada; si no, `{ disponible }` (si hay llave). No lee sesión ni datos. |
-| `GET /api/bita` | Con `Authorization: Bearer <token>`: `{ restantes, limite }`. No gasta. |
+| `GET /api/bita` | Con `Authorization: Bearer <token>`: `{ restantes, limite }`. No gasta. El panel ya no lo consulta. |
 | `POST /api/bita` | Con token y `{ messages }`: `{ respuesta, viajes, restantes, limite }`. |
 
 Orden de comprobaciones en la pregunta:
@@ -136,7 +136,7 @@ Requiere autorización explícita del dueño.
 | Qué | Valor |
 | --- | --- |
 | Quién la ve | Todos los miembros activos de Travel |
-| Cupo | 20 mensajes por persona y día (el valor por omisión) |
+| Cupo | 10 mensajes por persona y día (el valor por omisión; eran 20 hasta el 16 nov 2026). El panel no muestra cuántos quedan: al llegar al tope, Bita lo avisa |
 | Costos | Solo totales por mes o por ruta, con su cobertura |
 | Workspace de Anthropic | `daybook-travel-bita`, tope USD 10 al mes |
 | Clave de Anthropic | `daybook-travel-bita-prod-2`, vence el 16 nov 2027 |

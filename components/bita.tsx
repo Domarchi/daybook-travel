@@ -19,7 +19,6 @@ import {
   NOMBRE_DE_BITA,
   PREGUNTAS_SUGERIDAS,
   esRespuestaChat,
-  esRespuestaCupo,
   horaEnChile,
   presentacion,
   trozosConViajes,
@@ -56,7 +55,6 @@ export default function Bita() {
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
-  const [restantes, setRestantes] = useState<number | null>(null);
   const siguiente = useRef(1);
   const boton = useRef<HTMLButtonElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
@@ -84,22 +82,6 @@ export default function Bita() {
       (campo.current ?? cerrar.current)?.focus();
     } else if (estuvoAbierto.current) boton.current?.focus();
   }, [abierto]);
-
-  // Al abrir, cuántos mensajes quedan. No gasta ninguno.
-  useEffect(() => {
-    if (!abierto || soloResumen) return;
-    let vigente = true;
-    void (async () => {
-      const token = await tokenDeSesion();
-      if (!token) return;
-      const r = await fetch("/api/bita", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }).catch(() => null);
-      const datos = r?.ok ? await leerJson(r) : null;
-      if (vigente && esRespuestaCupo(datos) && datos.restantes !== null) setRestantes(datos.restantes);
-    })();
-    return () => {
-      vigente = false;
-    };
-  }, [abierto, soloResumen]);
 
   useEffect(() => {
     if (registro.current) registro.current.scrollTop = registro.current.scrollHeight;
@@ -157,7 +139,6 @@ export default function Bita() {
       }
       if (!esRespuestaChat(datos)) throw new Error(`La respuesta de ${NOMBRE_DE_BITA} no se pudo leer. Intenta de nuevo.`);
       setEntradas((actual) => [...actual, { id: siguiente.current++, rol: "assistant", texto: datos.respuesta, viajes: datos.viajes }]);
-      setRestantes(datos.restantes);
     } catch (fallo) {
       // La pregunta sin respuesta sale de la conversación y vuelve al campo, para reenviarla con un toque.
       setEntradas((actual) => actual.filter((e) => e.id !== mia.id));
@@ -346,7 +327,7 @@ export default function Bita() {
           ? "Demostración: el resumen sale de los datos ficticios."
           : soloResumen
             ? "El resumen no usa IA ni gasta mensajes."
-            : `${restantes === null ? "" : `Te quedan ${restantes} ${restantes === 1 ? "mensaje" : "mensajes"} hoy. `}${NOMBRE_DE_BITA} puede equivocarse: revisa el viaje antes de actuar.`}
+            : `${NOMBRE_DE_BITA} puede equivocarse: revisa el viaje antes de actuar.`}
       </p>
     </section>
   );
