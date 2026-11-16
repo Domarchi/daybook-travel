@@ -231,7 +231,9 @@ function MenuMas({ onExcel }: { onExcel: () => void }) {
         ref={boton}
         type="button"
         aria-expanded={abierto}
-        aria-controls="personas-mas"
+        // Solo mientras la lista existe: un aria-controls que apunta a nada
+        // confunde al lector de pantalla.
+        aria-controls={abierto ? "personas-mas" : undefined}
         onClick={() => setAbierto((actual) => !actual)}
       >
         <Ellipsis size={18} aria-hidden="true" />

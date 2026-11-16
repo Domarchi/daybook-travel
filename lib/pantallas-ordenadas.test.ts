@@ -51,7 +51,8 @@ test("Personas: documentos exigidos plegados en una línea y Excel en «Más»",
   assert.match(documentos, /<details[\s\S]{0,200}<summary/);
   assert.match(documentos, /Documentos exigidos:\s*<\/strong>\{" "\}\s*\{exigidos\.length \? exigidos\.join\(", "\) : "ninguno"\}/);
   assert.match(documentos, /\{puedeEditar \? "Editar" : "Ver"\}/);
-  assert.match(personas, /aria-expanded=\{abierto\}\s*aria-controls="personas-mas"/);
+  // aria-controls solo mientras la lista existe.
+  assert.match(personas, /aria-expanded=\{abierto\}[\s\S]{0,160}aria-controls=\{abierto \? "personas-mas" : undefined\}/);
   assert.match(personas, /if \(evento\.key !== "Escape"\) return;\s*setAbierto\(false\);\s*boton\.current\?\.focus\(\);/);
   // «Gestionar con Excel» ya no está en la barra: solo dentro del menú.
   assert.equal(personas.match(/Gestionar con Excel/g)?.length, 2, "el comentario y el botón del menú");

@@ -249,17 +249,20 @@ export function useAccionesViajes(e: Entrada) {
 
   // El historial dentro del formulario que se está editando, sin cambiar de
   // diálogo: abrir el diálogo del historial desmontaba el formulario y se
-  // perdía lo escrito.
-  async function verHistorialEnFicha() {
-    if (editTrip) await cargarHistorial([editTrip.id]);
-    else if (editPerson) await cargarHistorial(idsDelHistorialDe(editPerson));
+  // perdía lo escrito. No borra el error que el formulario ya muestra (por
+  // ejemplo, que no se pudo guardar), y si el historial no carga lo dice la
+  // sección, con «Reintentar», en vez de «Sin cambios anteriores».
+  async function verHistorialEnFicha(): Promise<boolean> {
+    if (editTrip) return cargarHistorial([editTrip.id], true);
+    if (editPerson) return cargarHistorial(idsDelHistorialDe(editPerson), true);
+    return false;
   }
 
-  async function cargarHistorial(recordIds: string[]) {
-    clearMessages();
+  async function cargarHistorial(recordIds: string[], enFicha = false): Promise<boolean> {
+    if (!enFicha) clearMessages();
     setHistory([]);
     setHistoryLoading(!demo);
-    if (demo) return;
+    if (demo) return true;
     try {
       const { data, error } = await db()
         .from("history")
@@ -269,8 +272,10 @@ export function useAccionesViajes(e: Entrada) {
       if (error) throw error;
       const items = (data ?? []) as HistoryItem[];
       setHistory(await conCorreoDelAutor(items));
+      return true;
     } catch {
-      setFormError("No se pudo cargar el historial. Intenta de nuevo.");
+      if (!enFicha) setFormError("No se pudo cargar el historial. Intenta de nuevo.");
+      return false;
     } finally {
       setHistoryLoading(false);
     }

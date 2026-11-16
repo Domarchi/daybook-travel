@@ -41,6 +41,21 @@ test("el historial se abre dentro del formulario", async () => {
   assert.doesNotMatch(cargar.slice(0, cargar.indexOf("\n  }\n")), /abrirModal/, "cargar no abre otro diálogo");
 });
 
+test("el historial dentro del formulario no borra el error del formulario y, si no carga, ofrece Reintentar", async () => {
+  const acciones = await leer("app/estado/use-acciones-viajes.ts");
+  const cargar = acciones.slice(acciones.indexOf("async function cargarHistorial"));
+  const cuerpo = cargar.slice(0, cargar.indexOf("\n  }\n"));
+  // Desde la ficha no se limpia el error que ya muestra el formulario, ni el
+  // fallo del historial va arriba del formulario: lo dice la sección.
+  assert.match(cuerpo, /if \(!enFicha\) clearMessages\(\);/);
+  assert.match(cuerpo, /if \(!enFicha\) setFormError\(/);
+  assert.match(acciones, /verHistorialEnFicha\(\): Promise<boolean> \{\s*if \(editTrip\) return cargarHistorial\(\[editTrip\.id\], true\);/);
+  const historial = await leer("components/history-dialog.tsx");
+  const enFicha = historial.slice(historial.indexOf("export function HistorialEnFicha"));
+  assert.match(enFicha, /if \(!\(await verHistorialEnFicha\(\)\)\) setEstado\("fallo"\);/);
+  assert.match(enFicha, /role="alert"[\s\S]*No se pudo cargar el historial\. Intenta de nuevo\.[\s\S]*Reintentar/);
+});
+
 test("la confirmación es la de la familia: foco en la salida segura y botón rojo", async () => {
   const caja = await leer("components/ui/confirm-dialog.tsx");
   assert.match(caja, /role="alertdialog"/);

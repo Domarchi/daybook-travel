@@ -132,14 +132,17 @@ export function ListaDeHistorial() {
 // cambiaba de diálogo y lo escrito en el formulario se perdía.
 export function HistorialEnFicha({ titulo }: { titulo: string }) {
   const { verHistorialEnFicha } = useApp();
-  const [pedido, setPedido] = useState(false);
+  const [estado, setEstado] = useState<"sin pedir" | "pedido" | "fallo">("sin pedir");
+  async function pedir() {
+    setEstado("pedido");
+    if (!(await verHistorialEnFicha())) setEstado("fallo");
+  }
   return (
     <details
       className="mb-[18px] overflow-hidden rounded-md border border-line bg-surface-soft open:[&_summary_svg.flecha]:rotate-90"
       onToggle={(event) => {
-        if (!event.currentTarget.open || pedido) return;
-        setPedido(true);
-        void verHistorialEnFicha();
+        if (!event.currentTarget.open || estado !== "sin pedir") return;
+        void pedir();
       }}
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-[13px] py-[10px] font-semibold text-foreground-soft [&::-webkit-details-marker]:hidden [&_svg.flecha]:transition-transform [&_svg.flecha]:duration-[180ms] [&_svg.flecha]:ease-[var(--ease-out)] focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]">
@@ -148,7 +151,17 @@ export function HistorialEnFicha({ titulo }: { titulo: string }) {
         <ChevronRight size={18} className="flecha" aria-hidden="true" />
       </summary>
       <div className="border-t border-line bg-surface p-[14px]">
-        {pedido && <ListaDeHistorial />}
+        {estado === "fallo" ? (
+          // Sin esto la sección decía «Sin cambios anteriores» aunque no hubiera cargado.
+          <div role="alert" className="grid justify-items-start gap-3">
+            <p className="text-meta text-danger">No se pudo cargar el historial. Intenta de nuevo.</p>
+            <Button type="button" onClick={() => void pedir()}>
+              Reintentar
+            </Button>
+          </div>
+        ) : (
+          estado === "pedido" && <ListaDeHistorial />
+        )}
       </div>
     </details>
   );
