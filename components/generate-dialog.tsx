@@ -13,7 +13,7 @@ const nombreDia = (valor: number | null | undefined) =>
 export default function GenerateDialog() {
   const {
     busy,
-    closeModal,
+    pedirCierre,
     generateSelection,
     generateTrips,
     generateUntil,
@@ -100,7 +100,7 @@ export default function GenerateDialog() {
         busyLabel="Generando…"
         submitLabel={`Generar ${generationPreview} viajes`}
         submitDisabled={!generationPreview}
-        onCancel={closeModal}
+        onCancel={pedirCierre}
       />
     </form>
   );

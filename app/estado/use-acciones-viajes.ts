@@ -32,6 +32,7 @@ export function useAccionesViajes(e: Entrada) {
     dateFilter,
     demo,
     documents,
+    editPerson,
     editTrip,
     peopleById,
     personFilter,
@@ -213,25 +214,38 @@ export function useAccionesViajes(e: Entrada) {
   async function showHistory(trip: Trip) {
     setEditPerson(null);
     setEditTrip(trip);
+    abrirModal("history");
     await cargarHistorial([trip.id]);
   }
 
   async function showPersonHistory(person: Person) {
     setEditTrip(null);
     setEditPerson(person);
-    // Los vencimientos de sus documentos quedan auditados aparte, cada uno con
-    // su propio id: se piden junto con la ficha para verlos en el mismo lugar.
+    abrirModal("history");
+    await cargarHistorial(idsDelHistorialDe(person));
+  }
+
+  // Los vencimientos de sus documentos quedan auditados aparte, cada uno con su
+  // propio id: se piden junto con la ficha para verlos en el mismo lugar.
+  function idsDelHistorialDe(person: Person) {
     const documentos = documents
       .filter((documento) => documento.person_id === person.id && documento.id)
       .map((documento) => documento.id!);
-    await cargarHistorial([person.id, ...documentos]);
+    return [person.id, ...documentos];
+  }
+
+  // El historial dentro del formulario que se está editando, sin cambiar de
+  // diálogo: abrir el diálogo del historial desmontaba el formulario y se
+  // perdía lo escrito.
+  async function verHistorialEnFicha() {
+    if (editTrip) await cargarHistorial([editTrip.id]);
+    else if (editPerson) await cargarHistorial(idsDelHistorialDe(editPerson));
   }
 
   async function cargarHistorial(recordIds: string[]) {
     clearMessages();
     setHistory([]);
     setHistoryLoading(!demo);
-    abrirModal("history");
     if (demo) return;
     try {
       const { data, error } = await db()
@@ -367,6 +381,7 @@ export function useAccionesViajes(e: Entrada) {
     savePurchaseWindow,
     showHistory,
     showPersonHistory,
+    verHistorialEnFicha,
     viajesPorCerrar,
     openCloseTrips,
     closeSelectedTrips,

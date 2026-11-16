@@ -1,8 +1,8 @@
 // Los flujos principales de Daybook Travel, en un navegador de verdad y con la
 // demostración (sin Supabase): planificar turnos, armar el manifiesto, marcar
 // como solicitado, editar un viaje con su motivo, el aviso de persona repetida,
-// cerrar en bloque los viajes pasados sin reserva, los viajes para revisar y la
-// reserva en bloque.
+// cerrar en bloque los viajes pasados sin reserva, los viajes para revisar, la
+// reserva en bloque y que lo escrito en un diálogo no se pierda sin preguntar.
 //
 // Hasta ahora el CI probaba en navegador solo la entrada y la recuperación de
 // clave; el resto se comprobaba a mano. Esto no reemplaza las pruebas de
@@ -149,7 +149,10 @@ async function planificarYSolicitar(cdpPort, appUrl) {
     await waitUntil(cdp, `!!document.querySelector(".dialog input[name=name]")`, "el diálogo de persona");
     await cdp.evaluate(`window.__valor(".dialog input[name=name]", "persona  de EJEMPLO 1")`);
     await waitUntil(cdp, `!!document.getElementById("persona-repetida")`, "el aviso de persona repetida");
+    // Ya hay algo escrito: «Cancelar» pregunta antes de descartarlo.
     await cdp.evaluate(`window.__clic("Cancelar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `!!window.__boton("Descartar cambios", document.querySelector("[role=alertdialog]"))`, "la pregunta antes de descartar");
+    await cdp.evaluate(`window.__clic("Descartar cambios", document.querySelector("[role=alertdialog]"))`);
     await waitUntil(cdp, `!document.querySelector(".dialog")`, "cerrar el diálogo de persona");
 
     // Desactivar a una persona ofrece anular sus viajes futuros sin reserva.
@@ -303,9 +306,107 @@ async function bita(cdpPort, appUrl) {
   }
 }
 
+// Un clic de verdad (mouse del navegador, no `element.click()`) en el centro de
+// lo que devuelve la expresión, o en un punto dado.
+async function clicReal(cdp, expresion) {
+  const [x, y] = Array.isArray(expresion)
+    ? expresion
+    : await cdp.evaluate(`(() => { const el = ${expresion}; el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+  await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
+}
+
+async function escape(cdp) {
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+}
+
+const PREGUNTA = `document.querySelector("[role=alertdialog]")`;
+
+// Lo escrito en un diálogo no se pierde sin preguntar: el velo no cierra un
+// formulario, Escape y la ✕ preguntan, el historial se abre dentro del
+// formulario. Marcar como solicitado se deshace desde el aviso. Cerrar sesión
+// (salir de la demostración) pregunta y dice que se pierden los cambios.
+async function noPerderLoEscrito(cdpPort, appUrl) {
+  const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  try {
+    await ir(cdp, "Viajes");
+    await waitUntil(cdp, `!!window.__boton("Abrir", document.querySelector("tbody"))`, "la lista de viajes");
+
+    // Sin cambios, Escape cierra de una.
+    await clicReal(cdp, `window.__boton("Abrir", document.querySelector("tbody"))`);
+    await waitUntil(cdp, `!!document.querySelector(".dialog textarea[name=notes]")`, "el diálogo de viaje");
+    await delay(500);
+    await escape(cdp);
+    await waitUntil(cdp, `!document.querySelector(".dialog")`, "cerrar sin cambios con Escape");
+
+    // Con algo escrito: el velo no cierra y Escape pregunta.
+    await clicReal(cdp, `window.__boton("Abrir", document.querySelector("tbody"))`);
+    await waitUntil(cdp, `!!document.querySelector(".dialog textarea[name=notes]")`, "el diálogo de viaje otra vez");
+    await delay(500); // el diálogo entra deslizándose: se espera a que llegue
+    await clicReal(cdp, `document.querySelector(".dialog textarea[name=notes]")`);
+    await cdp.send("Input.insertText", { text: "Llega con equipaje extra" });
+    assert.equal(await cdp.evaluate(`document.querySelector(".dialog textarea[name=notes]").value`), "Llega con equipaje extra");
+    await clicReal(cdp, [60, 450]);
+    await delay(400);
+    assert.equal(await hayDialogo(cdp), true, "tocar el velo no cierra un formulario");
+    assert.equal(await cdp.evaluate(`!!${PREGUNTA}`), false, "el velo tampoco pregunta");
+    await escape(cdp);
+    await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Hay cambios sin guardar")`, "la pregunta al cerrar con Escape");
+    assert.equal(await cdp.evaluate(`document.activeElement.textContent.trim()`), "Seguir editando", "el foco va a la salida segura");
+    // Escape cierra solo la pregunta.
+    await escape(cdp);
+    await waitUntil(cdp, `!${PREGUNTA}`, "cerrar la pregunta con Escape");
+    assert.equal(await cdp.evaluate(`document.querySelector(".dialog textarea[name=notes]").value`), "Llega con equipaje extra");
+
+    // El historial se abre dentro del formulario y lo escrito sigue ahí.
+    await clicReal(cdp, `[...document.querySelectorAll(".dialog summary")].find((s) => s.textContent.includes("Historial del viaje"))`);
+    await waitUntil(cdp, `document.querySelector(".dialog").innerText.includes("La demostración no guarda historial")`, "el historial dentro del formulario");
+    assert.equal(await cdp.evaluate(`document.querySelector(".dialog textarea[name=notes]").value`), "Llega con equipaje extra", "abrir el historial no borra lo escrito");
+
+    // La ✕ pregunta; «Seguir editando» vuelve; «Descartar cambios» cierra.
+    await clicReal(cdp, `document.querySelector('.dialog button[aria-label="Cerrar"]')`);
+    await waitUntil(cdp, `!!${PREGUNTA}`, "la pregunta al tocar la ✕");
+    await clicReal(cdp, `window.__boton("Seguir editando", ${PREGUNTA})`);
+    await waitUntil(cdp, `!${PREGUNTA} && document.querySelector(".dialog textarea[name=notes]")?.value === "Llega con equipaje extra"`, "seguir editando");
+    await clicReal(cdp, `window.__boton("Cancelar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `!!${PREGUNTA}`, "la pregunta al tocar Cancelar");
+    await clicReal(cdp, `window.__boton("Descartar cambios", ${PREGUNTA})`);
+    await waitUntil(cdp, `!document.querySelector(".dialog") && !${PREGUNTA}`, "descartar y cerrar");
+
+    // Marcar como solicitado se deshace desde el aviso.
+    await clicReal(cdp, `document.querySelector("tbody input[type=checkbox]")`);
+    await waitUntil(cdp, `!!window.__boton("Marcar 1 como solicitado")`, "la barra de selección");
+    await clicReal(cdp, `window.__boton("Marcar 1 como solicitado")`);
+    await waitUntil(cdp, `window.__aviso() === "1 viaje marcado como solicitado."`, "el aviso de solicitado");
+    const solicitados = await cdp.evaluate(`document.querySelector("tbody").innerText.match(/Solicitado/g)?.length ?? 0`);
+    await clicReal(cdp, `document.querySelector(".toast-undo")`);
+    await waitUntil(cdp, `window.__aviso() === "1 viaje volvió a Planificado."`, "el aviso de deshecho");
+    await waitUntil(cdp, `(document.querySelector("tbody").innerText.match(/Solicitado/g)?.length ?? 0) === ${solicitados} - 1`, "el viaje de vuelta en Planificado");
+
+    // Salir de la demostración: 44 px, pregunta y dice que se pierden los cambios.
+    const salir = `document.querySelector('aside button[aria-label="Salir de la demostración"]')`;
+    assert.deepEqual(await cdp.evaluate(`(() => { const r = ${salir}.getBoundingClientRect(); return [r.width, r.height]; })()`), [44, 44]);
+    await clicReal(cdp, salir);
+    await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Se pierden los cambios")`, "la pregunta al salir");
+    await escape(cdp);
+    await waitUntil(cdp, `!${PREGUNTA} && !!document.querySelector("aside nav")`, "seguir en la demostración");
+    await clicReal(cdp, salir);
+    await waitUntil(cdp, `!!${PREGUNTA}`, "la pregunta otra vez");
+    await clicReal(cdp, `window.__boton("Salir de la demostración", ${PREGUNTA})`);
+    await waitUntil(cdp, `!!document.querySelector("[data-demo-action]")`, "de vuelta en la entrada");
+
+    assert.deepEqual(lista, [], "sin errores en la consola");
+    return "formulario: velo, Escape, ✕ y Cancelar preguntan; historial dentro; Deshacer solicitado; salir pregunta";
+  } finally {
+    cdp.close();
+  }
+}
+
 async function main() {
   const { cdpPort, appUrl } = await startBrowser();
-  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita]) {
+  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita, noPerderLoEscrito]) {
     console.log(`✓ ${await escenario(cdpPort, appUrl)}`);
   }
 }

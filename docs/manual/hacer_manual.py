@@ -6,8 +6,8 @@ import html, sys
 SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
-VERSION = "2.3"
-FECHA = "13 de noviembre de 2026"
+VERSION = "2.4"
+FECHA = "16 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
 def e(t):
@@ -73,7 +73,7 @@ pagina("Primer ingreso", "Cómo entrar",
     col("Para practicar", lista([
       "<strong>Abrir demostración</strong> usa datos ficticios.",
       "Nada de lo que hagas ahí pasa a la agenda real.",
-      "Los cambios duran hasta que cierres la demostración.",
+      "Los cambios duran hasta que salgas de la demostración; antes de salir, la aplicación lo recuerda.",
     ]))) +
   nota("Si olvidaste tu contraseña", "Pulsa <strong>¿Olvidaste tu contraseña?</strong> en la pantalla de entrada, escribe tu correo y sigue el enlace que te llegará. La contraseña es la misma de Daybook Asistencia.") +
   nota("Si ves «Tu cuenta todavía no está habilitada»", "Tu correo inició sesión, pero todavía no está en la lista de accesos de Daybook Travel. Pídele a un administrador que lo agregue en la pantalla <strong>Accesos</strong>. Si ni siquiera puedes iniciar sesión, la cuenta de Daybook Asistencia aún no existe.", "aviso"))
@@ -140,7 +140,7 @@ pagina("Personas", "La ficha de cada integrante",
       "<strong>Nuevo viaje</strong> toma como base su ruta habitual.",
       "<strong>Ver viajes</strong> muestra solamente los de esa persona.",
       "<strong>Editar</strong> cambia la información para los viajes que se creen después.",
-      "En la ficha, <strong>Ver historial de la persona</strong> muestra sus cambios y los de sus documentos.",
+      "En la ficha, <strong>Historial de la persona</strong> se despliega con sus cambios y los de sus documentos, sin cerrar la ficha.",
     ]))) +
   '<h2>Cómo completar una ficha</h2>' +
   dos(
@@ -156,6 +156,7 @@ pagina("Personas", "La ficha de cada integrante",
       "Una persona inactiva no puede recibir viajes nuevos.",
       "Cambiar su ruta no modifica los viajes que ya existen.",
       "Si hay documentos exigidos, la ficha trae una sección <strong>Documentos</strong> con su vencimiento.",
+      "Al cerrarla con cambios, pregunta antes.",
     ]))) +
   nota("Si alguien sale del proyecto", "Desactiva su ficha en vez de borrarla. Al desmarcar <strong>Persona activa</strong>, la ficha ofrece anular sus viajes futuros sin reserva; los que tienen reserva hay que revisarlos."))
 
@@ -281,7 +282,7 @@ pagina("Actividad e historial", "Quién cambió qué, y cuándo",
       "La cifra dorada junto a Actividad cuenta lo que otras personas cambiaron desde tu última visita; al entrar, esos cambios dicen <strong>Nuevo</strong>. Cada computador recuerda su propia visita.",
     ])),
     col("Historial de un viaje o una persona", lista([
-      "El reloj de cada viaje, o <strong>Ver historial de la persona</strong> en su ficha.",
+      "El reloj de cada viaje, o la sección <strong>Historial</strong> dentro de la ficha del viaje o de la persona.",
       "Muestra lo mismo, solo de ese viaje o esa persona, desde que se creó.",
       "En una persona también aparecen los cambios de vencimiento de sus documentos.",
     ]))) +
@@ -307,6 +308,8 @@ pagina("Solicitud de pasajes", "Cómo preparar la lista para la agencia",
     col("Qué lleva cada formato", lista([
       "El texto, el PDF, el CSV y el botón de marcar usan <strong>siempre la misma lista</strong>.",
       "El CSV se abre bien en Excel, y trae la columna Acreditación si hay documentos exigidos.",
+      "Marcar como solicitados se puede <strong>Deshacer</strong> desde el aviso durante 10 segundos.",
+      "Si alguno no se pudo marcar, el aviso dice cuántos quedaron; los demás siguen seleccionados.",
     ]))) +
   nota("El envío sigue siendo manual", "Daybook Travel prepara la lista y guarda el estado, pero no envía el correo ni compra el pasaje. Ese paso se sigue haciendo por el canal habitual."))
 

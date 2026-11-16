@@ -3,20 +3,20 @@
 import DialogActions from "@/components/ui/dialog-actions";
 import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
 import { Checkbox, Input, Label, Select, Textarea } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { observacionesDe } from "../lib/notas";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
-import { ChevronRight, Clock } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { avisoDePrecio, formatoCLP, pideMonto } from "../lib/costs";
 import { useApp } from "../app/store";
+import { HistorialEnFicha } from "@/components/history-dialog";
 
 export default function TripDialog() {
   const {
     referenciaDe,
     busy,
-    closeModal,
+    pedirCierre,
     editTrip,
     newDate,
     newPerson,
@@ -27,7 +27,6 @@ export default function TripDialog() {
     saveTrip,
     setReservationOpen,
     setTripStatus,
-    showHistory,
     tripStatus,
   } = useApp();
 
@@ -76,15 +75,7 @@ export default function TripDialog() {
       className="flex min-h-0 flex-1 flex-col"
     >
       <DialogBody>
-        {editTrip && (
-          <Button
-            type="button"
-            className="mb-[18px] w-fit border-transparent bg-transparent"
-            onClick={() => void showHistory(editTrip)}
-          >
-            <Clock size={16} /> Ver historial del viaje
-          </Button>
-        )}
+        {editTrip && <HistorialEnFicha titulo="Historial del viaje" />}
         <FormSection aria-labelledby="trip-main">
           <h3 id="trip-main" className="text-foreground">Movimiento</h3>
           <Label>
@@ -357,7 +348,7 @@ export default function TripDialog() {
         busy={busy}
         busyLabel="Guardando…"
         submitLabel="Guardar viaje"
-        onCancel={closeModal}
+        onCancel={pedirCierre}
       />
     </form>
   );
