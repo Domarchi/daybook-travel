@@ -502,15 +502,6 @@ export default function TripsView() {
           }
         />
       )}
-      <div className="mt-3 flex items-start gap-[10px] rounded-md border border-line bg-surface px-[15px] py-[13px] text-caption text-muted max-[760px]:mt-[10px]">
-        <Plane size={17} />
-        <span>
-          <strong className="text-foreground-soft">
-            Tarifas en vivo aún no conectadas.
-          </strong>{" "}
-          El monto se registra al confirmar el pasaje.
-        </span>
-      </div>
     </section>
   );
 }

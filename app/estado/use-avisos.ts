@@ -49,7 +49,7 @@ export function useAvisos() {
         error instanceof Error
           ? error.message
           : ((error as { message?: string })?.message ??
-            "No se pudo completar la acción. Inténtalo nuevamente.");
+            "No se pudo completar la acción. Intenta de nuevo.");
       if (destination === "form") {
         setFormError(message);
         setTimeout(

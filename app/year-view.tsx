@@ -471,7 +471,7 @@ export default function YearView({
               ? `${rangoDeSemana}: ${viajesDeLaSemana ? `${viajesDeLaSemana} ${viajesDeLaSemana === 1 ? "viaje" : "viajes"}` : "sin viajes"}.`
               : monthTrips.length
                 ? `${monthTrips.length} ${monthTrips.length === 1 ? "viaje" : "viajes"} de ${distinctPeople} ${distinctPeople === 1 ? "persona" : "personas"}.`
-                : "Todavía no hay viajes programados para este mes."}
+                : "Sin viajes este mes."}
           </p>
         </div>
 
@@ -627,8 +627,7 @@ export default function YearView({
             : "días con movimiento"}
         </span>
         <small className="ml-auto text-right max-[760px]:ml-0 max-[760px]:w-full max-[760px]:text-left">
-          Los viajes anulados no se muestran. Los turnos 4×3 y 10×10 se generan
-          desde Planificar turnos; los viajes sin turno se agregan manualmente.
+          Los viajes anulados no se muestran.
         </small>
       </footer>
       </div>

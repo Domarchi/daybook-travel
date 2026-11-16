@@ -114,7 +114,7 @@ export function useAccionesPersonas(e: Entrada) {
             .upsert(cambios, { onConflict: "person_id,type_id" });
           if (documentos.error) {
             avisoDeDocumentos =
-              "La persona se guardó, pero no pudimos guardar sus documentos. Ábrela de nuevo e inténtalo otra vez.";
+              "La persona se guardó, pero no se pudieron guardar sus documentos. Ábrela e intenta de nuevo.";
           }
         }
         await reload();

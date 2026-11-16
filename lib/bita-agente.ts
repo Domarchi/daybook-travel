@@ -34,7 +34,7 @@ const MINIMO_PARA_OTRA_LLAMADA_MS = 4_000;
 export const AVISO_NEGATIVA = "No puedo ayudarte con esa consulta. Prueba con otra pregunta sobre los viajes.";
 export const AVISO_VUELTAS = "No alcancé a juntar la información. Prueba con algo más específico (una fecha, una persona o un viaje).";
 export const AVISO_CORTE = "La respuesta quedó demasiado larga y se cortó. Pídeme algo más acotado.";
-export const AVISO_VACIO = "No tengo una respuesta para eso. ¿Puedes reformular la pregunta?";
+export const AVISO_VACIO = "No tengo respuesta para eso. Pregúntalo de otra forma.";
 export const AVISO_DEMASIADO = "Esa consulta pide demasiada información de una vez. Prueba con algo más acotado.";
 export const AVISO_TIEMPO = "La consulta está tardando demasiado. Intenta de nuevo con algo más acotado.";
 export const AVISO_MUCHAS_HERRAMIENTAS = "Demasiadas consultas en un solo paso: pide menos cosas a la vez.";
@@ -52,7 +52,8 @@ export function promptDeSistema(hoy: string): string {
     `Hoy es ${hoy} (hora de Chile).`,
     "",
     "Reglas:",
-    "- Responde en español de Chile, breve y directo: unas pocas líneas, salvo que pidan detalle. Tutea, con tono cercano y profesional, sin emojis.",
+    "- Responde en español de Chile, breve y directo: unas pocas líneas, salvo que pidan detalle. Sin relleno ni saludos largos.",
+    "- Tutea, con frases directas, sin modismos forzados, emojis ni exclamaciones. No abras con «¡Claro!» ni «¡Por supuesto!», no repitas la pregunta y no cierres ofreciendo más ayuda. Si no tienes el dato o no puedes hacer algo, dilo en una línea y di lo que sí puedes.",
     "- Las personas aparecen como seudónimos P-xxxx y los viajes como V-xxxx. Escríbelos tal cual, sin explicarlos: la pantalla pone los nombres y convierte los viajes en enlaces. Nunca inventes un seudónimo.",
     "- Si la pregunta dice «(puede ser P-…, P-…)», hay varias personas con ese nombre: pregunta a cuál se refiere antes de responder.",
     "- Los datos salen SOLO de las herramientas. Si no hay dato, dilo; nunca inventes fechas, viajes ni cifras.",
@@ -186,7 +187,7 @@ export async function conversar(opciones: {
           resultados.push({
             type: "tool_result",
             tool_use_id: llamada.id,
-            content: JSON.stringify({ error: "No pude consultar los datos ahora. Intenta de nuevo en un momento." }),
+            content: JSON.stringify({ error: "No se pudieron consultar los datos. Intenta de nuevo." }),
             is_error: true,
           });
         }
@@ -212,8 +213,8 @@ export function clasificarFallo(fallo: unknown): FalloDeApi {
   if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError)
     return { estado: 503, mensaje: "Bita no está disponible por ahora.", devolver: true, motivo: "credencial" };
   if (e instanceof Anthropic.BadRequestError && SIN_PRESUPUESTO.test(e.message))
-    return { estado: 503, mensaje: "Bita no está disponible por hoy.", devolver: true, motivo: "sin_presupuesto" };
+    return { estado: 503, mensaje: "Bita no está disponible hoy.", devolver: true, motivo: "sin_presupuesto" };
   if (e instanceof Anthropic.APIConnectionError || (e instanceof Anthropic.APIError && (e.status ?? 0) >= 500))
-    return { estado: 502, mensaje: "No pude conectarme con Bita. Intenta de nuevo en un momento.", devolver: true, motivo: "conexion" };
-  return { estado: 502, mensaje: "Bita tuvo un problema. Intenta de nuevo en un momento.", devolver: true, motivo: "inesperado" };
+    return { estado: 502, mensaje: "Bita no pudo conectarse. Intenta de nuevo.", devolver: true, motivo: "conexion" };
+  return { estado: 502, mensaje: "Bita no pudo responder. Intenta de nuevo.", devolver: true, motivo: "inesperado" };
 }

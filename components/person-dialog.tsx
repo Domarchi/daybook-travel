@@ -260,9 +260,8 @@ export default function PersonDialog() {
               ))}
             </FormGrid>
             <Hint>
-              Sin fecha, el documento figura como sin registrar. Al armar el
-              manifiesto, quien tenga uno faltante o vencido para el día del
-              viaje aparece marcado con el motivo.
+              Sin fecha, el documento figura como sin registrar. El manifiesto
+              marca a quien lo tenga faltante o vencido el día del viaje.
             </Hint>
           </FormSection>
         )}

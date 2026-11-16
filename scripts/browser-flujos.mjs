@@ -141,7 +141,7 @@ async function planificarYSolicitar(cdpPort, appUrl) {
     assert.equal(await hayDialogo(cdp), true, "con un motivo corto el diálogo sigue abierto");
     await cdp.evaluate(`window.__valor(".dialog textarea[name=change_reason]", "Cambio de hora")`);
     await cdp.evaluate(`window.__clic("Guardar viaje", document.querySelector(".dialog"))`);
-    await waitUntil(cdp, `window.__aviso() === "Viaje guardado correctamente."`, "el viaje guardado");
+    await waitUntil(cdp, `window.__aviso() === "Viaje guardado."`, "el viaje guardado");
 
     // Persona repetida: al escribir un nombre que ya está, el diálogo avisa.
     await ir(cdp, "Personas");

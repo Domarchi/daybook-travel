@@ -87,7 +87,7 @@ export default function ManifestDialog() {
       const pdf = await crearManifiestoPdf(bloques, date, logo, demo);
       pdf.save(`daybook-travel-solicitud-${date}.pdf`);
     } catch {
-      setPdfError("No pudimos crear el PDF. Inténtalo nuevamente.");
+      setPdfError("No se pudo crear el PDF. Intenta de nuevo.");
     } finally {
       setPdfBusy(false);
     }

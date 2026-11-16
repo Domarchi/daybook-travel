@@ -41,9 +41,9 @@ def pagina(seccion, titulo, intro, cuerpo):
 pagina("Para comenzar", "Para qué vamos a usar Daybook Travel",
   "La aplicación existe para que los datos de los viajes no queden repartidos en correos y planillas.",
   tarjetas([
-    ("01", "Personas", "Aquí dejamos la ruta, el turno, las fechas, el equipaje y los documentos de cada persona."),
-    ("02", "Agenda", "Aquí vemos quién sube o baja, qué días necesitan atención y qué hay que comprar ahora."),
-    ("03", "Viajes", "Aquí seguimos cada pasaje desde la planificación hasta el cierre."),
+    ("01", "Personas", "La ruta, el turno, las fechas, el equipaje y los documentos de cada persona."),
+    ("02", "Agenda", "Quién sube o baja, qué días necesitan atención y qué hay que comprar ahora."),
+    ("03", "Viajes", "Cada pasaje, desde la planificación hasta el cierre."),
   ]) +
   tarjetas([
     ("04", "Costos", "Cuánto se gasta por mes, por ruta y por persona, siempre con cuántos viajes tienen monto."),
@@ -379,7 +379,7 @@ pagina("Excel", "Qué se puede tocar y qué no",
   nota("Cuál usar en el trabajo diario", "Para cambiar algo que ya está en Daybook Travel, descarga siempre un Libro actual justo antes de empezar. Para una carga completamente nueva, usa la Plantilla vacía."))
 
 pagina("Accesos", "Quién puede entrar",
-  "La pantalla Accesos aparece solo para los administradores. Aquí se decide qué cuentas entran a Daybook Travel.",
+  "En Accesos, que solo ven los administradores, se decide qué cuentas entran a Daybook Travel.",
   dos(
     col("Dar acceso", pasos([
       "Asegúrate de que la persona ya tiene cuenta en Daybook Asistencia: la cuenta se crea fuera de esta aplicación.",
@@ -413,7 +413,7 @@ pagina("Trabajo diario", "Cómo proponemos organizarnos",
     ]))))
 
 pagina("Para terminar", "Qué está listo y qué viene después",
-  "Este resumen deja claro con qué contamos hoy y qué queda para más adelante.",
+  None,
   dos(
     col("Lo que ya podemos usar", lista([
       "Agenda mensual y semanal, con el detalle de cada día.",
@@ -512,18 +512,19 @@ salida.append(f'''<section class="page portada">
     <img class="logo" src="{'../../public/brand/daybook-travel-logo-on-dark.svg'}" alt="Daybook Travel">
     <span class="etiqueta">Para Katy y Tamara</span>
     <h1>Cómo vamos a organizar los viajes del proyecto.</h1>
-    <p class="bajada">Esta guía deja en un solo lugar cómo llevar las personas, los turnos y los pasajes en Daybook Travel.</p>
+    <p class="bajada">Personas, turnos y pasajes en Daybook Travel.</p>
     <p class="enlace">{URL}</p>
   </div>
   <div class="datos"><span>Preparado por Joaquín</span><span>{FECHA} / versión {VERSION}</span></div>
 </section>''')
 
 for i, (seccion, titulo, intro, cuerpo) in enumerate(paginas, 2):
+    parrafo = f'<p class="intro">{e(intro)}</p>' if intro else ""
     salida.append(f'''<section class="page">
   <div class="tope"><img src="../../public/brand/{MARCA}" alt="Daybook"><span>Daybook Travel / Copiapó</span></div>
   <span class="seccion">{e(seccion)}</span>
   <h1>{e(titulo)}</h1>
-  <p class="intro">{e(intro)}</p>
+  {parrafo}
   {cuerpo}
   <div class="pie"><span>Guía de uso · versión {VERSION}</span><span>{i:02d} / {total:02d}</span></div>
 </section>''')

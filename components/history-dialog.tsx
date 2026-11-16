@@ -66,8 +66,8 @@ export default function HistoryDialog() {
         ) : demo ? (
           <EmptyState
             icon={<Clock />}
-            title="Historial disponible en la operación"
-            description="La demostración no guarda cambios permanentes."
+            title="La demostración no guarda historial"
+            description="Entra con tu cuenta para verlo."
             bare
           />
         ) : history.length ? (
@@ -141,11 +141,6 @@ export default function HistoryDialog() {
           <EmptyState
             icon={<Clock />}
             title="Sin cambios anteriores"
-            description={
-              editTrip
-                ? "Este viaje todavía no tiene cambios registrados."
-                : "Esta persona todavía no tiene cambios registrados."
-            }
             bare
           />
         )}

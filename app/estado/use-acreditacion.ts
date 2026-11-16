@@ -126,7 +126,7 @@ export function useAcreditacion(e: Entrada) {
             ? "Ese documento ya está en la lista."
             : resultado.error.code === "42501"
               ? "Solo un administrador puede cambiar los documentos exigidos."
-              : "No pudimos guardar el documento. Inténtalo nuevamente.",
+              : "No se pudo guardar el documento. Intenta de nuevo.",
         );
       }
       await reload();
@@ -147,7 +147,7 @@ export function useAcreditacion(e: Entrada) {
         .select("id");
       if (resultado.error || !resultado.data?.length) {
         throw new Error(
-          "No pudimos cambiar el documento. Solo un administrador puede hacerlo.",
+          "No se pudo cambiar el documento. Solo un administrador puede hacerlo.",
         );
       }
       await reload();

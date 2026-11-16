@@ -3,7 +3,7 @@
 // La base guarda las dos cosas en un solo campo (`notes`), y la regla de que
 // editar exige motivo se cumple escribiendo "Motivo del cambio: …" en él. Hasta
 // ahora cada edición agregaba su motivo al final y volvía a guardar todos los
-// anteriores, así que el campo "Información útil" de un viaje editado diez
+// anteriores, así que el campo "Notas" de un viaje editado diez
 // veces mostraba diez motivos encima de las observaciones de verdad.
 //
 // Ahora las notas guardan las observaciones y el motivo del último cambio, nada

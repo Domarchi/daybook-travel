@@ -182,14 +182,14 @@ export function useAccionesViajes(e: Entrada) {
         setCalendarMonth(trip.date.slice(0, 7));
         setSelectedDay(trip.date);
       }
-      setNotice(avisoDeExito("Viaje guardado correctamente."));
+      setNotice(avisoDeExito("Viaje guardado."));
     }, "form");
   }
 
   async function savePurchaseWindow(dias: number) {
     clearMessages();
     if (!ventanaValida(dias)) {
-      setNotice(avisoDeError("La ventana de compra va de 1 a 120 dias."));
+      setNotice(avisoDeError("La ventana de compra va de 1 a 120 días."));
       return;
     }
     const anterior = purchaseWindow;
@@ -204,7 +204,7 @@ export function useAccionesViajes(e: Entrada) {
       .eq("id", "00000000-0000-0000-0000-000000000001");
     if (error) {
       setPurchaseWindow(anterior);
-      setNotice(avisoDeError("No pudimos guardar la ventana de compra."));
+      setNotice(avisoDeError("No se pudo guardar la ventana de compra."));
     }
   }
 
@@ -243,7 +243,7 @@ export function useAccionesViajes(e: Entrada) {
       const items = (data ?? []) as HistoryItem[];
       setHistory(await conCorreoDelAutor(items));
     } catch {
-      setFormError("No se pudo cargar el historial. Inténtalo nuevamente.");
+      setFormError("No se pudo cargar el historial. Intenta de nuevo.");
     } finally {
       setHistoryLoading(false);
     }
@@ -295,7 +295,7 @@ export function useAccionesViajes(e: Entrada) {
         if (result.error) throw result.error;
         if (!result.data?.length) {
           throw new Error(
-            "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
+            "Uno de los viajes cambió mientras trabajabas. Actualiza la lista e intenta de nuevo.",
           );
         }
       }

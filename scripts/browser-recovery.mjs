@@ -887,7 +887,7 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
           await tabTo(cdp,stops.showPassword); // la casilla va entre la contraseña y entrar
           await activate(cdp,'form button');
           await waitUntil(cdp,`document.body.innerText.includes('Tu cuenta todavía no está habilitada')`,'identidad recuperada sin membresía').catch(async error => {
-            const state=await cdp.evaluate(`({login:!!document.querySelector('[data-login-card]'),checking:document.body.innerText.includes('Comprobando tu acceso'),denied:document.body.innerText.includes('no está habilitada'),loadError:document.body.innerText.includes('No pudimos comprobar'),loginError:document.body.innerText.includes('No pudimos iniciar')})`);
+            const state=await cdp.evaluate(`({login:!!document.querySelector('[data-login-card]'),checking:document.body.innerText.includes('Comprobando tu acceso'),denied:document.body.innerText.includes('no está habilitada'),loadError:document.body.innerText.includes('No se pudo comprobar'),loginError:document.body.innerText.includes('No pudimos iniciar')})`);
             console.log('diagnóstico sin datos personales: '+JSON.stringify({counts,state,boundaryErrors}));
             throw error;
           });

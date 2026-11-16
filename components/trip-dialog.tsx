@@ -125,7 +125,7 @@ export default function TripDialog() {
             </Select>
             {editTrip && (
               <small>
-                La persona se mantiene para conservar la trazabilidad.
+                Para cambiar la persona, anula este viaje y crea otro.
               </small>
             )}
           </Label>
@@ -165,7 +165,7 @@ export default function TripDialog() {
               </Select>
               {editTrip && (
                 <small>
-                  El sentido identifica este registro y no se cambia.
+                  Para cambiar el sentido, anula este viaje y crea otro.
                 </small>
               )}
             </Label>
@@ -301,8 +301,7 @@ export default function TripDialog() {
                     id="pedir-monto"
                     className="mt-[6px] border-l-2 border-[var(--focus)] pl-2 text-overline leading-[1.4] font-normal text-foreground-soft"
                   >
-                    ¿Cuánto costó? Si lo tienes a mano, anótalo ahora: Costos solo suma los
-                    viajes con monto. Puedes dejarlo vacío y cargarlo después.
+                    Anota el monto si lo tienes: Costos solo suma los viajes con monto.
                   </small>
                 )}
                 {precio && precio.referencia !== null && (
@@ -332,7 +331,7 @@ export default function TripDialog() {
         <FormSection aria-labelledby="trip-notes">
           <h3 id="trip-notes" className="text-foreground">Observaciones</h3>
           <Label>
-            Información útil <small className="text-muted">(opcional)</small>
+            Notas <small className="text-muted">(opcional)</small>
             <Textarea
               name="notes"
               defaultValue={observacionesDe(editTrip?.notes)}
@@ -350,8 +349,7 @@ export default function TripDialog() {
             </Label>
           )}
           <Hint>
-            Los montos los registra el equipo. Cambiar a Solicitado
-            indica que la solicitud ya fue enviada.
+            Solicitado significa que la solicitud ya se envió a la agencia.
           </Hint>
         </FormSection>
       </DialogBody>
