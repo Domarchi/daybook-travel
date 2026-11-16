@@ -3,7 +3,8 @@
 // como solicitado, editar un viaje con su motivo, el aviso de persona repetida,
 // cerrar en bloque los viajes pasados sin reserva, los viajes para revisar, la
 // reserva en bloque, que lo escrito en un diálogo no se pierda sin preguntar y
-// el motivo que se anota solo al registrar un dato que faltaba.
+// el motivo que se anota solo al registrar un dato que faltaba, y el orden de
+// las pantallas en el teléfono.
 //
 // Hasta ahora el CI probaba en navegador solo la entrada y la recuperación de
 // clave; el resto se comprobaba a mano. Esto no reemplaza las pruebas de
@@ -245,6 +246,11 @@ async function revisarYReservar(cdpPort, appUrl) {
     await waitUntil(cdp, `document.querySelector("main").innerText.includes("para revisar")`, "la lista para revisar");
     const avisos = await cdp.evaluate(`document.querySelector("tbody").innerText.match(/No calza con su turno/g)?.length ?? 0`);
     assert.equal(avisos, total, "cada viaje de la lista dice por qué está");
+    // El modo «para revisar» no tiene control en la barra: es una pastilla que se quita.
+    const pastilla = `document.querySelector('main button[aria-label="Quitar el filtro «Para revisar»"]')`;
+    assert.equal(await cdp.evaluate(`${pastilla}?.textContent.trim()`), "Para revisar");
+    await clicReal(cdp, pastilla);
+    await waitUntil(cdp, `!${pastilla} && document.getElementById("trip-results").innerText.includes("desde hoy")`, "quitar la pastilla");
 
     // La agencia respondió: el solicitado recibe su código desde la lista.
     await ir(cdp, "Agenda");
@@ -471,9 +477,70 @@ async function motivoYAnticipacion(cdpPort, appUrl) {
   }
 }
 
+// En el teléfono lo primero que se ve es para lo que se entra: la Agenda pone lo
+// pendiente de hoy antes del calendario y su leyenda explica las abreviaturas;
+// Viajes deja la búsqueda y «Filtros (n)» y permite marcar todo sin la cabecera;
+// Personas pliega los documentos exigidos y lleva Excel a «Más».
+async function telefono(cdpPort, appUrl) {
+  const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  const visible = (expr) => `(() => { const el = ${expr}; return !!el && el.getClientRects().length > 0; })()`;
+  try {
+    await cdp.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await delay(300);
+    assert.equal(
+      await cdp.evaluate(`!!(document.getElementById("handoff-title").compareDocumentPosition(document.getElementById("calendar-title")) & Node.DOCUMENT_POSITION_FOLLOWING)`),
+      true,
+      "la entrega de coordinación va antes del calendario",
+    );
+    const leyenda = await cdp.evaluate(`document.querySelector('[aria-label="Leyenda del calendario"]').innerText.replace(/\\s+/g, " ")`);
+    assert.match(leyenda, /10 = 10×10.*S\/T = sin turno.*\? = por confirmar/, `la leyenda en el teléfono: «${leyenda}»`);
+
+    await ir(cdp, "Viajes");
+    await waitUntil(cdp, `!!document.querySelector("tbody")`, "la lista de viajes");
+    const filtros = `window.__boton("Filtros", document.querySelector("main"))`;
+    assert.equal(await cdp.evaluate(`${filtros}.textContent.trim()`), "Filtros (1)");
+    assert.equal(await cdp.evaluate(visible(`window.__boton("Solo próximos")`)), false, "los filtros empiezan plegados");
+    await clicReal(cdp, filtros);
+    await waitUntil(cdp, visible(`window.__boton("Solo próximos")`), "los filtros desplegados");
+    assert.equal(await cdp.evaluate(`${filtros}.getAttribute("aria-expanded")`), "true");
+    assert.equal(await cdp.evaluate(`window.__boton("Solo próximos").getAttribute("aria-pressed")`), "true");
+
+    const fila = `[...document.querySelectorAll("main label")].find((l) => /^Seleccionar los \\d+ planificados visibles$/.test(l.textContent.trim()))`;
+    assert.equal(await cdp.evaluate(visible(fila)), true, "la fila para marcar todos");
+    const n = await cdp.evaluate(`Number(${fila}.textContent.match(/\\d+/)[0])`);
+    await clicReal(cdp, fila);
+    await waitUntil(cdp, `!!window.__boton("Marcar ${n} como solicitados")`, "marcar todos desde la fila");
+    await delay(400); // la barra de selección se abre y empuja la fila hacia abajo
+    await clicReal(cdp, fila);
+    await waitUntil(cdp, `!!document.querySelector("main [role=status][aria-hidden=true]")`, "quitar la selección");
+
+    await ir(cdp, "Personas");
+    const documentos = `[...document.querySelectorAll("main details")].find((d) => d.textContent.includes("Documentos exigidos"))`;
+    await waitUntil(cdp, `!!${documentos}`, "los documentos exigidos");
+    assert.equal(await cdp.evaluate(`${documentos}.open`), false, "plegados");
+    assert.match(await cdp.evaluate(`${documentos}.querySelector("summary").innerText.replace(/\\s+/g, " ").trim()`), /^Documentos exigidos: .*Examen médico.* Ver$/);
+    assert.equal(await cdp.evaluate(`!!window.__boton("Gestionar con Excel")`), false, "Excel no está en la barra");
+    const mas = `window.__boton("Más", document.querySelector("main"))`;
+    await clicReal(cdp, mas);
+    await waitUntil(cdp, `!!window.__boton("Gestionar con Excel")`, "el menú Más");
+    await escape(cdp);
+    await waitUntil(cdp, `!window.__boton("Gestionar con Excel") && document.activeElement === ${mas}`, "Escape cierra Más y devuelve el foco");
+    await clicReal(cdp, mas);
+    await waitUntil(cdp, `!!window.__boton("Gestionar con Excel")`, "el menú Más otra vez");
+    await clicReal(cdp, `window.__boton("Gestionar con Excel")`);
+    await waitUntil(cdp, `document.getElementById("dialog-title")?.textContent === "Gestionar con Excel"`, "el importador desde Más");
+
+    assert.equal(await cdp.evaluate(`document.documentElement.scrollWidth`), 390, "nada se sale a 390 px");
+    assert.deepEqual(lista, [], "sin errores en la consola");
+    return "teléfono: entrega antes del calendario, leyenda, Filtros (n), marcar todos, documentos plegados y Más";
+  } finally {
+    cdp.close();
+  }
+}
+
 async function main() {
   const { cdpPort, appUrl } = await startBrowser();
-  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita, noPerderLoEscrito, motivoYAnticipacion]) {
+  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita, noPerderLoEscrito, motivoYAnticipacion, telefono]) {
     console.log(`✓ ${await escenario(cdpPort, appUrl)}`);
   }
 }

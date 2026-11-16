@@ -2,8 +2,8 @@
 
 import DocumentTypesPanel from "@/components/document-types-panel";
 import EmptyState from "@/components/ui/empty-state";
-import { ArrowUpRight, CalendarDays, ChevronRight, FileSpreadsheet, Search, UserPlus, Users } from "lucide-react";
-import { useMemo } from "react";
+import { ArrowUpRight, CalendarDays, ChevronRight, Ellipsis, FileSpreadsheet, Search, UserPlus, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDate } from "../lib/format";
 import { idsConNombreRepetido } from "../lib/personas-repetidas";
 import { Button } from "@/components/ui/button";
@@ -63,16 +63,12 @@ export default function PeopleView() {
           <CalendarDays size={18} />
           Planificar turnos
         </Button>
-        <Button
-          type="button"
-          onClick={() => {
+        <MenuMas
+          onExcel={() => {
             clearMessages();
             abrirModal("excel");
           }}
-        >
-          <FileSpreadsheet size={18} />
-          Gestionar con Excel
-        </Button>
+        />
       </div>
       <div
         className="mb-[6px] flex min-h-7 items-center justify-between gap-[14px] text-caption text-muted"
@@ -202,5 +198,63 @@ export default function PeopleView() {
         />
       )}
     </section>
+  );
+}
+
+// «Más»: lo ocasional (hoy, Gestionar con Excel) fuera de la barra de todos los
+// días. Es un botón que despliega una lista, como «Más» en Parte Diario: se
+// cierra con Escape (y el foco vuelve al botón), al tocar fuera o al elegir.
+function MenuMas({ onExcel }: { onExcel: () => void }) {
+  const [abierto, setAbierto] = useState(false);
+  const caja = useRef<HTMLDivElement>(null);
+  const boton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!abierto) return;
+    function fuera(evento: PointerEvent) {
+      if (!caja.current?.contains(evento.target as Node)) setAbierto(false);
+    }
+    function tecla(evento: KeyboardEvent) {
+      if (evento.key !== "Escape") return;
+      setAbierto(false);
+      boton.current?.focus();
+    }
+    document.addEventListener("pointerdown", fuera);
+    document.addEventListener("keydown", tecla);
+    return () => {
+      document.removeEventListener("pointerdown", fuera);
+      document.removeEventListener("keydown", tecla);
+    };
+  }, [abierto]);
+  return (
+    <div ref={caja} className="relative max-[760px]:grid">
+      <Button
+        ref={boton}
+        type="button"
+        aria-expanded={abierto}
+        aria-controls="personas-mas"
+        onClick={() => setAbierto((actual) => !actual)}
+      >
+        <Ellipsis size={18} aria-hidden="true" />
+        Más
+      </Button>
+      {abierto && (
+        <div
+          id="personas-mas"
+          className="absolute right-0 top-[calc(100%+6px)] z-20 grid min-w-[240px] gap-1 rounded-md border border-line-strong bg-surface-raised p-1 shadow-[0_10px_35px_rgba(0,0,0,0.18)] max-[760px]:left-0"
+        >
+          <Button
+            type="button"
+            className="justify-start border-transparent bg-transparent"
+            onClick={() => {
+              setAbierto(false);
+              onExcel();
+            }}
+          >
+            <FileSpreadsheet size={18} />
+            Gestionar con Excel
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

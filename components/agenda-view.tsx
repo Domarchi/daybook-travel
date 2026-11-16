@@ -33,6 +33,7 @@ export default function AgendaView({
   onRequested,
   onPeople,
   onGenerate,
+  entrega,
   children,
 }: {
   nextTrip?: Trip;
@@ -56,6 +57,8 @@ export default function AgendaView({
   onRequested: () => void;
   onPeople: () => void;
   onGenerate: () => void;
+  /** Lo que falta resolver hoy y mañana: va antes del calendario. */
+  entrega?: React.ReactNode;
   children: React.ReactNode;
 }) {
   // Lo que espera una gestion hoy: lo que vuela dentro de la ventana mas lo que
@@ -132,7 +135,7 @@ export default function AgendaView({
           <ChevronRight size={18} />
         </OverviewCard>
       </section>
-      <p className="mb-2 text-caption">
+      <p className="mb-4 text-caption">
         Resumen del proyecto completo. El filtro de turno aplica al calendario.
         {purchaseSummary.sinCerrar > 0 && (
           <>
@@ -157,6 +160,7 @@ export default function AgendaView({
           </>
         )}
       </p>
+      {entrega}
       <div className="mb-3 flex min-h-[52px] flex-wrap items-center justify-between gap-2">
         <Button
           type="button"

@@ -530,27 +530,31 @@ export default function YearView({
         </div>
       </header>
 
+      {/* En el teléfono los días usan abreviaturas («10», «S/T», «?»): la
+          leyenda se queda, compacta, y dice qué significa cada una. */}
       <div
-        className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 border-b border-line px-[22px] py-[10px] text-overline text-muted max-[760px]:px-[14px]"
+        className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2 border-b border-line px-[22px] py-[10px] text-overline text-muted max-[760px]:gap-x-3 max-[760px]:gap-y-1 max-[760px]:px-[14px] max-[760px]:py-2"
         aria-label="Leyenda del calendario"
       >
-        <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
+        <span className="inline-flex items-center gap-[7px] max-[760px]:gap-[5px]">
           <i className="inline-block size-[9px] flex-none rounded-xs bg-four" />{" "}
           4×3
         </span>
-        <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
+        <span className="inline-flex items-center gap-[7px] max-[760px]:gap-[5px]">
           <i className="inline-block size-[9px] flex-none rounded-xs bg-ten" />{" "}
-          10×10
+          <span className="hidden max-[430px]:inline">10 = </span>10×10
         </span>
-        <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
+        <span className="inline-flex items-center gap-[7px] max-[760px]:gap-[5px]">
           <i className="inline-block size-[9px] flex-none rounded-xs border border-line-strong bg-surface-raised" />{" "}
-          Sin turno
+          <span className="hidden max-[760px]:inline">S/T = sin turno</span>
+          <span className="max-[760px]:hidden">Sin turno</span>
         </span>
-        <span className="inline-flex items-center gap-[7px] max-[760px]:hidden">
+        <span className="inline-flex items-center gap-[7px] max-[760px]:gap-[5px]">
           <i className="inline-block size-[9px] flex-none rounded-xs border border-line-strong bg-muted" />{" "}
-          Por confirmar
+          <span className="hidden max-[760px]:inline">? = por confirmar</span>
+          <span className="max-[760px]:hidden">Por confirmar</span>
         </span>
-        <span className="inline-flex items-center gap-[7px]">
+        <span className="inline-flex items-center gap-[7px] max-[760px]:gap-[5px]">
           <CalendarDays size={14} /> Total de viajes bajo cada fecha
         </span>
       </div>

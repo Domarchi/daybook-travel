@@ -5,6 +5,7 @@
 // vuelve a comprobar la base). Aquí no se borra nada: dejar de exigir un
 // documento lo desactiva y se puede volver a exigir.
 import { FormEvent, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -24,21 +25,33 @@ export default function DocumentTypesPanel() {
     if (await addDocumentType(nombre)) setNombre("");
   }
 
+  // Es configuración, no la lista de personas: va plegada en una línea que dice
+  // qué se exige, y se abre solo cuando se quiere ver o cambiar.
+  const exigidos = documentTypes.filter((tipo) => tipo.active).map((tipo) => tipo.name);
+
   return (
-    <section
+    <details
+      className="group mb-4 rounded-lg border border-line bg-surface"
       aria-labelledby="document-types-title"
-      className="mb-4 grid gap-3 rounded-lg border border-line bg-surface p-4"
     >
-      <div className="grid gap-1">
-        <h2 id="document-types-title" className="text-emphasis">
-          Documentos exigidos
-        </h2>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-[10px] [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]">
+        <span className="min-w-0 text-meta text-foreground-soft">
+          <strong id="document-types-title" className="text-foreground">
+            Documentos exigidos:
+          </strong>{" "}
+          {exigidos.length ? exigidos.join(", ") : "ninguno"}
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-meta font-semibold text-foreground-soft">
+          {puedeEditar ? "Editar" : "Ver"}
+          <ChevronRight className="transition-transform duration-[180ms] ease-[var(--ease-out)] group-open:rotate-90" size={18} aria-hidden="true" />
+        </span>
+      </summary>
+      <div className="grid gap-3 border-t border-line p-4">
         <p className="text-meta leading-relaxed text-muted">
           {documentTypes.length
             ? "Quien tenga uno de estos documentos faltante o vencido para la fecha del viaje aparece marcado, con el motivo, al armar el manifiesto."
             : "Todavía no se exige ningún documento. Agrega los que cuentan para viajar y cada persona tendrá su fecha de vencimiento."}
         </p>
-      </div>
       {documentTypes.length > 0 && (
         <ul className="m-0 grid list-none gap-2 p-0">
           {documentTypes.map((tipo) => (
@@ -85,6 +98,7 @@ export default function DocumentTypesPanel() {
           </Button>
         </form>
       )}
-    </section>
+      </div>
+    </details>
   );
 }

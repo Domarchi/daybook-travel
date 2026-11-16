@@ -99,13 +99,13 @@ pagina("Agenda", "Por dónde conviene empezar",
       "Es para todo el equipo, no para cada persona: lo que cambie una lo ve la otra. Al cambiarlo, un aviso confirma que quedó guardado.",
       "Cada fila de Viajes muestra «Faltan N días», con color según la urgencia.",
     ]))) +
-  nota("Mi recomendación", "Al comenzar el día, revisemos <strong>Por comprar ahora</strong>, <strong>Próximo movimiento</strong> y <strong>Pendientes de confirmación</strong>. Con eso sabemos de inmediato qué falta hacer."))
+  nota("Mi recomendación", "Al comenzar el día, revisemos <strong>Por comprar ahora</strong>, <strong>Próximo movimiento</strong> y <strong>Pendientes de confirmación</strong>. Debajo, <strong>Entrega de coordinación</strong> muestra lo que le falta a hoy y mañana."))
 
 pagina("Agenda mensual y semanal", "Cómo leer el calendario",
   "El calendario abre en el mes actual y permite revisar cualquier mes anterior o futuro.",
   dos(
     col("Qué muestra", lista([
-      "Naranja corresponde al turno 4×3 y azul al 10×10.",
+      "Naranja es 4×3 y azul 10×10. En el celular: 10 = 10×10, S/T = sin turno, ? = por confirmar.",
       "El número dentro del día indica cuántos viajes hay.",
       "Los viajes anulados no aparecen.",
       "Los filtros Todos, 4×3, 10×10, Sin turno y Por confirmar solo cambian la vista.",
@@ -188,13 +188,13 @@ pagina("Viajes", "Dónde revisar cada pasaje",
     col("Filtros", lista([
       "Se busca por persona, ruta, vuelo o código de reserva.",
       "También se filtra por estado, fecha o persona.",
-      "<strong>Próximos</strong> muestra desde hoy en adelante; <strong>Todos los periodos</strong> abre el historial completo.",
-      "<strong>Por comprar</strong> deja solo lo que espera una gestión; el botón cambia a <strong>Solo por comprar</strong> mientras está activo.",
+      "<strong>Solo próximos</strong>: desde hoy; apagado, todo. <strong>Solo por comprar</strong>: lo que espera una gestión.",
+      "En el celular, <strong>Filtros (n)</strong> abre el resto. Lo abierto desde la Agenda se quita con su ✕.",
     ])),
     col("Lectura y acciones", lista([
       "Cada fila muestra ruta, fecha, subida o bajada, hora, estado y los días que faltan. Lo solicitado dice además hace cuánto se pidió.",
       "Abrir permite editar. El reloj muestra el historial de ese viaje.",
-      "En el celular, la misma información aparece en tarjetas.",
+      "En el celular aparece en tarjetas, con «Seleccionar los N…» arriba.",
       "Se pueden marcar varios viajes para operar sobre ellos a la vez.",
     ]))) +
   nota("Si trabajamos al mismo tiempo", "La información se actualiza más o menos cada minuto. Si alguien cambió un viaje antes que tú, la aplicación avisa («Uno de los viajes cambió mientras trabajabas») para que no se reemplace ese cambio por error.") +
@@ -317,7 +317,7 @@ pagina("Acreditación", "Documentos al día para entrar al manifiesto",
   "Una persona entra al manifiesto si sus documentos valen para el día del viaje. Si no, se ve el motivo.",
   dos(
     col("Quién define los documentos", lista([
-      "En <strong>Personas</strong>, el recuadro <strong>Documentos exigidos</strong> lista lo que cuenta para viajar.",
+      "En <strong>Personas</strong>, la línea <strong>Documentos exigidos</strong> dice lo que cuenta para viajar; se abre con <strong>Ver</strong> (o <strong>Editar</strong>, para un administrador).",
       "Solo un administrador agrega documentos nuevos o deja de exigir uno.",
       "Dejar de exigir un documento lo desactiva: se puede volver a exigir cuando haga falta.",
       "Mientras no haya documentos exigidos, la acreditación no aparece en ninguna pantalla.",
@@ -365,7 +365,7 @@ pagina("Excel", "Qué archivo usar",
   ]) +
   '<h2>Cómo editar y volver a cargar</h2>' +
   pasos([
-    "En Personas, abre <strong>Gestionar con Excel</strong> y descarga el <strong>Libro actual</strong> justo antes de empezar.",
+    "En Personas, abre <strong>Más › Gestionar con Excel</strong> y descarga el <strong>Libro actual</strong> justo antes de empezar.",
     "Edita el archivo sin cambiar los nombres de las hojas ni de las columnas, y guárdalo como <strong>.xlsx</strong> (máximo 10 MB).",
     "Súbelo en la misma pantalla y revisa la vista previa: <strong>Nuevo</strong> crea, <strong>Cambio</strong> actualiza y <strong>Sin cambios</strong> se ignora.",
     "Si aparece <strong>Conflicto</strong>, descarga un Libro actual nuevo y repite el cambio. Si hay error, corrige la fila.",
