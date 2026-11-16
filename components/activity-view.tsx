@@ -5,7 +5,8 @@
 //
 // Carga sus propios datos al abrirse, como Accesos: no son parte del estado de
 // todos los días y no tiene sentido traerlos al entrar. Lo que cada entrada dice
-// sale de lib/actividad.ts y lib/historial.ts.
+// sale de lib/actividad.ts y lib/historial.ts. Lo que otras personas cambiaron
+// desde tu última visita se marca «Nuevo» (lib/novedades.ts).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Clock } from "lucide-react";
 import EmptyState from "@/components/ui/empty-state";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { EsqueletoDeLista } from "@/components/ui/esqueleto";
 import { ENTIDADES_DE_ACTIVIDAD, agruparPorDia, describir } from "../lib/actividad";
 import { localDate } from "../lib/format";
+import { esNovedad, textoDeNovedades } from "../lib/novedades";
 import { db } from "../lib/supabase";
 import type { HistoryItem } from "../lib/types";
 import { conCorreoDelAutor } from "../app/estado/use-acciones-viajes";
@@ -32,7 +34,8 @@ function autorDe(item: HistoryItem) {
 }
 
 export default function ActivityView() {
-  const { demo, documentTypes, openPerson, openTrip, people, trips } = useApp();
+  const { demo, documentTypes, marcarActividadVista, openPerson, openTrip, people, trips, userId, visitaAnterior } =
+    useApp();
   const [items, setItems] = useState<HistoryItem[] | null>(null);
   const [hayMas, setHayMas] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -52,12 +55,14 @@ export default function ActivityView() {
       const pagina = await conCorreoDelAutor((data ?? []) as HistoryItem[]);
       setItems((actuales) => (desde === 0 ? pagina : [...(actuales ?? []), ...pagina]));
       setHayMas(pagina.length === POR_PAGINA);
+      // Lo más reciente que se mostró queda como visto.
+      if (desde === 0 && pagina[0]) marcarActividadVista(pagina[0].created_at);
     } catch {
       setError("No se pudo cargar la actividad. Intenta de nuevo.");
     } finally {
       setCargando(false);
     }
-  }, []);
+  }, [marcarActividadVista]);
 
   useEffect(() => {
     if (!demo) void cargar(0);
@@ -99,15 +104,25 @@ export default function ActivityView() {
   }
 
   const grupos = agruparPorDia(items, localDate());
+  const nuevas = items.filter((item) => esNovedad(item, visitaAnterior, userId)).length;
 
   return (
     <section aria-label="Actividad reciente" className="grid gap-5">
+      {nuevas > 0 && (
+        <p className="text-meta text-foreground-soft" data-novedades-resumen>
+          <strong className="text-foreground">
+            {nuevas === items.length && hayMas ? `Más de ${textoDeNovedades(nuevas)}` : textoDeNovedades(nuevas)}
+          </strong>{" "}
+          de otras personas desde tu última visita.
+        </p>
+      )}
       {grupos.map((grupo) => (
         <div key={grupo.dia}>
           <h2 className="mb-2 text-caption font-extrabold tracking-[0.05em] text-muted uppercase">{grupo.nombre}</h2>
           <ol className="overflow-hidden rounded-lg border border-line bg-surface">
             {grupo.items.map((item) => {
               const e = describir(item, mapas);
+              const nueva = esNovedad(item, visitaAnterior, userId);
               const abrir = e.abre
                 ? () => {
                     if (e.abre?.tipo === "viaje") {
@@ -127,6 +142,11 @@ export default function ActivityView() {
                   <span className="pt-[2px] text-caption text-muted tabular-nums">{hora(item.created_at)}</span>
                   <div className="grid min-w-0 gap-1">
                     <p className="text-meta text-foreground-soft">
+                      {nueva && (
+                        <span className="mr-1.5 inline-block rounded-full border border-info-line bg-info-soft px-1.5 align-[1px] text-overline font-bold text-info leading-[16px]">
+                          Nuevo
+                        </span>
+                      )}
                       <strong className="text-foreground">{e.titulo}</strong> · {e.sujeto}
                     </p>
                     <small className="text-muted">{autorDe(item)}</small>

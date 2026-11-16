@@ -6,7 +6,7 @@ import html, sys
 SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
-VERSION = "2.2"
+VERSION = "2.3"
 FECHA = "13 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
@@ -278,6 +278,7 @@ pagina("Actividad e historial", "Quién cambió qué, y cuándo",
       "En la barra lateral. Muestra los últimos cambios de viajes, personas y documentos de todo el proyecto, agrupados por día.",
       "Cada entrada dice quién lo hizo, qué cambió (por ejemplo «Reserva: — → ABC123») y el motivo.",
       "<strong>Abrir</strong> lleva al viaje o a la ficha. <strong>Ver cambios anteriores</strong> trae más.",
+      "La cifra dorada junto a Actividad cuenta lo que otras personas cambiaron desde tu última visita; al entrar, esos cambios dicen <strong>Nuevo</strong>. Cada computador recuerda su propia visita.",
     ])),
     col("Historial de un viaje o una persona", lista([
       "El reloj de cada viaje, o <strong>Ver historial de la persona</strong> en su ficha.",
@@ -421,7 +422,7 @@ pagina("Para terminar", "Qué está listo y qué viene después",
       "Ventana de compra: lo urgente y lo vencido a la vista.",
       "Lista de solicitud con control de acreditación.",
       "Sincronización con Excel y administración de accesos.",
-      "Actividad reciente, viajes sin cerrar, cierre en bloque y costos para Excel.",
+      "Actividad reciente con lo nuevo desde tu última visita, viajes sin cerrar, cierre en bloque y costos para Excel.",
     ])),
     col("Lo que queda para otra etapa", lista([
       "Avisos por correo de viajes urgentes sin PNR: ya está hecho, falta configurar el correo.",
