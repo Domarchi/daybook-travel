@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight, Tent } from "lucide-react";
 import { formatDate } from "../lib/format";
 import { textoDeEspera } from "../lib/solicitudes";
 import type { Trip } from "../lib/types";
@@ -33,6 +33,7 @@ export default function AgendaView({
   onRequested,
   onPeople,
   onGenerate,
+  onCamp,
   children,
 }: {
   nextTrip?: Trip;
@@ -56,6 +57,7 @@ export default function AgendaView({
   onRequested: () => void;
   onPeople: () => void;
   onGenerate: () => void;
+  onCamp: () => void;
   children: React.ReactNode;
 }) {
   // Lo que espera una gestion hoy: lo que vuela dentro de la ventana mas lo que
@@ -158,12 +160,17 @@ export default function AgendaView({
         )}
       </p>
       <div className="mb-3 flex min-h-[52px] flex-wrap items-center justify-between gap-2">
-        <Button
-          type="button"
-          onClick={onGenerate}
-        >
-          <CalendarDays size={17} /> Planificar turnos
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            onClick={onGenerate}
+          >
+            <CalendarDays size={17} /> Planificar turnos
+          </Button>
+          <Button type="button" onClick={onCamp}>
+            <Tent size={17} /> Lista para el campamento
+          </Button>
+        </div>
         <label className="m-0 inline-flex items-center gap-2 text-caption font-semibold text-foreground-soft">
           Anticipación
           <Select

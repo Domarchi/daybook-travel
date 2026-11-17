@@ -6,8 +6,8 @@ import html, sys
 SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
-VERSION = "2.3"
-FECHA = "13 de noviembre de 2026"
+VERSION = "2.4"
+FECHA = "17 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
 def e(t):
@@ -310,6 +310,27 @@ pagina("Solicitud de pasajes", "Cómo preparar la lista para la agencia",
     ]))) +
   nota("El envío sigue siendo manual", "Daybook Travel prepara la lista y guarda el estado, pero no envía el correo ni compra el pasaje. Ese paso se sigue haciendo por el canal habitual."))
 
+pagina("Campamento", "La lista para el campamento",
+  "Quién llega, quién sale y cuántos duermen cada noche, con los traslados entre el aeropuerto y el campamento.",
+  pasos([
+    "En la <strong>Agenda</strong>, pulsa <strong>Lista para el campamento</strong>.",
+    "Elige desde qué día y si quieres una semana o dos.",
+    "Revisa el texto: cada día dice quiénes llegan, quiénes salen y cuántas personas duermen en el campamento esa noche.",
+    "Pulsa <strong>Copiar</strong> y pégalo en el correo o el WhatsApp del campamento.",
+  ]) +
+  dos(
+    col("De dónde sale", lista([
+      "De los viajes registrados: quien llegó y todavía no baja duerme en el campamento. Es la misma cuenta que «En obra» en el calendario.",
+      "Solo cuentan los vuelos que llegan a Copiapó o salen de Copiapó; una conexión por Santiago no es una llegada.",
+      "Los viajes anulados o no presentados no cuentan, y una ficha inactiva no ocupa cama.",
+    ])),
+    col("Los traslados", lista([
+      "Los que llegan en el mismo vuelo van en un mismo traslado, ordenados por hora.",
+      "Si un viaje todavía no tiene código de reserva, el pasajero aparece igual, con «sin pasaje aún».",
+      "Si falta el vuelo o la hora, dice «por confirmar».",
+    ]))) +
+  nota("Si la cifra de camas parece alta", "Si alguien figura en obra hace más de 20 días sin bajada registrada, la ventana lo muestra aparte: casi seguro falta cargar su bajada en Viajes. Copiar la lista no cambia nada en la aplicación."))
+
 pagina("Acreditación", "Documentos al día para entrar al manifiesto",
   "Una persona entra al manifiesto si sus documentos valen para el día del viaje. Si no, se ve el motivo.",
   dos(
@@ -400,6 +421,7 @@ pagina("Trabajo diario", "Cómo proponemos organizarnos",
     col("Al comenzar el día", pasos([
       "Revisemos <strong>Por comprar ahora</strong>, Próximo movimiento y Pendientes de confirmación.",
       "Preparemos y enviemos las solicitudes pendientes.",
+      "Al cerrar la semana, mandemos al campamento la lista de la semana siguiente.",
       "Cuando llegue la confirmación, registremos PNR, vuelo, monto y estado Emitido.",
       "Después del viaje, cambiemos el estado a Completado, Anulado o No presentado.",
       "Si algo no calza, revisemos el historial antes de corregirlo.",
@@ -421,6 +443,7 @@ pagina("Para terminar", "Qué está listo y qué viene después",
       "Estados, reservas, montos, costos e historial.",
       "Ventana de compra: lo urgente y lo vencido a la vista.",
       "Lista de solicitud con control de acreditación.",
+      "Lista para el campamento, con los traslados del aeropuerto.",
       "Sincronización con Excel y administración de accesos.",
       "Actividad reciente con lo nuevo desde tu última visita, viajes sin cerrar, cierre en bloque y costos para Excel.",
     ])),

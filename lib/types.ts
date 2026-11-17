@@ -88,4 +88,5 @@ export type ModalName =
   | "manifest"
   | "close"
   | "reserve"
+  | "campamento"
   | null;

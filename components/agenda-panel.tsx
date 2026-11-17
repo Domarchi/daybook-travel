@@ -21,6 +21,7 @@ export default function AgendaPanel() {
     showTripGroup,
     navigate,
     openGenerate,
+    abrirModal,
     selectedDay,
     setSelectedDay,
     calendarMonth,
@@ -49,6 +50,7 @@ export default function AgendaPanel() {
       onRequested={() => showTripGroup("Solicitado")}
       onPeople={() => navigate("Personas")}
       onGenerate={() => openGenerate()}
+      onCamp={() => abrirModal("campamento")}
     >
       <YearView
         selected={selectedDay}
