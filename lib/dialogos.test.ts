@@ -1,9 +1,10 @@
 // Lo escrito en un diálogo no se pierde sin preguntar, y cerrar sesión pregunta.
 //
 // Los formularios guardan sus valores solo en los campos: cerrar el diálogo los
-// borra. Tocar el velo ya no cierra un formulario; Escape, la ✕ y «Cancelar»
-// preguntan si hay algo escrito. El historial se abre dentro del formulario, sin
-// desmontarlo.
+// borra. El velo, Escape, la ✕ y «Cancelar» cierran si no hay nada escrito y
+// preguntan si lo hay (decisión de noviembre de 2026: antes el velo no cerraba un
+// formulario ni con nada escrito). El historial se abre dentro del formulario,
+// sin desmontarlo.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -18,8 +19,11 @@ test("los formularios preguntan antes de descartar lo escrito", async () => {
   assert.match(estado, /DIALOGOS_DE_FORMULARIO: readonly ModalName\[\] = \[\s*"trip",\s*"person",\s*"generate",\s*"close",\s*"reserve",\s*\]/);
   assert.match(estado, /if \(event\.key === "Escape"\) pedirCierre\(\);/);
   assert.match(estado, /if \(modificadoRef\.current\) \{\s*setConfirmandoDescarte\(true\);/);
-  // El velo no cierra un formulario.
-  assert.match(capa, /if \(DIALOGOS_DE_FORMULARIO\.includes\(modal\)\) return;/);
+  // El velo hace lo mismo que Escape y la ✕: pasa por pedirCierre, que cierra
+  // sin cambios y pregunta con cambios. Ya no hay excepción por tipo de diálogo.
+  assert.match(capa, /onMouseDown=\{\(event\) => \{[\s\S]{0,240}if \(event\.target === event\.currentTarget\) pedirCierre\(\);\s*\}\}/);
+  assert.doesNotMatch(capa, /DIALOGOS_DE_FORMULARIO/);
+  assert.doesNotMatch(capa, /onMouseDown[\s\S]{0,240}closeModal\(\)/, "el velo no cierra sin preguntar");
   assert.match(capa, /onChange=\{marcarModificado\}/);
   assert.match(capa, /aria-label="Cerrar"[\s\S]{0,80}onClick=\{pedirCierre\}/);
   assert.match(capa, /cancelLabel="Seguir editando"\s*confirmLabel="Descartar cambios"/);

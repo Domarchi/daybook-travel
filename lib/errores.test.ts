@@ -55,3 +55,26 @@ test("la anticipación dice que es para todo el equipo y confirma al guardar", a
   assert.match(acciones, /const guardado = `Anticipación guardada: \$\{dias\} días, para todo el equipo\.`;/);
   assert.equal(acciones.match(/setNotice\(avisoDeExito\(guardado\)\)/g)?.length, 2, "en la demostración y al guardar");
 });
+
+// Decisión de noviembre de 2026: la anticipación vale para todo el equipo, así
+// que la cambia un administrador. Los demás la ven escrita, sin selector.
+test("la anticipación la cambia un administrador; los demás la ven escrita", async () => {
+  const [vista, panel, acciones] = await Promise.all([
+    readFile(new URL("../components/agenda-view.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/agenda-panel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/estado/use-acciones-viajes.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(vista, /\{puedeCambiarVentana \? \(\s*<label/);
+  assert.match(vista, /\) : \(\s*<p [^>]*>\s*Ventana: \{purchaseWindow\} días\s*<span[^>]*>\(la cambia un administrador\)<\/span>/);
+  assert.match(panel, /puedeCambiarVentana=\{puedeCambiarVentana\(\{ isAdmin, demo \}\)\}/);
+  // Guardar también lo revisa, antes de tocar nada.
+  const guardar = acciones.slice(acciones.indexOf("async function savePurchaseWindow"));
+  assert.ok(
+    guardar.indexOf("if (!puedeCambiarVentana({ isAdmin, demo }))") < guardar.indexOf("setPurchaseWindow(dias)"),
+    "se revisa el rol antes de cambiar la ventana",
+  );
+  assert.match(guardar, /avisoDeError\("Solo un administrador cambia la anticipación\."\)/);
+  // Si la base no lo deja (RLS), el update no da error pero no devuelve filas.
+  assert.match(guardar, /\.select\("purchase_window_days"\);/);
+  assert.match(guardar, /if \(error \|\| !data\?\.length\) \{\s*setPurchaseWindow\(anterior\);/);
+});

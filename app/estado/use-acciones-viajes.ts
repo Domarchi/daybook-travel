@@ -6,7 +6,7 @@
 
 import { FormEvent } from "react";
 import { localDate } from "../../lib/format";
-import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
+import { estadoDeCompra, puedeCambiarVentana, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
 import { camposDelFormulario, motivoAutomatico, problemaDeMotivo } from "../../lib/motivo";
 import { cambioDeReserva, esReservable, problemaDeReserva } from "../../lib/reserva";
@@ -34,6 +34,7 @@ export function useAccionesViajes(e: Entrada) {
     documents,
     editPerson,
     editTrip,
+    isAdmin,
     peopleById,
     personFilter,
     purchaseWindow,
@@ -195,6 +196,12 @@ export function useAccionesViajes(e: Entrada) {
 
   async function savePurchaseWindow(dias: number) {
     clearMessages();
+    // La pantalla ya no ofrece el selector a quien no es administrador; esto
+    // cubre una llamada que llegue igual.
+    if (!puedeCambiarVentana({ isAdmin, demo })) {
+      setNotice(avisoDeError("Solo un administrador cambia la anticipación."));
+      return;
+    }
     if (!ventanaValida(dias)) {
       setNotice(avisoDeError("La ventana de compra va de 1 a 120 días."));
       return;
@@ -207,16 +214,25 @@ export function useAccionesViajes(e: Entrada) {
       setNotice(avisoDeExito(guardado));
       return;
     }
-    const { error } = await db()
+    const { data, error } = await db()
       .from("settings")
       .update({
         purchase_window_days: dias,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", "00000000-0000-0000-0000-000000000001");
-    if (error) {
+      .eq("id", "00000000-0000-0000-0000-000000000001")
+      .select("purchase_window_days");
+    // Si la base no deja cambiarla (RLS), el update no da error: no devuelve
+    // filas. Se trata igual que un rechazo.
+    if (error || !data?.length) {
       setPurchaseWindow(anterior);
-      setNotice(avisoDeError("No se pudo guardar la ventana de compra. Intenta de nuevo."));
+      setNotice(
+        avisoDeError(
+          error
+            ? "No se pudo guardar la ventana de compra. Intenta de nuevo."
+            : "No se pudo guardar la ventana de compra: solo un administrador la cambia.",
+        ),
+      );
     } else {
       setNotice(avisoDeExito(guardado));
     }

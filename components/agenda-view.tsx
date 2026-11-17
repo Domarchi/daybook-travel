@@ -25,6 +25,7 @@ export default function AgendaView({
   reviewCount,
   onReview,
   onWindowChange,
+  puedeCambiarVentana,
   requestedCount,
   esperaMasLarga,
   activeCount,
@@ -49,6 +50,8 @@ export default function AgendaView({
   reviewCount: number;
   onReview: () => void;
   onWindowChange: (dias: number) => void;
+  /** Solo un administrador cambia la anticipación: es de todo el equipo. */
+  puedeCambiarVentana: boolean;
   requestedCount: number;
   esperaMasLarga: number | null;
   activeCount: number;
@@ -169,23 +172,31 @@ export default function AgendaView({
           <CalendarDays size={17} /> Planificar turnos
         </Button>
         {/* Es un ajuste del proyecto (la tabla settings), no de esta vista: el
-            rótulo lo dice y guardar lo confirma con un aviso. */}
-        <label className="m-0 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-caption font-semibold text-foreground-soft">
-          Avisar compras con
-          <Select
-            className="min-h-11 w-auto px-2 py-1 font-bold"
-            value={purchaseWindow}
-            onChange={(event) => onWindowChange(Number(event.target.value))}
-          >
-            {opciones.map((dias) => (
-              <option key={dias} value={dias}>
-                {dias} días
-              </option>
-            ))}
-          </Select>
-          de anticipación
-          <span className="font-normal text-muted">(para todo el equipo)</span>
-        </label>
+            rótulo lo dice y guardar lo confirma con un aviso. Lo cambia un
+            administrador; los demás lo ven escrito. */}
+        {puedeCambiarVentana ? (
+          <label className="m-0 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-caption font-semibold text-foreground-soft">
+            Avisar compras con
+            <Select
+              className="min-h-11 w-auto px-2 py-1 font-bold"
+              value={purchaseWindow}
+              onChange={(event) => onWindowChange(Number(event.target.value))}
+            >
+              {opciones.map((dias) => (
+                <option key={dias} value={dias}>
+                  {dias} días
+                </option>
+              ))}
+            </Select>
+            de anticipación
+            <span className="font-normal text-muted">(para todo el equipo)</span>
+          </label>
+        ) : (
+          <p className="m-0 inline-flex min-h-11 flex-wrap items-center gap-x-2 gap-y-1 text-caption font-semibold text-foreground-soft">
+            Ventana: {purchaseWindow} días
+            <span className="font-normal text-muted">(la cambia un administrador)</span>
+          </p>
+        )}
       </div>
       {children}
     </>

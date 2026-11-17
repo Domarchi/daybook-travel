@@ -14,7 +14,6 @@ import ExcelSyncPanel from "../app/excel-sync-panel";
 import { X } from "lucide-react";
 import { formatDate } from "../lib/format";
 import { useApp } from "../app/store";
-import { DIALOGOS_DE_FORMULARIO } from "../app/estado/use-dialogos";
 import { avisoDeExito } from "@/lib/avisos";
 
 export default function ModalLayer() {
@@ -88,10 +87,9 @@ export default function ModalLayer() {
       className="overlay"
       data-cerrando={closingModal ? "" : undefined}
       onMouseDown={(event) => {
-        // En un formulario, un toque fuera de la caja no cierra nada: se perdía
-        // lo escrito sin aviso. El historial y el manifiesto sí se cierran así.
-        if (DIALOGOS_DE_FORMULARIO.includes(modal)) return;
-        if (event.target === event.currentTarget && !busy) closeModal();
+        // Un toque fuera de la caja hace lo mismo que Escape y la ✕: cierra si
+        // no hay nada escrito y, si lo hay, pregunta antes de descartarlo.
+        if (event.target === event.currentTarget) pedirCierre();
       }}
     >
       <section

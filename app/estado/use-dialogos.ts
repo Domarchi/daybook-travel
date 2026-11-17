@@ -15,9 +15,9 @@ const MS_CIERRE_DIALOGO = 200;
 
 /**
  * Los diálogos donde se escribe. Sus valores viven solo en los campos: cerrarlos
- * borra lo escrito. Por eso tocar el velo no los cierra y, si alguien ya cambió
- * algo, Escape, la ✕ y «Cancelar» preguntan antes (como «Salir del parte» en
- * Parte Diario).
+ * borra lo escrito. Por eso, si alguien ya cambió algo, el velo, Escape, la ✕ y
+ * «Cancelar» preguntan antes (como «Salir del parte» en Parte Diario); sin
+ * cambios cierran de una.
  */
 export const DIALOGOS_DE_FORMULARIO: readonly ModalName[] = [
   "trip",
