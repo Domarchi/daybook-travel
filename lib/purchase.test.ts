@@ -5,6 +5,7 @@ import {
   diasParaVolar,
   resumenDeCompra,
   ventanaValida,
+  puedeCambiarVentana,
   porComprarAhora,
   VENTANA_POR_OMISION,
   DIAS_VENCIDO,
@@ -196,4 +197,10 @@ test("solo se aceptan ventanas razonables", () => {
   assert.ok(!ventanaValida(121));
   assert.ok(!ventanaValida(7.5));
   assert.ok(!ventanaValida(Number.NaN));
+});
+
+test("la anticipación la cambia un administrador; en la demostración se prueba", () => {
+  assert.equal(puedeCambiarVentana({ isAdmin: true, demo: false }), true);
+  assert.equal(puedeCambiarVentana({ isAdmin: false, demo: false }), false, "un miembro la ve escrita");
+  assert.equal(puedeCambiarVentana({ isAdmin: false, demo: true }), true, "la demostración no tiene rol ni toca la base");
 });

@@ -7,7 +7,7 @@ SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
 VERSION = "2.4"
-FECHA = "16 de noviembre de 2026"
+FECHA = "17 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
 def e(t):
@@ -96,7 +96,8 @@ pagina("Agenda", "Por dónde conviene empezar",
     ])),
     col("Dónde se cambia", lista([
       "El selector <strong>Avisar compras con … días de anticipación</strong>, arriba a la derecha de la agenda: 7, 14, 21, 30, 45 o 60 días. Por omisión son 21.",
-      "Es para todo el equipo, no para cada persona: lo que cambie una lo ve la otra. Al cambiarlo, un aviso confirma que quedó guardado.",
+      "Es para todo el equipo, no para cada persona, así que solo lo cambia un administrador. Al cambiarlo, un aviso confirma que quedó guardado.",
+      "Quien no es administrador ve el valor escrito, por ejemplo <strong>Ventana: 21 días</strong>, sin selector.",
       "Cada fila de Viajes muestra «Faltan N días», con color según la urgencia.",
     ]))) +
   nota("Mi recomendación", "Al comenzar el día, revisemos <strong>Por comprar ahora</strong>, <strong>Próximo movimiento</strong> y <strong>Pendientes de confirmación</strong>. Debajo, <strong>Entrega de coordinación</strong> muestra lo que le falta a hoy y mañana."))

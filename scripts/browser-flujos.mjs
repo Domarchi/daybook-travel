@@ -13,6 +13,9 @@
 // Reusa el arranque del arnés de la entrada (Next en desarrollo + Chrome sin
 // cabeza). Cada escenario abre su pestaña y termina sin errores en la consola.
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Cdp, delay, openTarget, startBrowser, teardown, waitUntil } from "./browser-login.mjs";
 
@@ -339,13 +342,21 @@ async function escape(cdp) {
 }
 
 const PREGUNTA = `document.querySelector("[role=alertdialog]")`;
+// Un punto del velo fuera de la caja del diálogo (la caja va a la derecha).
+const VELO = [60, 450];
 
-// Lo escrito en un diálogo no se pierde sin preguntar: el velo no cierra un
-// formulario, Escape y la ✕ preguntan, el historial se abre dentro del
-// formulario. Marcar como solicitado se deshace desde el aviso. Cerrar sesión
-// (salir de la demostración) pregunta y dice que se pierden los cambios.
+// Lo escrito en un diálogo no se pierde sin preguntar: sin cambios, el velo y
+// Escape cierran de una; con cambios, el velo, Escape, la ✕ y «Cancelar»
+// preguntan. El importador de Excel sigue la misma regla con un archivo cargado.
+// El historial se abre dentro del formulario. Marcar como solicitado se deshace
+// desde el aviso. Cerrar sesión (salir de la demostración) pregunta y dice que se
+// pierden los cambios; el selector de tema mide 44 px y no queda pegado a él.
 async function noPerderLoEscrito(cdpPort, appUrl) {
   const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  // Un archivo que no es .xlsx: basta para que el importador quede con una revisión.
+  const carpeta = await mkdtemp(join(tmpdir(), "travel-excel-"));
+  const archivo = join(carpeta, "viajes.csv");
+  await writeFile(archivo, "Nombre;Fecha\n");
   try {
     await ir(cdp, "Viajes");
     await waitUntil(cdp, `!!window.__boton("Abrir", document.querySelector("tbody"))`, "la lista de viajes");
@@ -357,17 +368,33 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await escape(cdp);
     await waitUntil(cdp, `!document.querySelector(".dialog")`, "cerrar sin cambios con Escape");
 
-    // Con algo escrito: el velo no cierra y Escape pregunta.
+    // Sin cambios, tocar el velo también cierra, sin preguntar.
     await clicReal(cdp, `window.__boton("Abrir", document.querySelector("tbody"))`);
     await waitUntil(cdp, `!!document.querySelector(".dialog textarea[name=notes]")`, "el diálogo de viaje otra vez");
     await delay(500); // el diálogo entra deslizándose: se espera a que llegue
+    await clicReal(cdp, VELO);
+    await waitUntil(cdp, `!document.querySelector(".dialog") && !${PREGUNTA}`, "cerrar sin cambios con el velo");
+
+    // Con algo escrito: el velo pregunta, y Escape también.
+    await clicReal(cdp, `window.__boton("Abrir", document.querySelector("tbody"))`);
+    await waitUntil(cdp, `!!document.querySelector(".dialog textarea[name=notes]")`, "el diálogo de viaje con cambios");
+    await delay(500);
     await clicReal(cdp, `document.querySelector(".dialog textarea[name=notes]")`);
     await cdp.send("Input.insertText", { text: "Llega con equipaje extra" });
     assert.equal(await cdp.evaluate(`document.querySelector(".dialog textarea[name=notes]").value`), "Llega con equipaje extra");
-    await clicReal(cdp, [60, 450]);
-    await delay(400);
-    assert.equal(await hayDialogo(cdp), true, "tocar el velo no cierra un formulario");
-    assert.equal(await cdp.evaluate(`!!${PREGUNTA}`), false, "el velo tampoco pregunta");
+    await clicReal(cdp, VELO);
+    await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Hay cambios sin guardar")`, "la pregunta al tocar el velo");
+    assert.equal(await hayDialogo(cdp), true, "el velo no cierra un formulario con cambios");
+    await delay(100); // el foco se mueve al terminar el toque, no en el mousedown
+    assert.equal(await cdp.evaluate(`document.activeElement.textContent.trim()`), "Seguir editando", "tras el velo, el foco va a la salida segura");
+    // Tocar fuera de la pregunta es seguir editando, y el foco vuelve al campo.
+    await clicReal(cdp, [8, 8]);
+    await waitUntil(cdp, `!${PREGUNTA}`, "tocar fuera de la pregunta");
+    assert.equal(await cdp.evaluate(`document.activeElement.name`), "notes", "el foco vuelve al campo");
+    await clicReal(cdp, VELO);
+    await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Hay cambios sin guardar")`, "la pregunta al tocar el velo otra vez");
+    await clicReal(cdp, `window.__boton("Seguir editando", ${PREGUNTA})`);
+    await waitUntil(cdp, `!${PREGUNTA} && document.querySelector(".dialog textarea[name=notes]")?.value === "Llega con equipaje extra"`, "seguir editando desde el velo");
     await escape(cdp);
     await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Hay cambios sin guardar")`, "la pregunta al cerrar con Escape");
     assert.equal(await cdp.evaluate(`document.activeElement.textContent.trim()`), "Seguir editando", "el foco va a la salida segura");
@@ -375,6 +402,7 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await escape(cdp);
     await waitUntil(cdp, `!${PREGUNTA}`, "cerrar la pregunta con Escape");
     assert.equal(await cdp.evaluate(`document.querySelector(".dialog textarea[name=notes]").value`), "Llega con equipaje extra");
+    assert.equal(await cdp.evaluate(`document.activeElement.name`), "notes", "Escape en la pregunta devuelve el foco al campo");
 
     // El historial se abre dentro del formulario y lo escrito sigue ahí.
     await clicReal(cdp, `[...document.querySelectorAll(".dialog summary")].find((s) => s.textContent.includes("Historial del viaje"))`);
@@ -401,9 +429,39 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await waitUntil(cdp, `window.__aviso() === "1 viaje volvió a Planificado."`, "el aviso de deshecho");
     await waitUntil(cdp, `(document.querySelector("tbody").innerText.match(/Solicitado/g)?.length ?? 0) === ${solicitados} - 1`, "el viaje de vuelta en Planificado");
 
+    // El importador de Excel: sin archivo, el velo cierra; con un archivo
+    // cargado, pregunta, y «Cancelar» también.
+    await ir(cdp, "Personas");
+    const excel = async () => {
+      await clicReal(cdp, `window.__boton("Más", document.querySelector("main"))`);
+      await waitUntil(cdp, `!!window.__boton("Gestionar con Excel")`, "el menú Más");
+      await clicReal(cdp, `window.__boton("Gestionar con Excel")`);
+      await waitUntil(cdp, `document.getElementById("dialog-title")?.textContent === "Gestionar con Excel"`, "el importador");
+      await delay(500);
+    };
+    await excel();
+    await clicReal(cdp, VELO);
+    await waitUntil(cdp, `!document.querySelector(".dialog") && !${PREGUNTA}`, "cerrar el importador sin archivo con el velo");
+    await excel();
+    const { result: entrada } = await cdp.send("Runtime.evaluate", { expression: `document.querySelector('.dialog input[type=file]')` });
+    await cdp.send("DOM.setFileInputFiles", { objectId: entrada.objectId, files: [archivo] });
+    await waitUntil(cdp, `document.querySelector(".dialog").innerText.includes("Usa un archivo .xlsx")`, "la revisión del archivo cargado");
+    await clicReal(cdp, VELO);
+    await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Hay cambios sin guardar")`, "la pregunta del importador al tocar el velo");
+    await clicReal(cdp, `window.__boton("Seguir editando", ${PREGUNTA})`);
+    await waitUntil(cdp, `!${PREGUNTA} && document.querySelector(".dialog").innerText.includes("Usa un archivo .xlsx")`, "la revisión sigue ahí");
+    await clicReal(cdp, `window.__boton("Cancelar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `!!${PREGUNTA}`, "la pregunta del importador al tocar Cancelar");
+    await clicReal(cdp, `window.__boton("Descartar cambios", ${PREGUNTA})`);
+    await waitUntil(cdp, `!document.querySelector(".dialog") && !${PREGUNTA}`, "descartar la revisión");
+
     // Salir de la demostración: 44 px, pregunta y dice que se pierden los cambios.
+    // El tema, debajo, también mide 44 px y deja aire entre los dos.
     const salir = `document.querySelector('aside button[aria-label="Salir de la demostración"]')`;
     assert.deepEqual(await cdp.evaluate(`(() => { const r = ${salir}.getBoundingClientRect(); return [r.width, r.height]; })()`), [44, 44]);
+    const [altoTema, aire] = await cdp.evaluate(`(() => { const t = document.querySelector('aside select[aria-label="Tema"]').getBoundingClientRect(); return [t.height, t.top - ${salir}.getBoundingClientRect().bottom]; })()`);
+    assert.equal(altoTema, 44, "el selector de tema mide 44 px");
+    assert.ok(aire >= 8, `el tema queda a ${aire} px del botón de salir`);
     await clicReal(cdp, salir);
     await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Se pierden los cambios")`, "la pregunta al salir");
     await escape(cdp);
@@ -414,9 +472,10 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await waitUntil(cdp, `!!document.querySelector("[data-demo-action]")`, "de vuelta en la entrada");
 
     assert.deepEqual(lista, [], "sin errores en la consola");
-    return "formulario: velo, Escape, ✕ y Cancelar preguntan; historial dentro; Deshacer solicitado; salir pregunta";
+    return "formulario: sin cambios el velo cierra; con cambios velo, Escape, ✕ y Cancelar preguntan; Excel igual; historial dentro; Deshacer solicitado; salir y tema de 44 px";
   } finally {
     cdp.close();
+    await rm(carpeta, { recursive: true, force: true });
   }
 }
 

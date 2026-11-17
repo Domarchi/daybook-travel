@@ -62,6 +62,15 @@ export function ventanaValida(dias: number) {
   );
 }
 
+/**
+ * Quién cambia la anticipación. Vale para todo el equipo, así que la cambia un
+ * administrador; los demás la ven escrita. En la demostración se puede probar:
+ * no hay cuenta ni rol, y lo que se cambia ahí no llega a la base.
+ */
+export function puedeCambiarVentana(quien: { isAdmin: boolean; demo: boolean }) {
+  return quien.isAdmin || quien.demo;
+}
+
 /** Días que faltan para el vuelo. Negativo si ya pasó. */
 export function diasParaVolar(fecha: string, hoy: string) {
   const a = Date.parse(hoy + "T12:00:00Z");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -80,6 +80,8 @@ type Props = {
   trips: Trip[];
   demo: boolean;
   onClose: () => void;
+  /** Hay un archivo cargado o una revisión en curso: cerrar pregunta antes. */
+  onCambiosChange?: (conCambios: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
   onApplied: (message: string) => Promise<void> | void;
 };
@@ -89,6 +91,7 @@ export default function ExcelSyncPanel({
   trips,
   demo,
   onClose,
+  onCambiosChange,
   onBusyChange,
   onApplied,
 }: Props) {
@@ -132,6 +135,13 @@ export default function ExcelSyncPanel({
       ),
     };
   }, [payload, preview]);
+
+  // Con un archivo cargado (o leyéndose, o aplicándose) cerrar pierde la
+  // revisión: el velo, Escape, la ✕ y «Cancelar» preguntan. Sin archivo, o con
+  // los cambios ya aplicados, se cierra de una.
+  useEffect(() => {
+    onCambiosChange?.(phase !== "idle" && phase !== "done");
+  }, [phase, onCambiosChange]);
 
   const actionCount = counts.new + counts.change;
   const blocked = counts.error > 0 || counts.conflict > 0;

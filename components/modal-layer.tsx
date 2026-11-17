@@ -14,7 +14,6 @@ import ExcelSyncPanel from "../app/excel-sync-panel";
 import { X } from "lucide-react";
 import { formatDate } from "../lib/format";
 import { useApp } from "../app/store";
-import { DIALOGOS_DE_FORMULARIO } from "../app/estado/use-dialogos";
 import { avisoDeExito } from "@/lib/avisos";
 
 export default function ModalLayer() {
@@ -28,6 +27,7 @@ export default function ModalLayer() {
     descartarCambios,
     editPerson,
     editTrip,
+    fijarModificado,
     formError,
     history,
     marcarModificado,
@@ -88,10 +88,13 @@ export default function ModalLayer() {
       className="overlay"
       data-cerrando={closingModal ? "" : undefined}
       onMouseDown={(event) => {
-        // En un formulario, un toque fuera de la caja no cierra nada: se perdía
-        // lo escrito sin aviso. El historial y el manifiesto sí se cierran así.
-        if (DIALOGOS_DE_FORMULARIO.includes(modal)) return;
-        if (event.target === event.currentTarget && !busy) closeModal();
+        // Un toque fuera de la caja hace lo mismo que Escape y la ✕: cierra si
+        // no hay nada escrito y, si lo hay, pregunta antes de descartarlo. Sin
+        // `preventDefault`, el navegador mueve el foco al cuerpo después de que
+        // la pregunta lo puso en «Seguir editando».
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault();
+        pedirCierre();
       }}
     >
       <section
@@ -169,7 +172,8 @@ export default function ModalLayer() {
             people={people}
             trips={trips}
             demo={demo}
-            onClose={closeModal}
+            onClose={pedirCierre}
+            onCambiosChange={fijarModificado}
             onBusyChange={(nextBusy) => {
               setBusy(nextBusy);
               busyRef.current = nextBusy;
