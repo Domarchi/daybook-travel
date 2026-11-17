@@ -14,7 +14,9 @@
     "test:browser:flujos": "node scripts/browser-flujos.mjs",
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1"
+    "start": "next start --hostname 127.0.0.1",
+    "test:browser:bita": "node scripts/browser-bita-documento.mjs",
+    "test:build:bita": "node scripts/prueba-bita-documento-build.mjs"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +28,7 @@
     "@supabase/supabase-js": "^2.115.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "fflate": "0.8.3",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.41.0",
     "next": "^16.3.6",
@@ -33,6 +36,7 @@
     "react-dom": "^19.2.8",
     "read-excel-file": "^5.8.0",
     "tailwind-merge": "^3.6.0",
+    "unpdf": "2.1.0",
     "write-excel-file": "^2.3.10"
   },
   "devDependencies": {

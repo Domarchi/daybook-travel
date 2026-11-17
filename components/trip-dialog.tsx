@@ -3,21 +3,29 @@
 import DialogActions from "@/components/ui/dialog-actions";
 import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
 import { Checkbox, Input, Label, Select, Textarea } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { observacionesDe } from "../lib/notas";
 import { BAGGAGE_OPTIONS as baggageOptions, TRIP_STATUSES as statuses } from "../lib/types";
-import { ChevronRight, Clock } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight } from "lucide-react";
+import { FormEvent, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  MOTIVOS_RAPIDOS,
+  camposDelFormulario,
+  motivoAutomatico,
+  problemaDeMotivo,
+} from "../lib/motivo";
 import { avisoDePrecio, formatoCLP, pideMonto } from "../lib/costs";
 import { useApp } from "../app/store";
+import { HistorialEnFicha } from "@/components/history-dialog";
 
 export default function TripDialog() {
   const {
     referenciaDe,
     busy,
-    closeModal,
+    pedirCierre,
     editTrip,
+    marcarModificado,
     newDate,
     newPerson,
     people,
@@ -27,7 +35,6 @@ export default function TripDialog() {
     saveTrip,
     setReservationOpen,
     setTripStatus,
-    showHistory,
     tripStatus,
   } = useApp();
 
@@ -52,6 +59,33 @@ export default function TripDialog() {
     };
   });
 
+  // El motivo: si el cambio es solo registrar un dato que faltaba (código,
+  // vuelo, monto u hora), se anota solo y el campo no se muestra. Si hace falta,
+  // el mínimo de letras se avisa al salir del campo, junto a él.
+  const [motivoSolo, setMotivoSolo] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [errorDeMotivo, setErrorDeMotivo] = useState("");
+  const campoMotivo = useRef<HTMLTextAreaElement>(null);
+  const pideMotivo = Boolean(editTrip) && motivoSolo === null;
+
+  function revisarCambios(form: HTMLFormElement) {
+    if (!editTrip) return;
+    setMotivoSolo(motivoAutomatico(editTrip, camposDelFormulario(new FormData(form))));
+  }
+
+  function enviar(event: FormEvent<HTMLFormElement>) {
+    if (pideMotivo) {
+      const problema = problemaDeMotivo(motivo);
+      if (problema) {
+        event.preventDefault();
+        setErrorDeMotivo(problema);
+        campoMotivo.current?.focus();
+        return;
+      }
+    }
+    void saveTrip(event);
+  }
+
   function revisarMonto(campo: HTMLInputElement) {
     const form = campo.form;
     const valor = (nombre: string) =>
@@ -72,19 +106,12 @@ export default function TripDialog() {
   }
 
   return (
-    <form onSubmit={saveTrip} aria-busy={busy}
+    <form onSubmit={enviar} aria-busy={busy}
+      onChange={(event) => revisarCambios(event.currentTarget)}
       className="flex min-h-0 flex-1 flex-col"
     >
       <DialogBody>
-        {editTrip && (
-          <Button
-            type="button"
-            className="mb-[18px] w-fit border-transparent bg-transparent"
-            onClick={() => void showHistory(editTrip)}
-          >
-            <Clock size={16} /> Ver historial del viaje
-          </Button>
-        )}
+        {editTrip && <HistorialEnFicha titulo="Historial del viaje" />}
         <FormSection aria-labelledby="trip-main">
           <h3 id="trip-main" className="text-foreground">Movimiento</h3>
           <Label>
@@ -125,7 +152,7 @@ export default function TripDialog() {
             </Select>
             {editTrip && (
               <small>
-                La persona se mantiene para conservar la trazabilidad.
+                Para cambiar la persona, anula este viaje y crea otro.
               </small>
             )}
           </Label>
@@ -165,7 +192,7 @@ export default function TripDialog() {
               </Select>
               {editTrip && (
                 <small>
-                  El sentido identifica este registro y no se cambia.
+                  Para cambiar el sentido, anula este viaje y crea otro.
                 </small>
               )}
             </Label>
@@ -301,8 +328,7 @@ export default function TripDialog() {
                     id="pedir-monto"
                     className="mt-[6px] border-l-2 border-[var(--focus)] pl-2 text-overline leading-[1.4] font-normal text-foreground-soft"
                   >
-                    ¿Cuánto costó? Si lo tienes a mano, anótalo ahora: Costos solo suma los
-                    viajes con monto. Puedes dejarlo vacío y cargarlo después.
+                    Anota el monto si lo tienes: Costos solo suma los viajes con monto.
                   </small>
                 )}
                 {precio && precio.referencia !== null && (
@@ -332,26 +358,66 @@ export default function TripDialog() {
         <FormSection aria-labelledby="trip-notes">
           <h3 id="trip-notes" className="text-foreground">Observaciones</h3>
           <Label>
-            Información útil <small className="text-muted">(opcional)</small>
+            Notas <small className="text-muted">(opcional)</small>
             <Textarea
               name="notes"
               defaultValue={observacionesDe(editTrip?.notes)}
               placeholder="Restricciones horarias, equipaje o acuerdos."
             />
           </Label>
-          {editTrip && (
-            <Label>
-              Motivo de este cambio
-              <Textarea
-                name="change_reason"
-                required
-                placeholder="Describe brevemente qué cambió y por qué."
-              />
-            </Label>
+          {editTrip && motivoSolo !== null && (
+            <Hint id="motivo-automatico">
+              No hace falta escribir un motivo: queda anotado «{motivoSolo}»
+            </Hint>
+          )}
+          {pideMotivo && (
+            <div className="grid gap-2">
+              <Label>
+                Motivo de este cambio
+                <Textarea
+                  ref={campoMotivo}
+                  name="change_reason"
+                  aria-required="true"
+                  aria-invalid={errorDeMotivo ? true : undefined}
+                  aria-describedby={errorDeMotivo ? "motivo-error" : undefined}
+                  placeholder="Describe brevemente qué cambió y por qué."
+                  value={motivo}
+                  onChange={(event) => {
+                    setMotivo(event.target.value);
+                    if (errorDeMotivo && !problemaDeMotivo(event.target.value)) setErrorDeMotivo("");
+                  }}
+                  onBlur={(event) => {
+                    // Vacío no se marca al pasar: se avisa al guardar.
+                    if (event.target.value.trim()) setErrorDeMotivo(problemaDeMotivo(event.target.value) ?? "");
+                  }}
+                />
+              </Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Motivos frecuentes">
+                {MOTIVOS_RAPIDOS.map((opcion) => (
+                  <Button
+                    key={opcion}
+                    type="button"
+                    aria-pressed={motivo === opcion}
+                    onClick={() => {
+                      setMotivo(opcion);
+                      setErrorDeMotivo("");
+                      marcarModificado();
+                      campoMotivo.current?.focus();
+                    }}
+                  >
+                    {opcion}
+                  </Button>
+                ))}
+              </div>
+              {errorDeMotivo && (
+                <p id="motivo-error" role="alert" className="m-0 text-meta font-semibold text-danger">
+                  {errorDeMotivo}
+                </p>
+              )}
+            </div>
           )}
           <Hint>
-            Los montos los registra el equipo. Cambiar a Solicitado
-            indica que la solicitud ya fue enviada.
+            Solicitado significa que la solicitud ya se envió a la agencia.
           </Hint>
         </FormSection>
       </DialogBody>
@@ -359,7 +425,7 @@ export default function TripDialog() {
         busy={busy}
         busyLabel="Guardando…"
         submitLabel="Guardar viaje"
-        onCancel={closeModal}
+        onCancel={pedirCierre}
       />
     </form>
   );

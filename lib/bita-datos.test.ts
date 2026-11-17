@@ -47,7 +47,7 @@ test("configuración: apagada por omisión, cupo acotado, modelo Haiku", () => {
   assert.equal(bitaHabilitada({}), false);
   assert.equal(bitaHabilitada({ BITA_ENABLED: "Sí" }), true);
   assert.equal(bitaTieneLlave({ ANTHROPIC_API_KEY: "  " }), false);
-  assert.equal(cupoDiario({}), 20);
+  assert.equal(cupoDiario({}), 10);
   assert.equal(cupoDiario({ BITA_DAILY_LIMIT: "100000" }), 200);
   assert.equal(cupoDiario({ BITA_DAILY_LIMIT: "-3" }), 1);
   assert.equal(modeloDeBita({}), "claude-haiku-5-5");

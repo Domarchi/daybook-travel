@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -38,7 +38,6 @@ import {
 } from "../lib/excel-preview";
 import { Paso, TARJETA, TARJETA_NUMERO, TONOS, Tarjeta } from "./excel-sync-parts";
 import { Button } from "@/components/ui/button";
-import { SectionKicker } from "@/components/ui/section-kicker";
 import { TableWrap } from "@/components/ui/table-wrap";
 import { TBody, THead, Table, Td, Th, Tr } from "@/components/ui/data-table";
 import { cn } from "@/lib/utils";
@@ -81,6 +80,8 @@ type Props = {
   trips: Trip[];
   demo: boolean;
   onClose: () => void;
+  /** Hay un archivo cargado o una revisión en curso: cerrar pregunta antes. */
+  onCambiosChange?: (conCambios: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
   onApplied: (message: string) => Promise<void> | void;
 };
@@ -90,6 +91,7 @@ export default function ExcelSyncPanel({
   trips,
   demo,
   onClose,
+  onCambiosChange,
   onBusyChange,
   onApplied,
 }: Props) {
@@ -133,6 +135,13 @@ export default function ExcelSyncPanel({
       ),
     };
   }, [payload, preview]);
+
+  // Con un archivo cargado (o leyéndose, o aplicándose) cerrar pierde la
+  // revisión: el velo, Escape, la ✕ y «Cancelar» preguntan. Sin archivo, o con
+  // los cambios ya aplicados, se cierra de una.
+  useEffect(() => {
+    onCambiosChange?.(phase !== "idle" && phase !== "done");
+  }, [phase, onCambiosChange]);
 
   const actionCount = counts.new + counts.change;
   const blocked = counts.error > 0 || counts.conflict > 0;
@@ -305,7 +314,7 @@ export default function ExcelSyncPanel({
           : "Plantilla descargada. Revisa la hoja Instrucciones antes de completarla.",
       );
     } catch {
-      setMessage("No pudimos crear el libro. Inténtalo nuevamente.");
+      setMessage("No se pudo crear el libro. Intenta de nuevo.");
     } finally {
       setDownloadBusy(null);
     }
@@ -437,8 +446,8 @@ export default function ExcelSyncPanel({
         String((error as { code?: string }).code) === "PGRST202";
       setMessage(
         unavailable
-          ? "La importación segura todavía no está habilitada en el servidor. El archivo quedó revisado y puedes intentarlo más tarde."
-          : "No pudimos aplicar los cambios. El archivo no se modificó; vuelve a intentarlo.",
+          ? "El servidor todavía no acepta cargas desde Excel. El archivo quedó revisado; intenta de nuevo más tarde."
+          : "No se pudieron aplicar los cambios. El archivo no se modificó. Intenta de nuevo.",
       );
       setPhase("preview");
     } finally {
@@ -467,8 +476,7 @@ export default function ExcelSyncPanel({
         >
           <CheckCircle2 size={28} />
         </span>
-        <SectionKicker>SINCRONIZACIÓN COMPLETA</SectionKicker>
-        <h3 className={TITULO}>El libro ya está reflejado en Daybook Travel</h3>
+        <h3 className={TITULO}>Cambios aplicados</h3>
         <p>{message}</p>
         <div className="mt-3 grid w-[min(360px,100%)] grid-cols-2 gap-2">
           <span className={TARJETA}>
@@ -525,7 +533,6 @@ export default function ExcelSyncPanel({
             aria-labelledby="excel-download-title"
           >
             <div>
-              <SectionKicker>PUNTO DE PARTIDA</SectionKicker>
               <h3 id="excel-download-title" className={TITULO}>
                 Descarga un libro preparado
               </h3>
@@ -594,8 +601,7 @@ export default function ExcelSyncPanel({
             />
             <span className="grid gap-[2px]">
               <strong>Nada cambia al seleccionar el archivo.</strong>
-              Primero verás nuevos registros, cambios y errores para decidir con
-              seguridad.
+              Primero verás lo nuevo, los cambios y los errores.
             </span>
           </div>
           {message ? (

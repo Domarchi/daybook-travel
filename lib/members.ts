@@ -44,7 +44,7 @@ export const MENSAJES_DE_ACCESOS = [
 ] as const;
 
 export const MENSAJE_GENERICO =
-  "No pudimos completar el cambio. Revisa la conexión e inténtalo nuevamente.";
+  "No se pudo completar el cambio. Revisa la conexión e intenta de nuevo.";
 
 export function mensajeDeError(error: { message?: string } | null | undefined): string {
   const mensaje = error?.message ?? "";

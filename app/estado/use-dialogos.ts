@@ -13,6 +13,21 @@ import type { Avisos } from "./use-avisos";
 /** Lo que dura la salida del diálogo. Tiene que calzar con el CSS. */
 const MS_CIERRE_DIALOGO = 200;
 
+/**
+ * Los diálogos donde se escribe. Sus valores viven solo en los campos: cerrarlos
+ * borra lo escrito. Por eso, si alguien ya cambió algo, el velo, Escape, la ✕ y
+ * «Cancelar» preguntan antes (como «Salir del parte» en Parte Diario); sin
+ * cambios cierran de una. El importador de Excel no está en la lista: avisa él
+ * mismo, con `fijarModificado`, mientras tiene un archivo cargado.
+ */
+export const DIALOGOS_DE_FORMULARIO: readonly ModalName[] = [
+  "trip",
+  "person",
+  "generate",
+  "close",
+  "reserve",
+];
+
 type Entrada = Avisos;
 
 export function useDialogos(e: Entrada) {
@@ -38,6 +53,12 @@ export function useDialogos(e: Entrada) {
 
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Si el formulario abierto ya tiene algo escrito. Lo marca el primer cambio en
+  // cualquiera de sus campos (modal-layer escucha el `change` que sube). Va en
+  // una ref porque Escape lo lee desde el efecto del teclado.
+  const modificadoRef = useRef(false);
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+
   // El diálogo entra deslizándose y hasta ahora desaparecía de golpe. Para que
   // salga por donde entró hay que darle esos milisegundos antes de desmontarlo:
   // se marca "cerrando", el CSS lo saca, y recién después se limpia el estado.
@@ -53,6 +74,8 @@ export function useDialogos(e: Entrada) {
       cierreRef.current = null;
     }
     setClosingModal(false);
+    modificadoRef.current = false;
+    setConfirmandoDescarte(false);
     setModal(nombre);
   }
 
@@ -64,6 +87,8 @@ export function useDialogos(e: Entrada) {
     setPendingTripDate(null);
     setHistory([]);
     setFormError("");
+    modificadoRef.current = false;
+    setConfirmandoDescarte(false);
   }
 
   function closeModal() {
@@ -72,6 +97,36 @@ export function useDialogos(e: Entrada) {
     setClosingModal(true);
     if (cierreRef.current) clearTimeout(cierreRef.current);
     cierreRef.current = setTimeout(limpiarModal, MS_CIERRE_DIALOGO);
+  }
+
+  function marcarModificado() {
+    if (modal && DIALOGOS_DE_FORMULARIO.includes(modal)) modificadoRef.current = true;
+  }
+
+  // El importador de Excel no tiene campos que cambien: dice él si hay un
+  // archivo cargado o una revisión en curso.
+  function fijarModificado(conCambios: boolean) {
+    modificadoRef.current = conCambios;
+  }
+
+  // Lo que piden el velo, Escape, la ✕ y «Cancelar». Guardar cierra con
+  // `closeModal` directo: lo escrito ya quedó guardado.
+  function pedirCierre() {
+    if (busyRef.current) return;
+    if (modificadoRef.current) {
+      setConfirmandoDescarte(true);
+      return;
+    }
+    closeModal();
+  }
+
+  function descartarCambios() {
+    setConfirmandoDescarte(false);
+    closeModal();
+  }
+
+  function seguirEditando() {
+    setConfirmandoDescarte(false);
   }
 
   useEffect(() => {
@@ -95,7 +150,7 @@ export function useDialogos(e: Entrada) {
       (preferred ?? fallback)?.focus();
     });
     function handleKeydown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !busyRef.current) closeModal();
+      if (event.key === "Escape") pedirCierre();
       if (event.key !== "Tab") return;
       const items = Array.from(
         document.querySelectorAll<HTMLElement>(
@@ -152,6 +207,12 @@ export function useDialogos(e: Entrada) {
     abrirModal,
     limpiarModal,
     closeModal,
+    pedirCierre,
+    marcarModificado,
+    fijarModificado,
+    confirmandoDescarte,
+    descartarCambios,
+    seguirEditando,
   };
 }
 

@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { avisoDeError, duracionDelAviso, type Aviso } from "@/lib/avisos";
+import { mensajeDeError } from "@/lib/errores";
 
 export function useAvisos() {
   // El aviso lleva su tono (lib/avisos.ts) y un número: dos avisos iguales
@@ -45,11 +46,9 @@ export function useAvisos() {
     try {
       await operation();
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : ((error as { message?: string })?.message ??
-            "No se pudo completar la acción. Inténtalo nuevamente.");
+      // Sin señal o con un rechazo de la base, el mensaje original es técnico y
+      // en inglés: se traduce (lib/errores.ts).
+      const message = mensajeDeError(error, destination);
       if (destination === "form") {
         setFormError(message);
         setTimeout(

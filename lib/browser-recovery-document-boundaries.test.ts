@@ -23,7 +23,7 @@ const declarations = orderNames.map(name => {
 // Los únicos dobles están en el transporte CDP y el DOM mínimo que éste observa.
 const api = runInNewContext([
   stops, ...declarations, helper(login, 'pressTab'),
-  ...['tabTo', 'touch', 'titleAnchor', 'keyboardStep', 'documentInventory', 'documentBoundaryStep', 'keyboardSequence']
+  ...['tabTo', 'touch', 'titleAnchor', 'keyboardStep', 'documentInventory', 'settleFocusHandoff', 'documentBoundaryStep', 'keyboardSequence']
     .map(name => helper(recovery, name)),
   `({keyboardSequence, titleAnchor, keyboardStep, documentBoundaryStep, stops, orders:{${orderNames.join(',')}}})`,
 ].join('\n'), { assert });
@@ -31,7 +31,12 @@ const api = runInNewContext([
 type Trap = 'none' | 'body-before' | 'body-after' | 'body-self' | 'body-editable';
 type InputEvent = { type: string; key?: string; modifiers?: number };
 
-function browser(order: string[], trap: Trap, exitHasFocus = false, reverseWrap: 'off' | 'last' | 'wrong-button' = 'off', anchorShiftTabToBody = false) {
+// lateWrap modela al navegador que procesa TakeFocus tarde: el ShiftTab deja
+// BODY sin foco y la vuelta al último llega después, como mensaje del navegador.
+// Ese mensaje ya está en la cola de la página cuando vuelve una ida y vuelta de
+// evaluate, y se aplica en la siguiente tarea normal (setTimeout). Si antes
+// llega otra tecla, la entrada pasa primero y la vuelta cae encima de ella.
+function browser(order: string[], trap: Trap, exitHasFocus = false, reverseWrap: 'off' | 'last' | 'wrong-button' = 'off', anchorShiftTabToBody = false, lateWrap = false) {
   function element(name: string, selector: string, insideMain: boolean, tabIndex: number, tagName: string) {
     return {
       name, selector, insideMain, tabIndex, tagName, disabled: false, isContentEditable: false,
@@ -66,6 +71,13 @@ function browser(order: string[], trap: Trap, exitHasFocus = false, reverseWrap:
   let active = body;
   let hasFocus = true;
   let anchoredShiftTabPending = false;
+  let lateAnswer: (() => void) | null = null;
+  let answerQueued = false;
+  const takeLateAnswer = () => {
+    const answer = lateAnswer;
+    lateAnswer = null; answerQueued = false;
+    return answer;
+  };
   const events: { method: string; event: InputEvent }[] = [];
   const visited: string[] = [];
   const boundaries: { direction: number; tagName: string; tabIndex: number; isContentEditable: boolean; hasFocus: boolean }[] = [];
@@ -80,14 +92,25 @@ function browser(order: string[], trap: Trap, exitHasFocus = false, reverseWrap:
   };
   const cdp = {
     async evaluate(expression: string) {
+      // La respuesta de evaluate sale por el canal del frame después de
+      // TakeFocus: cuando vuelve, la respuesta del navegador ya está en cola.
+      if (lateAnswer) answerQueued = true;
       // Evaluar la expresión real: nunca devolver "true" por reconocer una
       // assertion del harness. No hay métodos focus/click en el DOM doble.
       return runInNewContext(expression, {
         document,
         getComputedStyle: () => ({ outlineStyle: 'solid', outlineWidth: '2px', visibility: 'visible', display: 'block' }),
+        // Una tarea normal de la página corre después de lo que ya estaba en cola.
+        setTimeout: (callback: () => void) => { if (answerQueued) takeLateAnswer()?.(); callback(); },
       });
     },
     async send(method: string, event: InputEvent) {
+      // Una tecla se atiende antes que una respuesta del navegador todavía en
+      // vuelo; esa respuesta se aplica igual, después, encima de la tecla.
+      const pending = method === 'Input.dispatchKeyEvent' && event.type === 'rawKeyDown' ? takeLateAnswer() : null;
+      try { return await cdp.deliver(method, event); } finally { pending?.(); }
+    },
+    async deliver(method: string, event: InputEvent) {
       assert.ok(['Input.dispatchKeyEvent', 'Input.dispatchMouseEvent', 'Input.dispatchTouchEvent'].includes(method),
         'M1 doble CDP: sólo input nativo del helper real');
       events.push({ method, event });
@@ -126,6 +149,12 @@ function browser(order: string[], trap: Trap, exitHasFocus = false, reverseWrap:
               ? nodes.findIndex(node => node.name === 'login')
               : nodes.findLastIndex(node => node.tabIndex >= 0 || node.isContentEditable);
             assert.ok(position >= 0, 'M1 modelo reverse-wrap tiene destino');
+            if (lateWrap) {
+              const target = position;
+              position = -1; active = body; hasFocus = false;
+              lateAnswer = () => { position = target; active = nodes[target]; hasFocus = true; visited.push(active.name); };
+              return;
+            }
             active = nodes[position]; hasFocus = true; visited.push(active.name); return;
           }
           if (position < 0 || position >= nodes.length) {
@@ -244,6 +273,24 @@ test('M1 reverse wrap ÚLTIMO exacto → BODY → PRIMERO exacto: roundtrip 390x
   assert.equal(modifiers.length, 2 * order.length + 4);
   assert.equal(normal.active(), 'theme', 'M1 reverse wrap termina en el PRIMERO exacto');
 });
+
+for (const mobile of [true, false]) {
+  const viewport = mobile ? '390x844' : '1440x900';
+  test(`M1 vuelta tardía del navegador: begin-forward no la recibe encima ${viewport}/request`, async () => {
+    // Así falló CI («begin-forward false !== true», p. ej. corrida 44101196415):
+    // el ShiftTab desde el primero deja BODY mientras el navegador todavía no
+    // devuelve el foco al último. Leer en ese momento lleva a la rama BODY, el
+    // Tab siguiente llega al primero y la vuelta tardía se lo quita.
+    const order: string[] = Array.from(api.orders.requestOrder);
+    const model = browser(order, 'none', true, 'last', false, true);
+    await assert.doesNotReject(() => api.keyboardSequence(model.cdp, 'request', order, viewport, mobile),
+      'M1 la lectura de begin-reverse espera la respuesta del navegador');
+    assert.deepEqual(model.visited, [...order, 'outside-after', order.at(-1),
+      ...order.slice(0, -1).reverse(), order.at(-1), 'outside-after', order[0]],
+    'M1 vuelta tardía: misma secuencia cerrada que la vuelta inmediata');
+    assert.equal(model.active(), 'theme', 'M1 termina en el PRIMERO exacto');
+  });
+}
 
 for (const mobile of [true, false]) {
   const viewport = mobile ? '390x844' : '1440x900';

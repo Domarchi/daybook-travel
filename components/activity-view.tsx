@@ -58,7 +58,7 @@ export default function ActivityView() {
       // Lo más reciente que se mostró queda como visto.
       if (desde === 0 && pagina[0]) marcarActividadVista(pagina[0].created_at);
     } catch {
-      setError("No se pudo cargar la actividad. Inténtalo nuevamente.");
+      setError("No se pudo cargar la actividad. Intenta de nuevo.");
     } finally {
       setCargando(false);
     }
@@ -81,8 +81,8 @@ export default function ActivityView() {
     return (
       <EmptyState
         icon={<Clock />}
-        title="Actividad disponible en la operación"
-        description="La demostración no guarda cambios permanentes."
+        title="La demostración no guarda actividad"
+        description="Entra con tu cuenta para verla."
       />
     );
   }
@@ -99,7 +99,7 @@ export default function ActivityView() {
 
   if (!items.length) {
     return (
-      <EmptyState icon={<Clock />} title="Sin actividad todavía" description="Aquí aparecerán los cambios de viajes y personas." />
+      <EmptyState icon={<Clock />} title="Sin actividad todavía" />
     );
   }
 

@@ -71,6 +71,8 @@ export default function CostsView() {
     URL.revokeObjectURL(url);
   }
 
+  const hayFiltros = Boolean(costMonth) || costStatus !== "Todos";
+
   return (
     <section aria-label="Registro de costos">
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -88,7 +90,7 @@ export default function CostsView() {
             {TRIP_STATUSES.filter((estado) => estado !== "Anulado").map((estado) => <option key={estado}>{estado}</option>)}
           </Select>
         </Label>
-        {(costMonth || costStatus !== "Todos") && <Button type="button" onClick={() => {
+        {hayFiltros && <Button type="button" onClick={() => {
           setCostMonth(""); setCostStatus("Todos"); setCostCategory("");
         }}>Limpiar filtros</Button>}
         <Button
@@ -169,7 +171,7 @@ export default function CostsView() {
               ))
             ) : (
               <Tr>
-                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Wallet />} title="Todavía no hay viajes que costear" description="Los montos aparecen aquí cuando un viaje registra su reserva." /></Td>
+                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Wallet />} title={hayFiltros ? "Sin viajes con estos filtros" : "Sin viajes todavía"} description={hayFiltros ? "Cambia el mes o el estado." : undefined} /></Td>
               </Tr>
             )}
           </TBody>
@@ -215,7 +217,7 @@ export default function CostsView() {
               ))
             ) : (
               <Tr>
-                <Td colSpan={5} className="p-0"><EmptyState bare icon={<Route />} title="Todavía no hay rutas registradas" description="Cada ruta aparece aquí con su costo cuando un viaje la usa." /></Td>
+                <Td colSpan={5} className="p-0"><EmptyState bare icon={<Route />} title="Sin rutas" /></Td>
               </Tr>
             )}
           </TBody>
@@ -255,7 +257,7 @@ export default function CostsView() {
                 ))
             ) : (
               <Tr>
-                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Users />} title="Todavía no hay personas con viajes" description="Cada persona aparece aquí con su gasto cuando tiene un viaje." /></Td>
+                <Td colSpan={4} className="p-0"><EmptyState bare icon={<Users />} title="Sin personas" /></Td>
               </Tr>
             )}
           </TBody>

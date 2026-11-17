@@ -61,7 +61,7 @@ export default function ManifestDialog() {
       const pdf = await crearManifiestoPdf(bloques, date, logo, demo);
       pdf.save(`daybook-travel-solicitud-${date}.pdf`);
     } catch {
-      setPdfError("No pudimos crear el PDF. Inténtalo nuevamente.");
+      setPdfError("No se pudo crear el PDF. Intenta de nuevo.");
     } finally {
       setPdfBusy(false);
     }
@@ -155,7 +155,10 @@ export default function ManifestDialog() {
           variant="primary"
           disabled={busy || pasajes === 0}
           onClick={() =>
-            void markSelectedRequested(manifestTrips.map((trip) => trip.id)).then(closeModal)
+            void markSelectedRequested(manifestTrips.map((trip) => trip.id)).then((listo) => {
+              // Si no quedaron todos marcados, el diálogo sigue abierto con los que faltan.
+              if (listo) closeModal();
+            })
           }
         >
           {busy

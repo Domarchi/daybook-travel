@@ -16,7 +16,15 @@ import type { Navegacion } from "./use-navegacion";
 import type { Dialogos } from "./use-dialogos";
 import type { Derivados } from "./use-derivados";
 import type { Acreditacion } from "./use-acreditacion";
-import { avisoDeError, avisoDeExito } from "@/lib/avisos";
+import { avisoConDeshacer, avisoDeError, avisoDeExito } from "@/lib/avisos";
+import {
+  MOTIVO_DESHACER_SOLICITUD,
+  porTandas,
+  textoDeDeshacerParcial,
+  textoDeSolicitados,
+  textoDeSolicitudDeshecha,
+  textoDeSolicitudParcial,
+} from "@/lib/marcar-solicitados";
 
 type Entrada = Avisos & Sesion & Datos & Navegacion & Dialogos & Derivados & Acreditacion;
 
@@ -98,7 +106,61 @@ export function useManifiesto(e: Entrada) {
     );
   }
 
-  async function markSelectedRequested(soloEstos?: string[]) {
+  // Cambia los viajes de a diez (lib/marcar-solicitados.ts), cada uno solo si
+  // nadie lo tocó desde que se leyó (`updated_at`).
+  function actualizarPorTandas(
+    filas: { trip: Trip; updatedAt: string }[],
+    cambio: (trip: Trip) => Partial<Trip>,
+  ) {
+    return porTandas(filas, async ({ trip, updatedAt }) => {
+      const { data, error } = await db()
+        .from("trips")
+        .update(cambio(trip))
+        .eq("id", trip.id)
+        .eq("updated_at", updatedAt)
+        .select("id, updated_at");
+      return { error, fila: data?.[0] as { updated_at: string } | undefined };
+    });
+  }
+
+  // Devuelve a Planificado los viajes que se acaban de marcar: el «Deshacer» del
+  // aviso. Solo los que nadie volvió a tocar en esos diez segundos.
+  async function deshacerSolicitud(
+    hechos: { id: string; updatedAt: string }[],
+    antes: Map<string, Trip>,
+  ) {
+    await runAction(async () => {
+      const cambio = (trip: Trip): Partial<Trip> => ({
+        status: "Planificado",
+        notes: notasConMotivo(antes.get(trip.id)?.notes ?? "", MOTIVO_DESHACER_SOLICITUD),
+        updated_at: new Date().toISOString(),
+      });
+      if (demo) {
+        const ids = new Set(hechos.map((hecho) => hecho.id));
+        setTrips((current) =>
+          current.map((trip) => (ids.has(trip.id) ? { ...trip, ...cambio(trip) } : trip)),
+        );
+        setNotice(avisoDeExito(textoDeSolicitudDeshecha(hechos.length)));
+        return;
+      }
+      const filas = hechos
+        .map(({ id, updatedAt }) => {
+          const trip = antes.get(id);
+          return trip ? { trip, updatedAt } : null;
+        })
+        .filter((fila): fila is { trip: Trip; updatedAt: string } => Boolean(fila));
+      const { hechos: devueltos, fallo, porConflicto } = await actualizarPorTandas(filas, cambio);
+      await reload();
+      if (fallo) {
+        setNotice(avisoDeError(textoDeDeshacerParcial(devueltos.length, filas.length, porConflicto)));
+      } else {
+        setNotice(avisoDeExito(textoDeSolicitudDeshecha(devueltos.length)));
+      }
+    });
+  }
+
+  /** Devuelve `true` solo si quedaron marcados todos. */
+  async function markSelectedRequested(soloEstos?: string[]): Promise<boolean> {
     // El manifiesto pasa exactamente lo que mostró; sin argumento se usa la
     // selección de la tabla de viajes.
     const ids = (soloEstos ?? selectedTrips).filter((id) =>
@@ -111,61 +173,60 @@ export function useManifiesto(e: Entrada) {
     );
     if (!ids.length) {
       setNotice(avisoDeError("Selecciona viajes planificados para continuar."));
-      return;
+      return false;
     }
+    let listo = false;
     await runAction(async () => {
       const updatedAt = new Date().toISOString();
+      const rows = ids
+        .map((id) => trips.find((trip) => trip.id === id))
+        .filter((trip): trip is Trip => Boolean(trip));
+      // Cómo estaban, para que «Deshacer» deje las notas como eran.
+      const antes = new Map(rows.map((trip) => [trip.id, trip]));
+      const cambio = (trip: Trip): Partial<Trip> => ({
+        status: "Solicitado",
+        notes: notasConMotivo(trip.notes, "Solicitud enviada."),
+        updated_at: updatedAt,
+      });
+      let hechos: { id: string; updatedAt: string }[];
       if (demo) {
         const selected = new Set(ids);
         setTrips((current) =>
           current.map((trip) =>
-            selected.has(trip.id)
-              ? {
-                  ...trip,
-                  status: "Solicitado",
-                  notes: notasConMotivo(trip.notes, "Solicitud enviada."),
-                  updated_at: updatedAt,
-                }
-              : trip,
+            selected.has(trip.id) ? { ...trip, ...cambio(trip) } : trip,
           ),
         );
+        hechos = ids.map((id) => ({ id, updatedAt }));
       } else {
-        const rows = ids
-          .map((id) => trips.find((trip) => trip.id === id))
-          .filter((trip): trip is Trip => Boolean(trip));
-        for (let index = 0; index < rows.length; index += 10) {
-          const results = await Promise.all(
-            rows.slice(index, index + 10).map((trip) =>
-              db()
-                .from("trips")
-                .update({
-                  status: "Solicitado",
-                  notes: notasConMotivo(trip.notes, "Solicitud enviada."),
-                  updated_at: updatedAt,
-                })
-                .eq("id", trip.id)
-                .eq("updated_at", trip.updated_at!)
-                .select("id"),
+        const resultado = await actualizarPorTandas(
+          rows.map((trip) => ({ trip, updatedAt: trip.updated_at! })),
+          cambio,
+        );
+        hechos = resultado.hechos;
+        await reload();
+        if (resultado.fallo) {
+          // Nada quedó marcado: el error de siempre.
+          if (!hechos.length) throw resultado.fallo;
+          // Algunos sí: se dice cuántos y los que faltan quedan seleccionados.
+          const marcados = new Set(hechos.map((hecho) => hecho.id));
+          setSelectedTrips(ids.filter((id) => !marcados.has(id)));
+          setNotice(
+            avisoDeError(
+              textoDeSolicitudParcial(hechos.length, ids.length, resultado.porConflicto),
             ),
           );
-          for (const result of results) {
-            if (result.error) throw result.error;
-            if (!result.data?.length) {
-              throw new Error(
-                "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
-              );
-            }
-          }
+          return;
         }
-        await reload();
       }
       setSelectedTrips([]);
       setNotice(
-        avisoDeExito(
-          `${ids.length} ${ids.length === 1 ? "viaje marcado como solicitado" : "viajes marcados como solicitados"}.`,
-        ),
+        avisoConDeshacer(textoDeSolicitados(ids.length), () => {
+          void deshacerSolicitud(hechos, antes);
+        }),
       );
+      listo = true;
     });
+    return listo;
   }
 
   return {

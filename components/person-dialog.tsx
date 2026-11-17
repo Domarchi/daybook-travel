@@ -1,8 +1,6 @@
 "use client";
 
 import DialogActions from "@/components/ui/dialog-actions";
-import { Button } from "@/components/ui/button";
-import { Clock } from "lucide-react";
 import { DialogBody, FormGrid, FormSection, Hint } from "@/components/ui/dialog-parts";
 import { Checkbox, Input, Label, Select } from "@/components/ui/field";
 import { BAGGAGE_OPTIONS as baggageOptions } from "../lib/types";
@@ -12,18 +10,18 @@ import { viajesFuturosDe } from "../lib/cierre";
 import { useState } from "react";
 import { DIAS_SEMANA } from "../lib/cycles";
 import { useApp } from "../app/store";
+import { HistorialEnFicha } from "@/components/history-dialog";
 
 export default function PersonDialog() {
   const {
     busy,
-    closeModal,
+    pedirCierre,
     documents,
     documentTypes,
     editPerson,
     people,
     savePerson,
     trips,
-    showPersonHistory,
   } = useApp();
   const tiposActivos = documentTypes.filter((tipo) => tipo.active);
 
@@ -46,15 +44,7 @@ export default function PersonDialog() {
       className="flex min-h-0 flex-1 flex-col"
     >
       <DialogBody>
-        {editPerson && (
-          <Button
-            type="button"
-            className="mb-[18px] w-fit border-transparent bg-transparent"
-            onClick={() => void showPersonHistory(editPerson)}
-          >
-            <Clock size={16} /> Ver historial de la persona
-          </Button>
-        )}
+        {editPerson && <HistorialEnFicha titulo="Historial de la persona" />}
         <FormSection aria-labelledby="person-main">
           <h3 id="person-main" className="text-foreground">Datos de la persona</h3>
           <Label>
@@ -260,9 +250,8 @@ export default function PersonDialog() {
               ))}
             </FormGrid>
             <Hint>
-              Sin fecha, el documento figura como sin registrar. Al armar el
-              manifiesto, quien tenga uno faltante o vencido para el día del
-              viaje aparece marcado con el motivo.
+              Sin fecha, el documento figura como sin registrar. El manifiesto
+              marca a quien lo tenga faltante o vencido el día del viaje.
             </Hint>
           </FormSection>
         )}
@@ -271,7 +260,7 @@ export default function PersonDialog() {
         busy={busy}
         busyLabel="Guardando…"
         submitLabel="Guardar persona"
-        onCancel={closeModal}
+        onCancel={pedirCierre}
       />
     </form>
   );

@@ -25,6 +25,7 @@ export default function AgendaView({
   reviewCount,
   onReview,
   onWindowChange,
+  puedeCambiarVentana,
   requestedCount,
   esperaMasLarga,
   activeCount,
@@ -34,6 +35,7 @@ export default function AgendaView({
   onPeople,
   onGenerate,
   onCamp,
+  entrega,
   children,
 }: {
   nextTrip?: Trip;
@@ -49,6 +51,8 @@ export default function AgendaView({
   reviewCount: number;
   onReview: () => void;
   onWindowChange: (dias: number) => void;
+  /** Solo un administrador cambia la anticipación: es de todo el equipo. */
+  puedeCambiarVentana: boolean;
   requestedCount: number;
   esperaMasLarga: number | null;
   activeCount: number;
@@ -58,6 +62,8 @@ export default function AgendaView({
   onPeople: () => void;
   onGenerate: () => void;
   onCamp: () => void;
+  /** Lo que falta resolver hoy y mañana: va antes del calendario. */
+  entrega?: React.ReactNode;
   children: React.ReactNode;
 }) {
   // Lo que espera una gestion hoy: lo que vuela dentro de la ventana mas lo que
@@ -86,7 +92,7 @@ export default function AgendaView({
               <strong>{formatDate(nextTrip.date)}</strong>
               <small>
                 {personName(nextTrip.person_id)} ·{" "}
-                {nextTrip.requested_time?.slice(0, 5) || "hora pendiente"}
+                {nextTrip.requested_time?.slice(0, 5) || "hora por confirmar"}
               </small>
             </>
           ) : (
@@ -134,7 +140,7 @@ export default function AgendaView({
           <ChevronRight size={18} />
         </OverviewCard>
       </section>
-      <p className="mb-2 text-caption">
+      <p className="mb-4 text-caption">
         Resumen del proyecto completo. El filtro de turno aplica al calendario.
         {purchaseSummary.sinCerrar > 0 && (
           <>
@@ -159,6 +165,7 @@ export default function AgendaView({
           </>
         )}
       </p>
+      {entrega}
       <div className="mb-3 flex min-h-[52px] flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -171,20 +178,32 @@ export default function AgendaView({
             <Tent size={17} /> Lista para el campamento
           </Button>
         </div>
-        <label className="m-0 inline-flex items-center gap-2 text-caption font-semibold text-foreground-soft">
-          Anticipación
-          <Select
-            className="min-h-11 w-auto px-2 py-1 font-bold"
-            value={purchaseWindow}
-            onChange={(event) => onWindowChange(Number(event.target.value))}
-          >
-            {opciones.map((dias) => (
-              <option key={dias} value={dias}>
-                {dias} días
-              </option>
-            ))}
-          </Select>
-        </label>
+        {/* Es un ajuste del proyecto (la tabla settings), no de esta vista: el
+            rótulo lo dice y guardar lo confirma con un aviso. Lo cambia un
+            administrador; los demás lo ven escrito. */}
+        {puedeCambiarVentana ? (
+          <label className="m-0 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-caption font-semibold text-foreground-soft">
+            Avisar compras con
+            <Select
+              className="min-h-11 w-auto px-2 py-1 font-bold"
+              value={purchaseWindow}
+              onChange={(event) => onWindowChange(Number(event.target.value))}
+            >
+              {opciones.map((dias) => (
+                <option key={dias} value={dias}>
+                  {dias} días
+                </option>
+              ))}
+            </Select>
+            de anticipación
+            <span className="font-normal text-muted">(para todo el equipo)</span>
+          </label>
+        ) : (
+          <p className="m-0 inline-flex min-h-11 flex-wrap items-center gap-x-2 gap-y-1 text-caption font-semibold text-foreground-soft">
+            Ventana: {purchaseWindow} días
+            <span className="font-normal text-muted">(la cambia un administrador)</span>
+          </p>
+        )}
       </div>
       {children}
     </>

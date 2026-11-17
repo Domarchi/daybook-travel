@@ -96,7 +96,7 @@ test("un fallo lleva lo ya gastado y se traduce a un mensaje propio", async () =
   );
   const limite = new Anthropic.RateLimitError(429, { type: "error", error: { type: "rate_limit_error", message: "x" } }, "x", new Headers());
   assert.equal(clasificarFallo(limite).estado, 429);
-  assert.equal(clasificarFallo(new Error("raro")).mensaje, "Bita tuvo un problema. Intenta de nuevo en un momento.");
+  assert.equal(clasificarFallo(new Error("raro")).mensaje, "Bita no pudo responder. Intenta de nuevo.");
 });
 
 test("el prompt es estable, sin nombres, y declara las notas como datos", () => {

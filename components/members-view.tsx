@@ -130,8 +130,8 @@ export default function MembersView() {
       >
         <h2 className="text-emphasis">Dar acceso</h2>
         <p className="text-meta leading-relaxed text-muted">
-          La cuenta es la misma de Daybook Asistencia y se crea fuera de esta
-          aplicación. Aquí solo se decide cuáles cuentas pueden entrar a Travel.
+          La cuenta se crea en Daybook Asistencia. Este formulario solo da
+          acceso a Travel.
         </p>
         <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto] items-end gap-3 max-[760px]:grid-cols-1">
           <Label>
@@ -208,7 +208,7 @@ export default function MembersView() {
                     bare
                     icon={<Users />}
                     title="Todavía no hay nadie en la lista"
-                    description="Da acceso con el correo de la persona en el formulario de arriba."
+                    description="Da acceso con su correo."
                   />
                 </Td>
               </Tr>

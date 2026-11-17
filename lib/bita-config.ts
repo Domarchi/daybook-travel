@@ -15,7 +15,7 @@ export type EntornoBita = {
 const SI = new Set(["1", "true", "on", "yes", "si", "sí"]);
 
 export const MODELO_POR_OMISION = "claude-haiku-5-5";
-export const CUPO_POR_OMISION = 20;
+export const CUPO_POR_OMISION = 10;
 
 export const bitaHabilitada = (env: EntornoBita) => SI.has((env.BITA_ENABLED ?? "").trim().toLowerCase());
 

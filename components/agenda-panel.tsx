@@ -4,6 +4,7 @@ import AgendaView from "@/components/agenda-view";
 import OperationalHandoff from "@/components/operational-handoff";
 import YearView from "../app/year-view";
 import { useApp } from "../app/store";
+import { puedeCambiarVentana } from "../lib/purchase";
 
 export default function AgendaPanel() {
   const {
@@ -12,6 +13,8 @@ export default function AgendaPanel() {
     revision,
     purchaseWindow,
     savePurchaseWindow,
+    isAdmin,
+    demo,
     showPurchaseQueue,
     requestedCount,
     esperaMasLarga,
@@ -42,6 +45,7 @@ export default function AgendaPanel() {
       reviewCount={revision.size}
       onReview={() => showPurchaseQueue("revisar")}
       onWindowChange={(dias) => void savePurchaseWindow(dias)}
+      puedeCambiarVentana={puedeCambiarVentana({ isAdmin, demo })}
       requestedCount={requestedCount}
       esperaMasLarga={esperaMasLarga}
       activeCount={activePeople.length}
@@ -51,6 +55,7 @@ export default function AgendaPanel() {
       onPeople={() => navigate("Personas")}
       onGenerate={() => openGenerate()}
       onCamp={() => abrirModal("campamento")}
+      entrega={<OperationalHandoff />}
     >
       <YearView
         selected={selectedDay}
@@ -66,7 +71,6 @@ export default function AgendaPanel() {
         }
         onAdd={(date) => openTrip(null, date)}
       />
-      <OperationalHandoff />
     </AgendaView>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import EmptyState from "@/components/ui/empty-state";
-import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal, TriangleAlert } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ClipboardList, Clock, Plane, RefreshCw, Search, SlidersHorizontal, TriangleAlert, X } from "lucide-react";
 import { formatDate, localDate } from "../lib/format";
 import { TRIP_STATUSES as statuses } from "../lib/types";
 import { diasParaVolar } from "../lib/purchase";
@@ -31,6 +31,13 @@ import { useApp } from "../app/store";
 
 // Un boton de la barra de filtros: ancho completo cuando la barra se apila.
 const BOTON_BARRA = "max-[760px]:w-full";
+
+// Los modos a los que se llega desde la Agenda. No tienen control en la barra:
+// se muestran como una pastilla que se puede quitar.
+const MODOS: Record<string, string> = {
+  sin_cerrar: "Pasados sin reserva",
+  revisar: "Para revisar",
+};
 
 // Un filtro encendido se distingue por el borde y el fondo, no por el color del
 // texto: el estado tiene que leerse igual en el tema claro y en el oscuro.
@@ -98,6 +105,41 @@ export default function TripsView() {
       ? visibleTrips.filter((trip) => compraDe(trip) === "sin_cerrar")
       : requestableTrips;
 
+  // Marcar o desmarcar todos los que se pueden marcar en esta lista. Lo usan la
+  // casilla de la cabecera y, en el teléfono (donde la cabecera no se ve), la
+  // fila «Seleccionar los N…» sobre las tarjetas.
+  const todosMarcados =
+    seleccionables.length > 0 &&
+    seleccionables.every((trip) => selectedTrips.includes(trip.id));
+  function marcarTodos(marcar: boolean) {
+    const ids = seleccionables.map((trip) => trip.id);
+    setSelectedTrips((current) =>
+      marcar
+        ? Array.from(new Set([...current, ...ids]))
+        : current.filter((id) => !ids.includes(id)),
+    );
+  }
+  const [uno, varios] = modoCierre
+    ? ["viaje sin cerrar", "viajes sin cerrar"]
+    : modoReserva
+      ? ["solicitado sin reserva", "solicitados sin reserva"]
+      : ["planificado", "planificados"];
+  const textoMarcarTodos =
+    seleccionables.length === 1
+      ? `Seleccionar 1 ${uno} visible`
+      : `Seleccionar los ${seleccionables.length} ${varios} visibles`;
+
+  // En el teléfono la barra muestra solo la búsqueda y «Filtros (n)»; el resto
+  // se despliega debajo. n cuenta los filtros que están acotando la lista.
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const filtrosActivos = [
+    statusFilter !== "Todos",
+    Boolean(dateFilter),
+    onlyUpcoming,
+    purchaseFilter === "abiertos",
+  ].filter(Boolean).length;
+  const modo = MODOS[purchaseFilter];
+
   const hasTripFilters =
     Boolean(query) ||
     Boolean(dateFilter) ||
@@ -128,8 +170,25 @@ export default function TripsView() {
           </Button>
         </div>
       )}
-      <div className="mb-[10px] flex flex-wrap items-center gap-2 max-[760px]:flex-col max-[760px]:items-stretch">
-        <label className="flex min-h-[46px] min-w-[min(100%,300px)] flex-[1_1_320px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-meta font-semibold text-muted max-[760px]:w-full max-[760px]:flex-[0_0_auto]">
+      {modo && (
+        <div className="mb-[10px] flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border border-line bg-surface py-[7px] pr-[9px] pl-[14px] text-meta text-foreground-soft">
+          <span>Mostrando</span>
+          <Button
+            type="button"
+            className={"rounded-pill " + FILTRO_ENCENDIDO}
+            aria-label={`Quitar el filtro «${modo}»`}
+            onClick={() => {
+              setSelectedTrips([]);
+              setPurchaseFilter("todos");
+              setOnlyUpcoming(true);
+            }}
+          >
+            {modo} <X size={16} aria-hidden="true" />
+          </Button>
+        </div>
+      )}
+      <div className="mb-[10px] flex flex-wrap items-center gap-2 max-[760px]:grid max-[760px]:grid-cols-[minmax(0,1fr)_auto] max-[760px]:items-stretch">
+        <label className="flex min-h-[46px] min-w-[min(100%,240px)] flex-[1_1_240px] items-center gap-[9px] rounded-sm border border-line-strong bg-surface px-3 text-meta font-semibold text-muted max-[760px]:min-w-0">
           <Search size={18} aria-hidden="true" />
           <input
             className="min-h-[42px] w-full min-w-0 border-0 bg-transparent p-0 text-foreground shadow-none outline-0 placeholder:text-muted placeholder:opacity-80"
@@ -139,6 +198,23 @@ export default function TripsView() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
+        <Button
+          type="button"
+          className="hidden max-[760px]:inline-flex"
+          aria-expanded={filtrosAbiertos}
+          aria-controls="filtros-viajes"
+          onClick={() => setFiltrosAbiertos((abierto) => !abierto)}
+        >
+          <SlidersHorizontal size={17} />
+          {filtrosActivos ? `Filtros (${filtrosActivos})` : "Filtros"}
+        </Button>
+        {/* En pantalla ancha esta caja no existe (contents): sus controles quedan
+            en la misma fila. En el teléfono se despliega con «Filtros». */}
+        <div
+          id="filtros-viajes"
+          data-abierto={filtrosAbiertos ? "" : undefined}
+          className="contents max-[760px]:col-span-2 max-[760px]:hidden max-[760px]:gap-2 max-[760px]:data-[abierto]:grid"
+        >
         <Label className="block max-[760px]:w-full">
           <span className="sr-only">Filtrar por estado</span>
           <Select
@@ -170,7 +246,7 @@ export default function TripsView() {
           onClick={() => setOnlyUpcoming((current) => !current)}
         >
           <SlidersHorizontal size={17} />
-          {onlyUpcoming ? "Próximos" : "Todos los periodos"}
+          Solo próximos
         </Button>
         <Button
           type="button"
@@ -188,8 +264,11 @@ export default function TripsView() {
           }}
         >
           <Clock size={17} />
-          {purchaseFilter === "abiertos" ? "Solo por comprar" : "Por comprar"}
+          Solo por comprar
         </Button>
+        </div>
+        {/* Las acciones quedan a la vista también en el teléfono, lado a lado. */}
+        <div className="contents max-[760px]:col-span-2 max-[760px]:grid max-[760px]:auto-cols-fr max-[760px]:grid-flow-col max-[760px]:gap-2">
         <Button type="button" className={BOTON_BARRA} onClick={openManifest}>
           <ClipboardList size={17} /> Lista para solicitar
         </Button>
@@ -207,6 +286,7 @@ export default function TripsView() {
             {loading ? "Actualizando…" : "Actualizar"}
           </Button>
         )}
+        </div>
       </div>
       <div
         className="mb-[6px] flex min-h-7 items-center justify-between gap-[14px] text-caption text-muted"
@@ -299,6 +379,17 @@ export default function TripsView() {
         </div>
       </div>
 
+      {visibleTrips.length > 0 && seleccionables.length > 0 && (
+        <label className="mb-[9px] hidden min-h-11 cursor-pointer items-center gap-3 rounded-md border border-line bg-surface-soft px-3 text-meta font-semibold text-foreground-soft max-[760px]:flex">
+          <Checkbox
+            className="my-0"
+            checked={todosMarcados}
+            onChange={(event) => marcarTodos(event.target.checked)}
+          />
+          {textoMarcarTodos}
+        </label>
+      )}
+
       {visibleTrips.length ? (
         <TableWrap
           className="max-[760px]:overflow-visible max-[760px]:border-0 max-[760px]:bg-transparent"
@@ -320,20 +411,8 @@ export default function TripsView() {
                             ? "Seleccionar todos los viajes solicitados sin reserva visibles"
                             : "Seleccionar todos los viajes planificados visibles"
                       }
-                      checked={
-                        seleccionables.length > 0 &&
-                        seleccionables.every((trip) =>
-                          selectedTrips.includes(trip.id),
-                        )
-                      }
-                      onChange={(event) => {
-                        const ids = seleccionables.map((trip) => trip.id);
-                        setSelectedTrips((current) =>
-                          event.target.checked
-                            ? Array.from(new Set([...current, ...ids]))
-                            : current.filter((id) => !ids.includes(id)),
-                        );
-                      }}
+                      checked={todosMarcados}
+                      onChange={(event) => marcarTodos(event.target.checked)}
                       disabled={!seleccionables.length}
                     />
                   </label>
@@ -502,15 +581,6 @@ export default function TripsView() {
           }
         />
       )}
-      <div className="mt-3 flex items-start gap-[10px] rounded-md border border-line bg-surface px-[15px] py-[13px] text-caption text-muted max-[760px]:mt-[10px]">
-        <Plane size={17} />
-        <span>
-          <strong className="text-foreground-soft">
-            Tarifas en vivo aún no conectadas.
-          </strong>{" "}
-          El monto se registra al confirmar el pasaje.
-        </span>
-      </div>
     </section>
   );
 }

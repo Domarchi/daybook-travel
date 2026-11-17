@@ -6,9 +6,9 @@
 
 import { FormEvent } from "react";
 import { localDate } from "../../lib/format";
-import { estadoDeCompra, ventanaValida } from "../../lib/purchase";
+import { estadoDeCompra, puedeCambiarVentana, ventanaValida } from "../../lib/purchase";
 import { cambioDeCierre, problemaDeCierre, type ModoDeCierre } from "../../lib/cierre";
-import { problemaDeMotivo } from "../../lib/motivo";
+import { camposDelFormulario, motivoAutomatico, problemaDeMotivo } from "../../lib/motivo";
 import { cambioDeReserva, esReservable, problemaDeReserva } from "../../lib/reserva";
 import { notasConMotivo } from "../../lib/notas";
 import { db } from "../../lib/supabase";
@@ -32,7 +32,9 @@ export function useAccionesViajes(e: Entrada) {
     dateFilter,
     demo,
     documents,
+    editPerson,
     editTrip,
+    isAdmin,
     peopleById,
     personFilter,
     purchaseWindow,
@@ -91,8 +93,14 @@ export function useAccionesViajes(e: Entrada) {
       const person = peopleById.get(String(form.get("person_id")));
       if (!person) throw new Error("Selecciona una persona activa.");
       const direction = String(form.get("direction"));
-      const changeReason = String(form.get("change_reason") ?? "").trim();
       const observations = String(form.get("notes") ?? "").trim();
+      // Registrar un dato que faltaba (código, vuelo, monto u hora) anota su
+      // motivo solo; lo demás lo pide escrito (ver motivoAutomatico).
+      const escrito = String(form.get("change_reason") ?? "").trim();
+      const automatico = editTrip
+        ? motivoAutomatico(editTrip, camposDelFormulario(form))
+        : null;
+      const changeReason = escrito || automatico || "";
       if (editTrip) {
         const problema = problemaDeMotivo(changeReason);
         if (problema) throw new Error(problema);
@@ -182,29 +190,51 @@ export function useAccionesViajes(e: Entrada) {
         setCalendarMonth(trip.date.slice(0, 7));
         setSelectedDay(trip.date);
       }
-      setNotice(avisoDeExito("Viaje guardado correctamente."));
+      setNotice(avisoDeExito("Viaje guardado."));
     }, "form");
   }
 
   async function savePurchaseWindow(dias: number) {
     clearMessages();
+    // La pantalla ya no ofrece el selector a quien no es administrador; esto
+    // cubre una llamada que llegue igual.
+    if (!puedeCambiarVentana({ isAdmin, demo })) {
+      setNotice(avisoDeError("Solo un administrador cambia la anticipación."));
+      return;
+    }
     if (!ventanaValida(dias)) {
-      setNotice(avisoDeError("La ventana de compra va de 1 a 120 dias."));
+      setNotice(avisoDeError("La ventana de compra va de 1 a 120 días."));
       return;
     }
     const anterior = purchaseWindow;
     setPurchaseWindow(dias);
-    if (demo) return;
-    const { error } = await db()
+    // El ajuste es del proyecto, no de esta pantalla: el aviso lo dice.
+    const guardado = `Anticipación guardada: ${dias} días, para todo el equipo.`;
+    if (demo) {
+      setNotice(avisoDeExito(guardado));
+      return;
+    }
+    const { data, error } = await db()
       .from("settings")
       .update({
         purchase_window_days: dias,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", "00000000-0000-0000-0000-000000000001");
-    if (error) {
+      .eq("id", "00000000-0000-0000-0000-000000000001")
+      .select("purchase_window_days");
+    // Si la base no deja cambiarla (RLS), el update no da error: no devuelve
+    // filas. Se trata igual que un rechazo.
+    if (error || !data?.length) {
       setPurchaseWindow(anterior);
-      setNotice(avisoDeError("No pudimos guardar la ventana de compra."));
+      setNotice(
+        avisoDeError(
+          error
+            ? "No se pudo guardar la ventana de compra. Intenta de nuevo."
+            : "No se pudo guardar la ventana de compra: solo un administrador la cambia.",
+        ),
+      );
+    } else {
+      setNotice(avisoDeExito(guardado));
     }
   }
 
@@ -213,26 +243,42 @@ export function useAccionesViajes(e: Entrada) {
   async function showHistory(trip: Trip) {
     setEditPerson(null);
     setEditTrip(trip);
+    abrirModal("history");
     await cargarHistorial([trip.id]);
   }
 
   async function showPersonHistory(person: Person) {
     setEditTrip(null);
     setEditPerson(person);
-    // Los vencimientos de sus documentos quedan auditados aparte, cada uno con
-    // su propio id: se piden junto con la ficha para verlos en el mismo lugar.
+    abrirModal("history");
+    await cargarHistorial(idsDelHistorialDe(person));
+  }
+
+  // Los vencimientos de sus documentos quedan auditados aparte, cada uno con su
+  // propio id: se piden junto con la ficha para verlos en el mismo lugar.
+  function idsDelHistorialDe(person: Person) {
     const documentos = documents
       .filter((documento) => documento.person_id === person.id && documento.id)
       .map((documento) => documento.id!);
-    await cargarHistorial([person.id, ...documentos]);
+    return [person.id, ...documentos];
   }
 
-  async function cargarHistorial(recordIds: string[]) {
-    clearMessages();
+  // El historial dentro del formulario que se está editando, sin cambiar de
+  // diálogo: abrir el diálogo del historial desmontaba el formulario y se
+  // perdía lo escrito. No borra el error que el formulario ya muestra (por
+  // ejemplo, que no se pudo guardar), y si el historial no carga lo dice la
+  // sección, con «Reintentar», en vez de «Sin cambios anteriores».
+  async function verHistorialEnFicha(): Promise<boolean> {
+    if (editTrip) return cargarHistorial([editTrip.id], true);
+    if (editPerson) return cargarHistorial(idsDelHistorialDe(editPerson), true);
+    return false;
+  }
+
+  async function cargarHistorial(recordIds: string[], enFicha = false): Promise<boolean> {
+    if (!enFicha) clearMessages();
     setHistory([]);
     setHistoryLoading(!demo);
-    abrirModal("history");
-    if (demo) return;
+    if (demo) return true;
     try {
       const { data, error } = await db()
         .from("history")
@@ -242,8 +288,10 @@ export function useAccionesViajes(e: Entrada) {
       if (error) throw error;
       const items = (data ?? []) as HistoryItem[];
       setHistory(await conCorreoDelAutor(items));
+      return true;
     } catch {
-      setFormError("No se pudo cargar el historial. Inténtalo nuevamente.");
+      if (!enFicha) setFormError("No se pudo cargar el historial. Intenta de nuevo.");
+      return false;
     } finally {
       setHistoryLoading(false);
     }
@@ -295,7 +343,7 @@ export function useAccionesViajes(e: Entrada) {
         if (result.error) throw result.error;
         if (!result.data?.length) {
           throw new Error(
-            "Uno de los viajes cambió mientras trabajabas. Actualiza la lista y vuelve a intentarlo.",
+            "Uno de los viajes cambió mientras trabajabas. Actualiza la lista e intenta de nuevo.",
           );
         }
       }
@@ -367,6 +415,7 @@ export function useAccionesViajes(e: Entrada) {
     savePurchaseWindow,
     showHistory,
     showPersonHistory,
+    verHistorialEnFicha,
     viajesPorCerrar,
     openCloseTrips,
     closeSelectedTrips,

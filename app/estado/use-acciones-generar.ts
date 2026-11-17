@@ -125,7 +125,7 @@ export function useAccionesGenerar(e: Entrada) {
       closeModal();
       setNotice(
         avisoDeExito(
-          `${count} viajes nuevos para ${peopleCount} ${peopleCount === 1 ? "persona" : "personas"}. Los registros existentes se conservaron.`,
+          `${count} viajes nuevos para ${peopleCount} ${peopleCount === 1 ? "persona" : "personas"}.`,
         ),
       );
     }, "form");
