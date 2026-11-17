@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight, Tent } from "lucide-react";
 import { formatDate } from "../lib/format";
 import { textoDeEspera } from "../lib/solicitudes";
 import type { Trip } from "../lib/types";
@@ -34,6 +34,7 @@ export default function AgendaView({
   onRequested,
   onPeople,
   onGenerate,
+  onCamp,
   entrega,
   children,
 }: {
@@ -60,6 +61,7 @@ export default function AgendaView({
   onRequested: () => void;
   onPeople: () => void;
   onGenerate: () => void;
+  onCamp: () => void;
   /** Lo que falta resolver hoy y mañana: va antes del calendario. */
   entrega?: React.ReactNode;
   children: React.ReactNode;
@@ -165,12 +167,17 @@ export default function AgendaView({
       </p>
       {entrega}
       <div className="mb-3 flex min-h-[52px] flex-wrap items-center justify-between gap-2">
-        <Button
-          type="button"
-          onClick={onGenerate}
-        >
-          <CalendarDays size={17} /> Planificar turnos
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            onClick={onGenerate}
+          >
+            <CalendarDays size={17} /> Planificar turnos
+          </Button>
+          <Button type="button" onClick={onCamp}>
+            <Tent size={17} /> Lista para el campamento
+          </Button>
+        </div>
         {/* Es un ajuste del proyecto (la tabla settings), no de esta vista: el
             rótulo lo dice y guardar lo confirma con un aviso. Lo cambia un
             administrador; los demás lo ven escrito. */}

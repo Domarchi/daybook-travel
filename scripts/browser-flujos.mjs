@@ -600,9 +600,39 @@ async function telefono(cdpPort, appUrl) {
   }
 }
 
+// La lista para el campamento: se abre desde la Agenda, sale de los viajes de la
+// demostración (que caen en las próximas semanas) y cambia al mover la fecha.
+// Copiar no se prueba: el portapapeles de un Chrome sin cabeza no es el de nadie.
+async function campamento(cdpPort, appUrl) {
+  const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  const texto = `(document.querySelector(".dialog textarea")?.value ?? "")`;
+  try {
+    await cdp.evaluate(`window.__clic("Lista para el campamento", document.querySelector("main"))`);
+    await waitUntil(cdp, `${texto}.startsWith("CAMPAMENTO — Daybook Travel")`, "la lista para el campamento");
+    await cdp.evaluate(`window.__valor(".dialog select[name=dias]", "14")`);
+    await waitUntil(cdp, `${texto}.includes("Llegan — traslado aeropuerto → campamento")`, "alguna llegada en dos semanas");
+    const valor = await cdp.evaluate(texto);
+    assert.match(valor, /Duermen en el campamento: \d+ personas?/);
+    const total = valor.match(/Total: (\d+) llegadas?/)?.[1];
+    const resumen = await cdp.evaluate(`document.querySelector("[data-campamento-resumen]").textContent`);
+    assert.ok(total && resumen.startsWith(`${total} llegada`), `el resumen («${resumen}») y el texto (${total}) cuentan lo mismo`);
+
+    // Mover la fecha cambia el primer día de la lista.
+    const otra = await cdp.evaluate(`new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)`);
+    await cdp.evaluate(`window.__valor(".dialog input[name=desde]", ${JSON.stringify(otra)})`);
+    const dia = Number(otra.slice(8));
+    await waitUntil(cdp, `${texto}.split("\\n")[1].includes("del ${dia} ")`, "la lista desde la otra fecha");
+
+    assert.deepEqual(lista, [], "sin errores en la consola");
+    return "Campamento: lista desde la Agenda, dos semanas y otra fecha";
+  } finally {
+    cdp.close();
+  }
+}
+
 async function main() {
   const { cdpPort, appUrl } = await startBrowser();
-  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, bita, noPerderLoEscrito, motivoYAnticipacion, telefono]) {
+  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, campamento, bita, noPerderLoEscrito, motivoYAnticipacion, telefono]) {
     console.log(`✓ ${await escenario(cdpPort, appUrl)}`);
   }
 }

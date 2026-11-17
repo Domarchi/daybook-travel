@@ -1,5 +1,6 @@
 "use client";
 
+import CampDialog from "@/components/camp-dialog";
 import CloseDialog from "@/components/close-dialog";
 import GenerateDialog from "@/components/generate-dialog";
 import HistoryDialog from "@/components/history-dialog";
@@ -58,7 +59,9 @@ export default function ModalLayer() {
             ? editPerson
               ? "PERSONAS"
               : "VIAJES"
-            : "VIAJES";
+            : modal === "campamento"
+              ? "AGENDA"
+              : "VIAJES";
 
   const description =
     modal === "excel"
@@ -77,7 +80,9 @@ export default function ModalLayer() {
                 ? "Anula los que no se volaron o registra la reserva con que se volaron."
                 : modal === "reserve"
                   ? "El código que mandó la agencia, para todos los pasajeros de ese vuelo."
-                  : editTrip
+                  : modal === "campamento"
+                    ? "Quién llega, quién sale y cuántos duermen cada noche, con los traslados del aeropuerto."
+                    : editTrip
                     ? `${personName(editTrip.person_id)} · ${formatDate(editTrip.date)}`
                     : editPerson
                       ? editPerson.name
@@ -133,7 +138,9 @@ export default function ModalLayer() {
                           ? "Cerrar viajes pasados"
                           : modal === "reserve"
                             ? "Registrar reserva"
-                            : editPerson
+                            : modal === "campamento"
+                              ? "Lista para el campamento"
+                              : editPerson
                             ? "Historial de la persona"
                             : "Historial del viaje"}
             </h2>
@@ -198,6 +205,8 @@ export default function ModalLayer() {
         {modal === "close" && <CloseDialog />}
 
         {modal === "reserve" && <ReserveDialog />}
+
+        {modal === "campamento" && <CampDialog />}
       </section>
 
       {confirmandoDescarte && (
