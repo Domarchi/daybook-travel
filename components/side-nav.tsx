@@ -211,8 +211,9 @@ export default function SideNav() {
           </button>
         </div>
         {/* El tema, en el pie del riel junto a la persona, como en Parte Diario y
-            Daybook Ticket: Sistema, Claro u Oscuro. */}
-        <label className="mt-3 flex items-center gap-2 text-rail-caption">
+            Daybook Ticket: Sistema, Claro u Oscuro. Mide 44 px como el botón de
+            salir, y queda separado de él para no tocar uno por el otro. */}
+        <label className="mt-4 flex items-center gap-2 text-rail-caption">
           {preferenciaTema === "system" ? <Monitor size={15} aria-hidden="true" /> : oscuro ? <Moon size={15} aria-hidden="true" /> : <Sun size={15} aria-hidden="true" />}
           <span className="sr-only">Tema</span>
           <select
@@ -220,7 +221,7 @@ export default function SideNav() {
             value={preferenciaTema}
             onChange={(evento) => elegirTema(evento.target.value as PreferenciaDeTema)}
             className={cn(
-              "min-h-9 flex-1 cursor-pointer rounded-sm border border-rail-line bg-transparent px-2 text-caption text-rail-foreground",
+              "min-h-11 flex-1 cursor-pointer rounded-sm border border-rail-line bg-transparent px-2 text-caption text-rail-foreground",
               FOCO,
             )}
           >

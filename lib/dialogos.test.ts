@@ -3,8 +3,9 @@
 // Los formularios guardan sus valores solo en los campos: cerrar el diálogo los
 // borra. El velo, Escape, la ✕ y «Cancelar» cierran si no hay nada escrito y
 // preguntan si lo hay (decisión de noviembre de 2026: antes el velo no cerraba un
-// formulario ni con nada escrito). El historial se abre dentro del formulario,
-// sin desmontarlo.
+// formulario ni con nada escrito). El importador de Excel sigue la misma regla
+// con un archivo cargado. El historial se abre dentro del formulario, sin
+// desmontarlo.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -32,6 +33,19 @@ test("los formularios preguntan antes de descartar lo escrito", async () => {
     assert.match(fuente, /onCancel=\{pedirCierre\}/, `${dialogo}: «Cancelar» pregunta`);
     assert.doesNotMatch(fuente, /closeModal/, `${dialogo}: no cierra sin preguntar`);
   }
+});
+
+test("el importador de Excel pregunta con un archivo cargado", async () => {
+  const [estado, capa, panel] = await Promise.all([
+    leer("app/estado/use-dialogos.ts"),
+    leer("components/modal-layer.tsx"),
+    leer("app/excel-sync-panel.tsx"),
+  ]);
+  assert.match(estado, /function fijarModificado\(conCambios: boolean\) \{\s*modificadoRef\.current = conCambios;\s*\}/);
+  // «Cancelar» y «Volver a Personas» del importador pasan por pedirCierre.
+  assert.match(capa, /<ExcelSyncPanel[\s\S]{0,200}onClose=\{pedirCierre\}\s*onCambiosChange=\{fijarModificado\}/);
+  // Hay cambios desde que se elige un archivo hasta que se aplican o se vuelve a empezar.
+  assert.match(panel, /onCambiosChange\?\.\(phase !== "idle" && phase !== "done"\);/);
 });
 
 test("el historial se abre dentro del formulario", async () => {
@@ -68,10 +82,14 @@ test("la confirmación es la de la familia: foco en la salida segura y botón ro
   assert.match(caja, /window\.addEventListener\("keydown", teclas, true\)/);
 });
 
-test("cerrar sesión mide 44 px y pregunta; en la demostración avisa que se pierden los cambios", async () => {
+test("cerrar sesión y el tema miden 44 px; salir pregunta y en la demostración avisa que se pierden los cambios", async () => {
   const nav = await leer("components/side-nav.tsx");
   assert.match(nav, /className=\{cn\(BOTON_RIEL, "size-11"\)\}\s*aria-label=\{demo \? "Salir de la demostración" : "Cerrar sesión"\}\s*onClick=\{\(\) => setConfirmandoSalida\(true\)\}/);
   assert.match(nav, /Se pierden los cambios que hiciste en la demostración/);
+  // El selector de tema también mide 44 px y queda separado del botón de salir.
+  assert.match(nav, /<label className="mt-4 flex items-center gap-2 text-rail-caption">/);
+  assert.match(nav, /aria-label="Tema"[\s\S]{0,200}"min-h-11 flex-1 cursor-pointer/);
+  assert.doesNotMatch(nav, /min-h-9/);
   assert.match(nav, /Vas a salir de Daybook Travel en este dispositivo/);
   assert.doesNotMatch(nav, /onClick=\{async \(\) => \{\s*if \(!demo\) await db\(\)\.auth\.signOut\(\)/);
 });

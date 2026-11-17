@@ -17,7 +17,8 @@ const MS_CIERRE_DIALOGO = 200;
  * Los diálogos donde se escribe. Sus valores viven solo en los campos: cerrarlos
  * borra lo escrito. Por eso, si alguien ya cambió algo, el velo, Escape, la ✕ y
  * «Cancelar» preguntan antes (como «Salir del parte» en Parte Diario); sin
- * cambios cierran de una.
+ * cambios cierran de una. El importador de Excel no está en la lista: avisa él
+ * mismo, con `fijarModificado`, mientras tiene un archivo cargado.
  */
 export const DIALOGOS_DE_FORMULARIO: readonly ModalName[] = [
   "trip",
@@ -100,6 +101,12 @@ export function useDialogos(e: Entrada) {
 
   function marcarModificado() {
     if (modal && DIALOGOS_DE_FORMULARIO.includes(modal)) modificadoRef.current = true;
+  }
+
+  // El importador de Excel no tiene campos que cambien: dice él si hay un
+  // archivo cargado o una revisión en curso.
+  function fijarModificado(conCambios: boolean) {
+    modificadoRef.current = conCambios;
   }
 
   // Lo que piden el velo, Escape, la ✕ y «Cancelar». Guardar cierra con
@@ -202,6 +209,7 @@ export function useDialogos(e: Entrada) {
     closeModal,
     pedirCierre,
     marcarModificado,
+    fijarModificado,
     confirmandoDescarte,
     descartarCambios,
     seguirEditando,

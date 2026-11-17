@@ -27,6 +27,7 @@ export default function ModalLayer() {
     descartarCambios,
     editPerson,
     editTrip,
+    fijarModificado,
     formError,
     history,
     marcarModificado,
@@ -167,7 +168,8 @@ export default function ModalLayer() {
             people={people}
             trips={trips}
             demo={demo}
-            onClose={closeModal}
+            onClose={pedirCierre}
+            onCambiosChange={fijarModificado}
             onBusyChange={(nextBusy) => {
               setBusy(nextBusy);
               busyRef.current = nextBusy;
