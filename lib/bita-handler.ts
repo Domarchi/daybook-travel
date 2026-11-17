@@ -44,7 +44,7 @@ export type DependenciasBita = {
   registrar?: (evento: string, datos: Record<string, unknown>) => void;
 };
 
-const json = (cuerpo: object, estado = 200) =>
+export const json = (cuerpo: object, estado = 200) =>
   Response.json(cuerpo, { status: estado, headers: { "cache-control": "no-store" } });
 
 const registrarPorOmision = (evento: string, datos: Record<string, unknown>) =>
@@ -84,7 +84,7 @@ export function manejarEstado(env: EntornoBita): Response {
   return json({ disponible: bitaTieneLlave(env) });
 }
 
-async function quien(request: Request, deps: DependenciasBita): Promise<Response | { userId: string; token: string }> {
+export async function quien(request: Request, deps: DependenciasBita): Promise<Response | { userId: string; token: string }> {
   const token = tokenDe(request);
   if (!token) return json({ error: "Inicia sesión para usar a Bita." }, 401);
   const sesion = await deps.verificarSesion(token).catch(() => null);

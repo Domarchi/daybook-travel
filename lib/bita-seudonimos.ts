@@ -85,6 +85,11 @@ export type Seudonimos = {
   idDeViaje: (token: string) => string | null;
   /** Nombres → seudónimos y datos de contacto enmascarados, en un texto escrito por una persona. */
   ocultar: (texto: string) => string;
+  /**
+   * Solo nombres COMPLETOS y datos de contacto. No adivina por apellido ni por nombre de pila: para un
+   * documento, donde «Carlos Díaz» no es la persona de la ficha que se apellida Díaz.
+   */
+  ocultarCompletos: (texto: string) => string;
   /** Seudónimos de persona → nombres, en la respuesta del modelo. Los de viaje se dejan: la pantalla los vuelve enlaces. */
   restaurar: (texto: string) => string;
 };
@@ -124,6 +129,11 @@ export function crearSeudonimos(personas: ConNombre[], viajes: ConId[]): Seudoni
     }
     return resultado;
   };
+  const ocultarCompletos = (texto: string) => {
+    let resultado = enmascarar(texto);
+    for (const p of completos) resultado = resultado.replace(patronDe(p.name), persona(p.id));
+    return resultado;
+  };
   const restaurar = (texto: string) =>
     texto.replace(PATRON_PERSONA, (token) => {
       const id = personaPorToken.get(token);
@@ -136,6 +146,7 @@ export function crearSeudonimos(personas: ConNombre[], viajes: ConId[]): Seudoni
     idDePersona: (token) => personaPorToken.get(token.trim()) ?? null,
     idDeViaje: (token) => viajePorToken.get(token.trim()) ?? null,
     ocultar,
+    ocultarCompletos,
     restaurar,
   };
 }
