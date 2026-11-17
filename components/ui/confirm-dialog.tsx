@@ -11,7 +11,7 @@
 // está abierta se queda con Escape y Tab: los escucha en `window` en la fase de
 // captura y no los deja seguir, así Escape cierra solo la pregunta y no el
 // diálogo o el cajón que hay detrás.
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 
@@ -36,10 +36,14 @@ export default function ConfirmDialog({
   const cancelar = useRef<HTMLButtonElement>(null);
   const alCancelar = useRef(onCancel);
   alCancelar.current = onCancel;
+  // Dónde estaba el foco, leído al montar y no en el efecto: el diálogo de
+  // atrás queda `inert` en ese mismo commit, el navegador le quita el foco y el
+  // efecto ya vería el cuerpo. Al cancelar, el foco vuelve a ese campo.
+  const [anterior] = useState(() =>
+    document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  );
 
   useEffect(() => {
-    const anterior =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     cancelar.current?.focus();
     function teclas(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -72,13 +76,17 @@ export default function ConfirmDialog({
       window.removeEventListener("keydown", teclas, true);
       if (anterior?.isConnected) anterior.focus();
     };
-  }, []);
+  }, [anterior]);
 
   return createPortal(
     <div
       className="fixed inset-0 z-[120] grid place-items-center bg-[rgba(0,0,0,0.5)] p-4"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onCancel();
+        // Tocar fuera es la salida segura. Sin `preventDefault`, el navegador
+        // deja el foco en el cuerpo en vez de devolverlo a donde estaba.
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault();
+        onCancel();
       }}
     >
       <div

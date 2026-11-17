@@ -385,6 +385,14 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await clicReal(cdp, VELO);
     await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Hay cambios sin guardar")`, "la pregunta al tocar el velo");
     assert.equal(await hayDialogo(cdp), true, "el velo no cierra un formulario con cambios");
+    await delay(100); // el foco se mueve al terminar el toque, no en el mousedown
+    assert.equal(await cdp.evaluate(`document.activeElement.textContent.trim()`), "Seguir editando", "tras el velo, el foco va a la salida segura");
+    // Tocar fuera de la pregunta es seguir editando, y el foco vuelve al campo.
+    await clicReal(cdp, [8, 8]);
+    await waitUntil(cdp, `!${PREGUNTA}`, "tocar fuera de la pregunta");
+    assert.equal(await cdp.evaluate(`document.activeElement.name`), "notes", "el foco vuelve al campo");
+    await clicReal(cdp, VELO);
+    await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Hay cambios sin guardar")`, "la pregunta al tocar el velo otra vez");
     await clicReal(cdp, `window.__boton("Seguir editando", ${PREGUNTA})`);
     await waitUntil(cdp, `!${PREGUNTA} && document.querySelector(".dialog textarea[name=notes]")?.value === "Llega con equipaje extra"`, "seguir editando desde el velo");
     await escape(cdp);
@@ -394,6 +402,7 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await escape(cdp);
     await waitUntil(cdp, `!${PREGUNTA}`, "cerrar la pregunta con Escape");
     assert.equal(await cdp.evaluate(`document.querySelector(".dialog textarea[name=notes]").value`), "Llega con equipaje extra");
+    assert.equal(await cdp.evaluate(`document.activeElement.name`), "notes", "Escape en la pregunta devuelve el foco al campo");
 
     // El historial se abre dentro del formulario y lo escrito sigue ahí.
     await clicReal(cdp, `[...document.querySelectorAll(".dialog summary")].find((s) => s.textContent.includes("Historial del viaje"))`);

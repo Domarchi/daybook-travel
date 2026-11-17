@@ -89,8 +89,12 @@ export default function ModalLayer() {
       data-cerrando={closingModal ? "" : undefined}
       onMouseDown={(event) => {
         // Un toque fuera de la caja hace lo mismo que Escape y la ✕: cierra si
-        // no hay nada escrito y, si lo hay, pregunta antes de descartarlo.
-        if (event.target === event.currentTarget) pedirCierre();
+        // no hay nada escrito y, si lo hay, pregunta antes de descartarlo. Sin
+        // `preventDefault`, el navegador mueve el foco al cuerpo después de que
+        // la pregunta lo puso en «Seguir editando».
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault();
+        pedirCierre();
       }}
     >
       <section

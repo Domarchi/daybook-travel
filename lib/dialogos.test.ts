@@ -22,7 +22,9 @@ test("los formularios preguntan antes de descartar lo escrito", async () => {
   assert.match(estado, /if \(modificadoRef\.current\) \{\s*setConfirmandoDescarte\(true\);/);
   // El velo hace lo mismo que Escape y la ✕: pasa por pedirCierre, que cierra
   // sin cambios y pregunta con cambios. Ya no hay excepción por tipo de diálogo.
-  assert.match(capa, /onMouseDown=\{\(event\) => \{[\s\S]{0,240}if \(event\.target === event\.currentTarget\) pedirCierre\(\);\s*\}\}/);
+  // `preventDefault` deja el foco donde lo puso la pregunta («Seguir editando»):
+  // sin él, el navegador lo manda al cuerpo al terminar el toque.
+  assert.match(capa, /onMouseDown=\{\(event\) => \{[\s\S]{0,400}if \(event\.target !== event\.currentTarget\) return;\s*event\.preventDefault\(\);\s*pedirCierre\(\);\s*\}\}/);
   assert.doesNotMatch(capa, /DIALOGOS_DE_FORMULARIO/);
   assert.doesNotMatch(capa, /onMouseDown[\s\S]{0,240}closeModal\(\)/, "el velo no cierra sin preguntar");
   assert.match(capa, /onChange=\{marcarModificado\}/);
@@ -80,6 +82,12 @@ test("la confirmación es la de la familia: foco en la salida segura y botón ro
   assert.match(caja, /cancelar\.current\?\.focus\(\)/);
   assert.match(caja, /variant="danger" onClick=\{onConfirm\}/);
   assert.match(caja, /window\.addEventListener\("keydown", teclas, true\)/);
+  // El foco de antes se lee al montar: en el efecto el diálogo de atrás ya es
+  // `inert` y el foco estaría en el cuerpo.
+  assert.match(caja, /const \[anterior\] = useState\(\(\) =>\s*document\.activeElement instanceof HTMLElement/);
+  assert.doesNotMatch(caja, /useEffect\(\(\) => \{\s*const anterior/);
+  // Tocar fuera de la pregunta cancela sin dejar el foco en el cuerpo.
+  assert.match(caja, /if \(event\.target !== event\.currentTarget\) return;\s*event\.preventDefault\(\);\s*onCancel\(\);/);
 });
 
 test("cerrar sesión y el tema miden 44 px; salir pregunta y en la demostración avisa que se pierden los cambios", async () => {
