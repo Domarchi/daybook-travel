@@ -321,10 +321,13 @@ async function bita(cdpPort, appUrl) {
 
 // Un clic de verdad (mouse del navegador, no `element.click()`) en el centro de
 // lo que devuelve la expresión, o en un punto dado.
+// La app desplaza con animación (scroll-behavior: smooth en globals.css): sin
+// «instant», el rectángulo se mide a mitad del desplazamiento y el clic puede caer
+// fuera del elemento (así falló «Gestionar con Excel» desde «Más» en el CI de main).
 async function clicReal(cdp, expresion) {
   const [x, y] = Array.isArray(expresion)
     ? expresion
-    : await cdp.evaluate(`(() => { const el = ${expresion}; el.scrollIntoView({ block: "center" }); const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
+    : await cdp.evaluate(`(() => { const el = ${expresion}; el.scrollIntoView({ block: "center", behavior: "instant" }); const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
   await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
