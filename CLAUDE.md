@@ -115,7 +115,7 @@ se agrega una nueva con el número siguiente.
 **La base de RELEVO la comparte Daybook Asistencia** (sus tablas son `asistencia_*` y sus
 migraciones se registran como `001_asistencia`, `002_padron`…). Por eso las de Travel se
 registran en Supabase con el prefijo `travel_`: `travel_013_historial_con_correo`. Desde el
-12-nov-2026 están registradas la 009 a la 013. La 014 (`014_bita_uso.sql`, el cupo de Bita) quedó aplicada el 13-nov-2026 como `travel_014_bita_uso`. La 009 a la 012 se habían aplicado por el editor
+12-nov-2026 están registradas la 009 a la 013. La 014 (`014_bita_uso.sql`, el cupo de Bita) quedó aplicada el 13-nov-2026 como `travel_014_bita_uso`. La 015 (`015_anticipacion_solo_admin.sql`) quedó aplicada el 17-nov-2026 como `travel_015_anticipacion_solo_admin`. La 009 a la 012 se habían aplicado por el editor
 SQL sin quedar en el registro; se verificaron (funciones, tablas y permisos) y se registraron
 solo como constancia, sin volver a ejecutarlas. De antes quedan tres con otro nombre
 (`dias_de_viaje_por_persona`, `excel_sin_regla_del_lunes`, `ventana_de_compra`) y la 001 a 004,
@@ -166,8 +166,8 @@ solo como constancia, sin volver a ejecutarlas. De antes quedan tres con otro no
      cambia desde la agenda. Es política de la obra, no preferencia de cada persona: lo que
      cambia Katy lo ve Tamara. **Solo la cambia un administrador** (decisión de noviembre de
      2026, `puedeCambiarVentana` en `lib/purchase.ts`); los demás ven «Ventana: N días». En la
-     demostración se puede cambiar. La base todavía no lo exige: `settings_update` (006) deja
-     escribir a cualquier miembro; falta una migración que la limite a `is_admin()`.
+     demostración se puede cambiar. La base también lo exige desde la migración 015
+     (`settings_update` con `is_admin()`); un miembro común que escriba no cambia nada.
    - Las **fechas abiertas** son fechas distintas, no viajes: los pasajes se compran por bloque.
    - Cada fila de Viajes lleva "Faltan N días" coloreado, y hay un filtro "Solo por comprar".
    - **Vencido dura 14 días** (`DIAS_VENCIDO`). Pasado eso, un viaje sin reserva queda
