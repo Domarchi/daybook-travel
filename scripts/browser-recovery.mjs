@@ -317,8 +317,30 @@ async function documentInventory(cdp, state, order, viewport) {
   }
 }
 
+// Salir del documento con el teclado no termina cuando CDP devuelve la tecla.
+// El renderer le pasa el foco al navegador (TakeFocus, por el canal del frame) y
+// el navegador contesta cuando su hilo de interfaz lo procesa: devuelve el foco
+// al último control (la vuelta que se mide como wrap-last) o se lo quita a la
+// página. Esa respuesta no viaja ordenada con el acuse de la tecla, que va por la
+// tubería de entrada, así que una lectura inmediata puede ver el estado de paso
+// y la respuesta tardía cae encima de la tecla siguiente. Así falló en CI
+// begin-forward, en varios estados y en los dos tamaños, y pasó al repetir.
+// Antes de leer, dos barreras, sin reintentos ni plazos:
+// 1. Una ida y vuelta de Runtime.evaluate. Su respuesta sale por el mismo canal
+//    asociado al frame que TakeFocus y después de él, así que cuando llega el
+//    navegador ya lo procesó y ya despachó lo que tenía que mandar.
+// 2. Una tarea normal en la página (setTimeout 0). Lo que mandó el navegador
+//    quedó encolado antes que ella y se aplica primero; la lectura de CDP, en
+//    cambio, va por la cola de alta prioridad del inspector y se le adelantaría.
+// La lectura que sigue es la misma de siempre y se hace una sola vez.
+async function settleFocusHandoff(cdp) {
+  await cdp.evaluate('0');
+  await cdp.evaluate('new Promise(resolve => setTimeout(resolve, 0))');
+}
+
 async function documentBoundaryStep(cdp, state, viewport, backwards, name, edge, wrapLast = null) {
   await pressTab(cdp, backwards);
+  await settleFocusHandoff(cdp);
   const exact = await cdp.evaluate(wrapLast !== null
     ? `document.activeElement === document.body && document.body.tabIndex < 0 && !document.body.isContentEditable
       ? 'body' : document.hasFocus() && document.activeElement === document.querySelector(${JSON.stringify(stops[wrapLast])})
@@ -389,6 +411,18 @@ async function assertCleanHistory(cdp, back = false) {
 async function observeAuthEvents(cdp) {
   await cdp.evaluate(`window.__authEvents = []; window.__authChannel = new BroadcastChannel('sb-127-auth-token'); window.__authChannel.onmessage = ({data}) => window.__authEvents.push(data.event)`);
 }
+// Page.close cierra la pestaña y, con ella, su WebSocket de DevTools. Chrome
+// puede cerrar ese socket antes de mandar la respuesta, y entonces send rechaza
+// con «CDP se cerró durante Page.close» aunque la pestaña se cerró bien: así
+// salía el «fallo de infraestructura» de esta suite. Ese cierre es lo pedido y
+// cuenta como éxito; un error del protocolo o un timeout, con el socket abierto,
+// siguen fallando.
+async function closePage(tab) {
+  try { await tab.send('Page.close'); }
+  catch (error) {
+    if (tab.socket.readyState !== WebSocket.CLOSED) throw error;
+  } finally { tab.close(); }
+}
 async function changeRealTab(cdp, cdpPort) {
   await observeAuthEvents(cdp);
   const other = await openTarget(cdpPort);
@@ -400,7 +434,7 @@ async function changeRealTab(cdp, cdpPort) {
     await waitUntil(cdp, `document.visibilityState === 'visible' && window.__authEvents.includes('SIGNED_IN')`, 'retorno visible y SIGNED_IN real del SDK');
     await cdp.evaluate('new Promise(requestAnimationFrame)');
     assert.equal(await cdp.evaluate(`!!document.querySelector('input[name="new-password"]')`), true, 'volver a pestaña conserva recuperación válida');
-  } finally { await tab.send('Page.close'); tab.close(); }
+  } finally { await closePage(tab); }
 }
 async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, receipts) {
   const target = await openTarget(cdpPort);
@@ -796,7 +830,7 @@ async function runViewport({cdpPort,appUrl,width,height,mobile}, runMutants, rec
       await waitUntil(receiver, `window.__authEvents.includes('PASSWORD_RECOVERY')`, 'broadcast real recibido');
       assert.equal(await receiver.evaluate(`!!document.querySelector('input[name="new-password"]')`), false, 'broadcast no autoriza otra pestaña');
       console.log(`✓ broadcast real ${width}: receptor sin callback permanece cerrado`);
-    } finally { await receiver.send('Page.close'); receiver.close(); }
+    } finally { await closePage(receiver); }
     for (const kind of ['valid','identity-change','verify-error','update-error','update-expired','signout-error']) {
       await openRecovery(['identity-change','verify-error'].includes(kind) ? 'valid' : kind,callbackUrl(appUrl));
       await waitUntil(cdp,`!!document.querySelector('input[name="new-password"]')`,'PASSWORD_RECOVERY válido');
