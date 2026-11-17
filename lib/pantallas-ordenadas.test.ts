@@ -40,7 +40,7 @@ test("Agenda: la entrega de coordinación va antes del calendario y muestra solo
   assert.ok(vista.indexOf("{entrega}") < vista.indexOf("{children}"));
   assert.match(panel, /entrega=\{<OperationalHandoff \/>\}/);
   assert.match(entrega, /const pendientes = rows\.filter\(\(trip\) => pendientesDelMovimiento\(trip\)\.length\);/);
-  assert.match(entrega, /\{listos\.length === 1 \? "1 listo" : `\$\{listos\.length\} listos`\}/);
+  assert.match(entrega, /\{listos\.length === 1 \? "1 movimiento listo" : `\$\{listos\.length\} movimientos listos`\}/);
 });
 
 test("Personas: documentos exigidos plegados en una línea y Excel en «Más»", async () => {

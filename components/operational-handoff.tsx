@@ -52,7 +52,7 @@ export default function OperationalHandoff() {
       </div>}
       {listos.length > 0 && <details className="group mt-2 rounded-md border border-line bg-surface">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 text-meta font-semibold text-foreground-soft [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-[var(--focus)]">
-          {listos.length === 1 ? "1 listo" : `${listos.length} listos`}
+          {listos.length === 1 ? "1 movimiento listo" : `${listos.length} movimientos listos`}
           <ChevronRight className="text-muted transition-transform duration-[180ms] ease-[var(--ease-out)] group-open:rotate-90" size={18} aria-hidden="true" />
         </summary>
         <div className="divide-y divide-line border-t border-line">{listos.map(fila)}</div>
