@@ -53,7 +53,7 @@ export function dependenciasReales(): DependenciasBita {
     async cargarDatos(token) {
       const db = deLaPersona(token);
       const [personas, viajes, ajustes, acreditacion] = await Promise.all([
-        todas<Person>(db, "people", "id,name,origin,destination,shift,start_date,end_date,up_weekday,down_weekday,baggage,active"),
+        todas<Person>(db, "people", "id,employee_code,name,origin,destination,shift,start_date,end_date,up_weekday,down_weekday,baggage,active"),
         // pnr se lee solo para saber si el viaje tiene reserva; nunca sale hacia el modelo.
         todas<Trip>(db, "trips", "id,person_id,date,direction,origin,destination,requested_time,baggage,status,pnr,amount,notes"),
         db.from("settings").select("purchase_window_days").maybeSingle(),
