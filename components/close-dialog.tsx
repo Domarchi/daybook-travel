@@ -11,7 +11,7 @@ import { mismoVuelo, type ModoDeCierre } from "../lib/cierre";
 import { useApp } from "../app/store";
 
 export default function CloseDialog() {
-  const { busy, closeModal, closeSelectedTrips, viajesPorCerrar } = useApp();
+  const { busy, pedirCierre, closeSelectedTrips, viajesPorCerrar } = useApp();
   // Se fija al abrir: al terminar, la selección se vacía mientras el diálogo
   // todavía sale, y sin esto se alcanzaría a leer "Estos 0 viajes".
   const [viajes] = useState(viajesPorCerrar);
@@ -123,7 +123,7 @@ export default function CloseDialog() {
         // Anular no tiene vuelta atrás: el botón va en rojo y nombra la acción.
         // Cerrar es el final normal de un viaje y queda con el botón de siempre.
         submitVariant={modo === "anular" ? "danger" : "primary"}
-        onCancel={closeModal}
+        onCancel={pedirCierre}
       />
     </form>
   );

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays, Coins, History, LogOut, Monitor, Moon, Plane, ShieldCheck, Sun, Users, X } from "lucide-react";
 import { OPCIONES_DE_TEMA, type PreferenciaDeTema } from "@/lib/tema";
 import BrandLogo from "@/components/ui/brand-logo";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { useApp } from "../app/store";
 import { db } from "../lib/supabase";
@@ -63,6 +64,20 @@ export default function SideNav() {
 
   const oscuro = theme === "dark";
   const primerDestino = useRef<HTMLButtonElement>(null);
+  // Cerrar sesión no tiene vuelta atrás y en la demostración borra todo lo que
+  // se hizo: el botón pregunta antes, como en Parte Diario.
+  const [confirmandoSalida, setConfirmandoSalida] = useState(false);
+
+  async function salir() {
+    setConfirmandoSalida(false);
+    // Desde el cajón del teléfono: al volver a entrar, el cajón parte cerrado.
+    setMenuAbierto(false);
+    if (!demo) await db().auth.signOut();
+    setDemo(false);
+    setAccessStatus("checking");
+    setPeople([]);
+    setTrips([]);
+  }
 
   // El cajón del teléfono: al abrirse el foco entra al primer destino; Escape lo
   // cierra y devuelve el foco al botón del menú. Mientras está abierto, la página
@@ -184,17 +199,13 @@ export default function SideNav() {
               {demo ? "Datos ficticios" : "Sesión activa"}
             </small>
           </div>
+          {/* 44 px, como todo lo que se toca: en el cajón del teléfono queda
+              justo encima del selector de tema. */}
           <button
             type="button"
-            className={BOTON_RIEL}
+            className={cn(BOTON_RIEL, "size-11")}
             aria-label={demo ? "Salir de la demostración" : "Cerrar sesión"}
-            onClick={async () => {
-              if (!demo) await db().auth.signOut();
-              setDemo(false);
-              setAccessStatus("checking");
-              setPeople([]);
-              setTrips([]);
-            }}
+            onClick={() => setConfirmandoSalida(true)}
           >
             <LogOut size={17} />
           </button>
@@ -221,6 +232,26 @@ export default function SideNav() {
           </select>
         </label>
       </div>
+      {confirmandoSalida &&
+        (demo ? (
+          <ConfirmDialog
+            title="Salir de la demostración"
+            description="Se pierden los cambios que hiciste en la demostración. Si vuelves a entrar, empieza de nuevo con los datos ficticios."
+            cancelLabel="Seguir trabajando"
+            confirmLabel="Salir de la demostración"
+            onCancel={() => setConfirmandoSalida(false)}
+            onConfirm={() => void salir()}
+          />
+        ) : (
+          <ConfirmDialog
+            title="Cerrar sesión"
+            description="Vas a salir de Daybook Travel en este dispositivo y tendrás que ingresar de nuevo para seguir."
+            cancelLabel="Seguir trabajando"
+            confirmLabel="Cerrar sesión"
+            onCancel={() => setConfirmandoSalida(false)}
+            onConfirm={() => void salir()}
+          />
+        ))}
     </aside>
   );
 }

@@ -210,7 +210,10 @@ export default function ManifestDialog() {
           variant="primary"
           disabled={busy || pasajes === 0}
           onClick={() =>
-            void markSelectedRequested(manifestTrips.map((trip) => trip.id)).then(closeModal)
+            void markSelectedRequested(manifestTrips.map((trip) => trip.id)).then((listo) => {
+              // Si no quedaron todos marcados, el diálogo sigue abierto con los que faltan.
+              if (listo) closeModal();
+            })
           }
         >
           {busy

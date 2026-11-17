@@ -49,6 +49,7 @@ export default function AgendaPanel() {
       onRequested={() => showTripGroup("Solicitado")}
       onPeople={() => navigate("Personas")}
       onGenerate={() => openGenerate()}
+      entrega={<OperationalHandoff />}
     >
       <YearView
         selected={selectedDay}
@@ -64,7 +65,6 @@ export default function AgendaPanel() {
         }
         onAdd={(date) => openTrip(null, date)}
       />
-      <OperationalHandoff />
     </AgendaView>
   );
 }

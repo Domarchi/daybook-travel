@@ -6,8 +6,8 @@ import html, sys
 SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
-VERSION = "2.3"
-FECHA = "13 de noviembre de 2026"
+VERSION = "2.4"
+FECHA = "16 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
 def e(t):
@@ -73,7 +73,7 @@ pagina("Primer ingreso", "Cómo entrar",
     col("Para practicar", lista([
       "<strong>Abrir demostración</strong> usa datos ficticios.",
       "Nada de lo que hagas ahí pasa a la agenda real.",
-      "Los cambios duran hasta que cierres la demostración.",
+      "Los cambios duran hasta que salgas de la demostración; antes de salir, la aplicación lo recuerda.",
     ]))) +
   nota("Si olvidaste tu contraseña", "Pulsa <strong>¿Olvidaste tu contraseña?</strong> en la pantalla de entrada, escribe tu correo y sigue el enlace que te llegará. La contraseña es la misma de Daybook Asistencia.") +
   nota("Si ves «Tu cuenta todavía no está habilitada»", "Tu correo inició sesión, pero todavía no está en la lista de accesos de Daybook Travel. Pídele a un administrador que lo agregue en la pantalla <strong>Accesos</strong>. Si ni siquiera puedes iniciar sesión, la cuenta de Daybook Asistencia aún no existe.", "aviso"))
@@ -95,17 +95,17 @@ pagina("Agenda", "Por dónde conviene empezar",
       "Un viaje anulado no se vuelve a comprar.",
     ])),
     col("Dónde se cambia", lista([
-      "El selector <strong>Anticipación</strong>, arriba a la derecha de la agenda: 7, 14, 21, 30, 45 o 60 días. Por omisión son 21.",
-      "Es una decisión del proyecto, no de cada persona: lo que cambie una lo ve la otra.",
+      "El selector <strong>Avisar compras con … días de anticipación</strong>, arriba a la derecha de la agenda: 7, 14, 21, 30, 45 o 60 días. Por omisión son 21.",
+      "Es para todo el equipo, no para cada persona: lo que cambie una lo ve la otra. Al cambiarlo, un aviso confirma que quedó guardado.",
       "Cada fila de Viajes muestra «Faltan N días», con color según la urgencia.",
     ]))) +
-  nota("Mi recomendación", "Al comenzar el día, revisemos <strong>Por comprar ahora</strong>, <strong>Próximo movimiento</strong> y <strong>Pendientes de confirmación</strong>. Con eso sabemos de inmediato qué falta hacer."))
+  nota("Mi recomendación", "Al comenzar el día, revisemos <strong>Por comprar ahora</strong>, <strong>Próximo movimiento</strong> y <strong>Pendientes de confirmación</strong>. Debajo, <strong>Entrega de coordinación</strong> muestra lo que le falta a hoy y mañana."))
 
 pagina("Agenda mensual y semanal", "Cómo leer el calendario",
   "El calendario abre en el mes actual y permite revisar cualquier mes anterior o futuro.",
   dos(
     col("Qué muestra", lista([
-      "Naranja corresponde al turno 4×3 y azul al 10×10.",
+      "Naranja es 4×3 y azul 10×10. En el celular: 10 = 10×10, S/T = sin turno, ? = por confirmar.",
       "El número dentro del día indica cuántos viajes hay.",
       "Los viajes anulados no aparecen.",
       "Los filtros Todos, 4×3, 10×10, Sin turno y Por confirmar solo cambian la vista.",
@@ -140,7 +140,7 @@ pagina("Personas", "La ficha de cada integrante",
       "<strong>Nuevo viaje</strong> toma como base su ruta habitual.",
       "<strong>Ver viajes</strong> muestra solamente los de esa persona.",
       "<strong>Editar</strong> cambia la información para los viajes que se creen después.",
-      "En la ficha, <strong>Ver historial de la persona</strong> muestra sus cambios y los de sus documentos.",
+      "En la ficha, <strong>Historial de la persona</strong> se despliega con sus cambios y los de sus documentos, sin cerrar la ficha.",
     ]))) +
   '<h2>Cómo completar una ficha</h2>' +
   dos(
@@ -156,6 +156,7 @@ pagina("Personas", "La ficha de cada integrante",
       "Una persona inactiva no puede recibir viajes nuevos.",
       "Cambiar su ruta no modifica los viajes que ya existen.",
       "Si hay documentos exigidos, la ficha trae una sección <strong>Documentos</strong> con su vencimiento.",
+      "Al cerrarla con cambios, pregunta antes.",
     ]))) +
   nota("Si alguien sale del proyecto", "Desactiva su ficha en vez de borrarla. Al desmarcar <strong>Persona activa</strong>, la ficha ofrece anular sus viajes futuros sin reserva; los que tienen reserva hay que revisarlos."))
 
@@ -187,13 +188,13 @@ pagina("Viajes", "Dónde revisar cada pasaje",
     col("Filtros", lista([
       "Se busca por persona, ruta, vuelo o código de reserva.",
       "También se filtra por estado, fecha o persona.",
-      "<strong>Próximos</strong> muestra desde hoy en adelante; <strong>Todos los periodos</strong> abre el historial completo.",
-      "<strong>Por comprar</strong> deja solo lo que espera una gestión; el botón cambia a <strong>Solo por comprar</strong> mientras está activo.",
+      "<strong>Solo próximos</strong>: desde hoy; apagado, todo. <strong>Solo por comprar</strong>: lo que espera una gestión.",
+      "En el celular, <strong>Filtros (n)</strong> abre el resto. Lo abierto desde la Agenda se quita con su ✕.",
     ])),
     col("Lectura y acciones", lista([
       "Cada fila muestra ruta, fecha, subida o bajada, hora, estado y los días que faltan. Lo solicitado dice además hace cuánto se pidió.",
       "Abrir permite editar. El reloj muestra el historial de ese viaje.",
-      "En el celular, la misma información aparece en tarjetas.",
+      "En el celular aparece en tarjetas, con «Seleccionar los N…» arriba.",
       "Se pueden marcar varios viajes para operar sobre ellos a la vez.",
     ]))) +
   nota("Si trabajamos al mismo tiempo", "La información se actualiza más o menos cada minuto. Si alguien cambió un viaje antes que tú, la aplicación avisa («Uno de los viajes cambió mientras trabajabas») para que no se reemplace ese cambio por error.") +
@@ -207,7 +208,7 @@ pagina("Viajes", "Dónde revisar cada pasaje",
     col("Reserva y control", lista([
       "Código de reserva (PNR), vuelo, monto y observaciones. Al poner el código, el diálogo pide el monto si falta.",
       "No se puede repetir la misma persona, fecha y sentido.",
-      "Al modificar un viaje existente hay que anotar el motivo, de al menos 5 letras.",
+      "Editar pide motivo (5 letras o más), salvo al cargar un dato que faltaba.",
       "Si el monto se aparta mucho del precio de referencia de esa ruta, el diálogo lo avisa, pero no lo impide.",
     ]))))
 
@@ -226,7 +227,7 @@ pagina("Seguimiento", "Qué significa cada estado",
   '<h2>Reglas que vamos a seguir</h2>' +
   lista([
     "<strong>No borramos viajes.</strong> Si se cancela, queda como Anulado para conservar el historial.",
-    "Cuando editamos un viaje, anotamos el <strong>motivo del cambio</strong>: algo que se entienda después, como «No viajó» o «Duplicado». Un punto no sirve.",
+    "Cuando editamos un viaje, anotamos el <strong>motivo del cambio</strong>: algo que se entienda después, como «No viajó» o «Duplicado». Un punto no sirve. Hay botones para «No viajó», «Cambio de fecha» y «Corrección». Si solo se registra el código, el vuelo, el monto o la hora que faltaban, el motivo se anota solo («Se registró el monto.»).",
     "El código de reserva (PNR) es obligatorio en Emitido, Completado y No presentado.",
     "Para cambiar la persona o el sentido, se anula el viaje y se crea uno nuevo.",
     "Cada cambio queda en el historial con quién lo hizo y qué cambió: se ve con el reloj de cada viaje.",
@@ -281,7 +282,7 @@ pagina("Actividad e historial", "Quién cambió qué, y cuándo",
       "La cifra dorada junto a Actividad cuenta lo que otras personas cambiaron desde tu última visita; al entrar, esos cambios dicen <strong>Nuevo</strong>. Cada computador recuerda su propia visita.",
     ])),
     col("Historial de un viaje o una persona", lista([
-      "El reloj de cada viaje, o <strong>Ver historial de la persona</strong> en su ficha.",
+      "El reloj de cada viaje, o la sección <strong>Historial</strong> dentro de la ficha del viaje o de la persona.",
       "Muestra lo mismo, solo de ese viaje o esa persona, desde que se creó.",
       "En una persona también aparecen los cambios de vencimiento de sus documentos.",
     ]))) +
@@ -307,6 +308,8 @@ pagina("Solicitud de pasajes", "Cómo preparar la lista para la agencia",
     col("Qué lleva cada formato", lista([
       "El texto, el PDF, el CSV y el botón de marcar usan <strong>siempre la misma lista</strong>.",
       "El CSV se abre bien en Excel, y trae la columna Acreditación si hay documentos exigidos.",
+      "Marcar como solicitados se puede <strong>Deshacer</strong> desde el aviso durante 10 segundos.",
+      "Si alguno no se pudo marcar, el aviso dice cuántos quedaron; los demás siguen seleccionados.",
     ]))) +
   nota("El envío sigue siendo manual", "Daybook Travel prepara la lista y guarda el estado, pero no envía el correo ni compra el pasaje. Ese paso se sigue haciendo por el canal habitual."))
 
@@ -314,7 +317,7 @@ pagina("Acreditación", "Documentos al día para entrar al manifiesto",
   "Una persona entra al manifiesto si sus documentos valen para el día del viaje. Si no, se ve el motivo.",
   dos(
     col("Quién define los documentos", lista([
-      "En <strong>Personas</strong>, el recuadro <strong>Documentos exigidos</strong> lista lo que cuenta para viajar.",
+      "En <strong>Personas</strong>, la línea <strong>Documentos exigidos</strong> dice lo que cuenta para viajar; se abre con <strong>Ver</strong> (o <strong>Editar</strong>, para un administrador).",
       "Solo un administrador agrega documentos nuevos o deja de exigir uno.",
       "Dejar de exigir un documento lo desactiva: se puede volver a exigir cuando haga falta.",
       "Mientras no haya documentos exigidos, la acreditación no aparece en ninguna pantalla.",
@@ -362,7 +365,7 @@ pagina("Excel", "Qué archivo usar",
   ]) +
   '<h2>Cómo editar y volver a cargar</h2>' +
   pasos([
-    "En Personas, abre <strong>Gestionar con Excel</strong> y descarga el <strong>Libro actual</strong> justo antes de empezar.",
+    "En Personas, abre <strong>Más › Gestionar con Excel</strong> y descarga el <strong>Libro actual</strong> justo antes de empezar.",
     "Edita el archivo sin cambiar los nombres de las hojas ni de las columnas, y guárdalo como <strong>.xlsx</strong> (máximo 10 MB).",
     "Súbelo en la misma pantalla y revisa la vista previa: <strong>Nuevo</strong> crea, <strong>Cambio</strong> actualiza y <strong>Sin cambios</strong> se ignora.",
     "Si aparece <strong>Conflicto</strong>, descarga un Libro actual nuevo y repite el cambio. Si hay error, corrige la fila.",

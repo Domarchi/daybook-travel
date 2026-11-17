@@ -9,10 +9,12 @@ import { SectionKicker } from "@/components/ui/section-kicker";
 import PersonDialog from "@/components/person-dialog";
 import ReserveDialog from "@/components/reserve-dialog";
 import TripDialog from "@/components/trip-dialog";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import ExcelSyncPanel from "../app/excel-sync-panel";
 import { X } from "lucide-react";
 import { formatDate } from "../lib/format";
 import { useApp } from "../app/store";
+import { DIALOGOS_DE_FORMULARIO } from "../app/estado/use-dialogos";
 import { avisoDeExito } from "@/lib/avisos";
 
 export default function ModalLayer() {
@@ -21,17 +23,22 @@ export default function ModalLayer() {
     busyRef,
     closeModal,
     closingModal,
+    confirmandoDescarte,
     demo,
+    descartarCambios,
     editPerson,
     editTrip,
     formError,
     history,
+    marcarModificado,
     modal,
+    pedirCierre,
     pendingTripDate,
     people,
     personName,
     reload,
     setBusy,
+    seguirEditando,
     setNotice,
     trips,
   } = useApp();
@@ -81,11 +88,16 @@ export default function ModalLayer() {
       className="overlay"
       data-cerrando={closingModal ? "" : undefined}
       onMouseDown={(event) => {
+        // En un formulario, un toque fuera de la caja no cierra nada: se perdía
+        // lo escrito sin aviso. El historial y el manifiesto sí se cierran así.
+        if (DIALOGOS_DE_FORMULARIO.includes(modal)) return;
         if (event.target === event.currentTarget && !busy) closeModal();
       }}
     >
       <section
         className={modal === "excel" ? "dialog excel-dialog" : "dialog"}
+        inert={confirmandoDescarte}
+        onChange={marcarModificado}
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
@@ -136,7 +148,7 @@ export default function ModalLayer() {
             variant="icon"
             aria-label="Cerrar"
             disabled={busy}
-            onClick={closeModal}
+            onClick={pedirCierre}
           >
             <X size={20} />
           </Button>
@@ -146,7 +158,7 @@ export default function ModalLayer() {
           <p
             role="alert"
             tabIndex={-1}
-            className="mx-6 mt-[14px] shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger max-[760px]:mx-4 max-[760px]:mt-3"
+            className="dialog-error mx-6 mt-[14px] shrink-0 rounded-md border border-[color-mix(in_srgb,var(--danger)_45%,var(--border))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-3 py-[11px] text-meta text-danger max-[760px]:mx-4 max-[760px]:mt-3"
           >
             {formError}
           </p>
@@ -183,6 +195,17 @@ export default function ModalLayer() {
 
         {modal === "reserve" && <ReserveDialog />}
       </section>
+
+      {confirmandoDescarte && (
+        <ConfirmDialog
+          title="Hay cambios sin guardar"
+          description="Si cierras ahora, se pierde lo que escribiste en este formulario."
+          cancelLabel="Seguir editando"
+          confirmLabel="Descartar cambios"
+          onCancel={seguirEditando}
+          onConfirm={descartarCambios}
+        />
+      )}
     </div>
   );
 }

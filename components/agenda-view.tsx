@@ -33,6 +33,7 @@ export default function AgendaView({
   onRequested,
   onPeople,
   onGenerate,
+  entrega,
   children,
 }: {
   nextTrip?: Trip;
@@ -56,6 +57,8 @@ export default function AgendaView({
   onRequested: () => void;
   onPeople: () => void;
   onGenerate: () => void;
+  /** Lo que falta resolver hoy y mañana: va antes del calendario. */
+  entrega?: React.ReactNode;
   children: React.ReactNode;
 }) {
   // Lo que espera una gestion hoy: lo que vuela dentro de la ventana mas lo que
@@ -132,7 +135,7 @@ export default function AgendaView({
           <ChevronRight size={18} />
         </OverviewCard>
       </section>
-      <p className="mb-2 text-caption">
+      <p className="mb-4 text-caption">
         Resumen del proyecto completo. El filtro de turno aplica al calendario.
         {purchaseSummary.sinCerrar > 0 && (
           <>
@@ -157,6 +160,7 @@ export default function AgendaView({
           </>
         )}
       </p>
+      {entrega}
       <div className="mb-3 flex min-h-[52px] flex-wrap items-center justify-between gap-2">
         <Button
           type="button"
@@ -164,8 +168,10 @@ export default function AgendaView({
         >
           <CalendarDays size={17} /> Planificar turnos
         </Button>
-        <label className="m-0 inline-flex items-center gap-2 text-caption font-semibold text-foreground-soft">
-          Anticipación
+        {/* Es un ajuste del proyecto (la tabla settings), no de esta vista: el
+            rótulo lo dice y guardar lo confirma con un aviso. */}
+        <label className="m-0 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-caption font-semibold text-foreground-soft">
+          Avisar compras con
           <Select
             className="min-h-11 w-auto px-2 py-1 font-bold"
             value={purchaseWindow}
@@ -177,6 +183,8 @@ export default function AgendaView({
               </option>
             ))}
           </Select>
+          de anticipación
+          <span className="font-normal text-muted">(para todo el equipo)</span>
         </label>
       </div>
       {children}

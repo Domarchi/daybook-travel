@@ -12,7 +12,7 @@ import { avisoDePrecio, formatoCLP } from "../lib/costs";
 import { useApp } from "../app/store";
 
 export default function ReserveDialog() {
-  const { busy, closeModal, personName, referenciaDe, reserveSelectedTrips, viajesPorReservar } =
+  const { busy, pedirCierre, personName, referenciaDe, reserveSelectedTrips, viajesPorReservar } =
     useApp();
   // Se fija al abrir, como en el cierre: al terminar la selección se vacía
   // mientras el diálogo todavía sale.
@@ -118,7 +118,7 @@ export default function ReserveDialog() {
         busyLabel="Registrando…"
         submitLabel={`Registrar en ${viajesTexto}`}
         submitDisabled={!n || !unVuelo}
-        onCancel={closeModal}
+        onCancel={pedirCierre}
       />
     </form>
   );
