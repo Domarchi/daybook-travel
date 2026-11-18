@@ -16,7 +16,7 @@
 // Capas: el botón (z-[25]) queda bajo el menú lateral del teléfono (z-30); el
 // panel (z-[40]) sobre la página y bajo los diálogos (z-100), así un viaje
 // abierto desde Bita aparece encima.
-import { Paperclip, Send, X } from "lucide-react";
+import { ChevronRight, Paperclip, Send, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from "react";
 import { useApp } from "../app/store";
 import { lineasDeResumen, resumenDeBita, type LineaResumen } from "../lib/bita-resumen";
@@ -129,6 +129,14 @@ export default function Bita() {
     [people, trips, purchaseWindow, documentTypes, documents],
   );
   const saludo = useMemo(() => (abierto ? presentacion(horaEnChile(), demo, soloResumen) : ""), [abierto, demo, soloResumen]);
+
+  // El campo crece con lo que se escribe, hasta un tope; vacío vuelve a una línea.
+  useEffect(() => {
+    const c = campo.current;
+    if (!c) return;
+    c.style.height = "auto";
+    c.style.height = `${Math.min(c.scrollHeight, 120)}px`;
+  }, [texto, abierto]);
 
   if (!disponible) return null;
 
@@ -296,20 +304,21 @@ export default function Bita() {
       </button>
     );
 
+  const etiqueta = "m-0 mb-2 text-xs font-bold tracking-wide !text-muted uppercase";
   return (
     <section
       id={panelId}
       role="dialog"
       aria-label={`${NOMBRE_DE_BITA}, asistente de Daybook Travel`}
       onKeyDown={alTeclearPanel}
-      className="fixed right-6 bottom-6 z-[40] flex h-[min(620px,calc(100dvh-48px))] w-[min(420px,calc(100vw-32px))] flex-col overflow-hidden rounded-xl border border-line bg-surface text-foreground shadow-[0_18px_48px_rgb(17_18_15/0.22)] max-[760px]:inset-0 max-[760px]:h-dvh max-[760px]:w-full max-[760px]:rounded-none max-[760px]:border-0"
+      className="fixed right-6 bottom-6 z-[40] flex h-[min(720px,calc(100dvh-48px))] w-[min(440px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-line bg-surface text-foreground shadow-[0_24px_64px_rgb(17_18_15/0.28)] motion-safe:animate-[bita-entra_180ms_ease-out] max-[760px]:inset-0 max-[760px]:h-dvh max-[760px]:w-full max-[760px]:rounded-none max-[760px]:border-0"
     >
-      <header className="flex items-center justify-between gap-3 border-b border-line py-3 pr-3 pl-4 max-[760px]:pt-[max(12px,env(safe-area-inset-top))]">
+      <header className="flex items-center justify-between gap-3 bg-[#1c1d1a] py-3 pr-2 pl-4 text-[#f3efe4] max-[760px]:pt-[max(12px,env(safe-area-inset-top))]">
         <div className="flex min-w-0 items-center gap-3">
-          <BitaAvatar size={36} thinking={enviando} />
+          <BitaAvatar size={40} thinking={enviando} />
           <div className="min-w-0">
-            <h2 className="m-0 text-base leading-tight font-bold">{NOMBRE_DE_BITA}</h2>
-            <small className="block text-xs text-muted">Viajes, compras y costos</small>
+            <h2 className="m-0 text-base leading-tight font-bold !text-[#f3efe4]">{NOMBRE_DE_BITA}</h2>
+            <small className="block text-xs text-[#f3efe4]/70">Viajes, compras y costos</small>
           </div>
         </div>
         <button
@@ -317,7 +326,7 @@ export default function Bita() {
           type="button"
           onClick={() => setAbierto(false)}
           aria-label={`Cerrar el chat con ${NOMBRE_DE_BITA}`}
-          className="inline-flex size-11 items-center justify-center rounded-md text-muted raton:hover:bg-surface-hover raton:hover:text-foreground"
+          className="inline-flex size-11 items-center justify-center rounded-full text-[#f3efe4]/80 outline-offset-0 focus-visible:outline-2 focus-visible:outline-[#f6d16f] raton:hover:bg-white/10 raton:hover:text-[#f3efe4]"
         >
           <X size={18} />
         </button>
@@ -328,55 +337,67 @@ export default function Bita() {
         role="log"
         aria-live="polite"
         aria-label="Conversación"
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4"
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4"
       >
-        <div className="text-sm leading-relaxed">
-          <p className="mt-0 mb-3">{saludo}</p>
-          <ul aria-label="Cómo vienen los viajes" className="m-0 mb-3 flex list-none flex-col gap-2 p-0">
-            {resumen.map((linea) => (
-              <li key={linea.texto}>
-                <button
-                  type="button"
-                  onClick={() => irA(linea.accion)}
-                  className={`w-full rounded-md border px-3 py-2 text-left text-meta leading-snug ${
-                    linea.tono === "alerta"
-                      ? "border-urgente-line bg-urgente-soft text-foreground"
-                      : "border-line bg-surface-soft text-foreground"
-                  } raton:hover:border-line-strong`}
-                >
-                  {linea.texto}
-                </button>
-              </li>
-            ))}
-          </ul>
-          {!soloResumen && (
-            <div className="flex flex-col gap-2">
-              {PREGUNTAS_SUGERIDAS.map((pregunta) => (
-                <button
-                  key={pregunta}
-                  type="button"
-                  disabled={enviando}
-                  onClick={() => void enviar(pregunta)}
-                  className="min-h-11 rounded-md border border-line bg-surface px-3 py-2 text-left text-meta raton:hover:border-line-strong"
-                >
-                  {pregunta}
-                </button>
+        <div className="flex flex-col gap-3.5 text-sm leading-relaxed">
+          <div className="flex items-start gap-2">
+            <BitaAvatar size={28} />
+            <p className="m-0 min-w-0 rounded-lg rounded-tl-[4px] border border-line bg-surface-soft px-3 py-2 text-meta leading-relaxed text-foreground">{saludo}</p>
+          </div>
+          <div>
+            <h3 className={etiqueta}>Ahora</h3>
+            <ul aria-label="Cómo vienen los viajes" className="m-0 flex list-none flex-col divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface p-0">
+              {resumen.map((linea) => (
+                <li key={linea.texto}>
+                  <button
+                    type="button"
+                    onClick={() => irA(linea.accion)}
+                    className={`flex min-h-10 w-full items-center gap-3 border-l-[3px] max-[760px]:min-h-11 px-3 py-2 text-left text-meta leading-snug text-foreground raton:hover:bg-surface-hover ${
+                      linea.tono === "alerta" ? "border-l-warning bg-urgente-soft" : "border-l-transparent"
+                    }`}
+                  >
+                    <span className="min-w-0 flex-1">{linea.texto}</span>
+                    <ChevronRight size={16} aria-hidden="true" className="shrink-0 text-muted" />
+                  </button>
+                </li>
               ))}
+            </ul>
+          </div>
+          {!soloResumen && (
+            <>
+              <div>
+                <h3 className={etiqueta}>Pregúntale</h3>
+                <div className="flex flex-wrap gap-2">
+                  {PREGUNTAS_SUGERIDAS.map((pregunta) => (
+                    <button
+                      key={pregunta}
+                      type="button"
+                      disabled={enviando}
+                      onClick={() => void enviar(pregunta)}
+                      className="min-h-9 rounded-full border border-line bg-surface px-3.5 text-left max-[760px]:min-h-11 text-meta text-foreground disabled:opacity-60 raton:hover:border-line-strong raton:hover:bg-surface-hover"
+                    >
+                      {pregunta}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button
                 type="button"
                 disabled={enviando}
                 onClick={() => selectorDeArchivo.current?.click()}
-                className="flex min-h-11 items-start gap-2 rounded-md border border-line bg-surface px-3 py-2 text-left text-meta raton:hover:border-line-strong"
+                className="flex w-full items-start gap-3 rounded-lg border border-dashed border-line-strong bg-surface p-3 text-left disabled:opacity-60 raton:hover:bg-surface-hover"
               >
-                <Paperclip size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
-                <span>
-                  <span className="block font-bold">Planificar vuelos desde un documento</span>
-                  <span className="mt-0.5 block text-xs text-muted">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-soft text-foreground">
+                  <Paperclip size={16} aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-meta font-bold text-foreground">Planificar vuelos desde un documento</span>
+                  <span className="mt-0.5 block text-xs leading-normal text-muted">
                     Excel, Word o PDF con texto, hasta {MAX_ARCHIVO_PANTALLA / 1024 / 1024} MB. Antes de leerlo cambio los nombres por seudónimos y quito RUT, correos, teléfonos, reservas, vuelos y montos.
                   </span>
                 </span>
               </button>
-            </div>
+            </>
           )}
         </div>
 
@@ -384,7 +405,7 @@ export default function Bita() {
           entrada.rol === "user" ? (
             <div
               key={entrada.id}
-              className="max-w-[88%] self-end rounded-lg rounded-br-[4px] bg-primary px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground [overflow-wrap:anywhere]"
+              className="max-w-[88%] self-end rounded-2xl rounded-br-[4px] bg-primary px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground [overflow-wrap:anywhere]"
             >
               <span className="sr-only">Tú: </span>
               {entrada.archivo ? (
@@ -396,42 +417,40 @@ export default function Bita() {
                 entrada.texto
               )}
             </div>
-          ) : (
-            <div
-              key={entrada.id}
-              data-entrada={entrada.id}
-              className={`flex items-start gap-2 self-start ${entrada.propuesta ? "w-full max-w-full" : "max-w-[94%]"}`}
-            >
-              <BitaAvatar size={26} />
-              <div
-                className={`min-w-0 rounded-lg rounded-bl-[4px] border border-line bg-surface-soft px-3 py-2 text-sm leading-relaxed [overflow-wrap:anywhere] ${entrada.propuesta ? "flex-1" : "whitespace-pre-wrap"}`}
-              >
+          ) : entrada.propuesta ? (
+            <div key={entrada.id} data-entrada={entrada.id} className="w-full min-w-0">
+              <div className="rounded-lg border border-line bg-surface-soft p-3 text-sm leading-relaxed [overflow-wrap:anywhere]">
                 <span className="sr-only">{NOMBRE_DE_BITA}: </span>
-                {entrada.propuesta ? (
-                  <PropuestaDeViajes
-                    estado={entrada.propuesta}
-                    alAlternar={(clave) =>
-                      cambiarPropuesta(entrada.id, {
-                        elegidas: entrada.propuesta!.elegidas.includes(clave)
-                          ? entrada.propuesta!.elegidas.filter((c) => c !== clave)
-                          : [...entrada.propuesta!.elegidas, clave],
-                      })
-                    }
-                    alMarcarTodas={(marcar) =>
-                      cambiarPropuesta(entrada.id, {
-                        elegidas: marcar ? entrada.propuesta!.datos.filas.filter((f) => f.estado === "nuevo").map((f) => f.clave) : [],
-                      })
-                    }
-                    alCrear={() => void crearDeLaPropuesta(entrada.id)}
-                    alDescartar={() => cambiarPropuesta(entrada.id, { fase: "descartada", error: undefined })}
-                    alAbrirViaje={abrirViaje}
-                    alVerAgenda={() => {
-                      if (enTelefono()) setAbierto(false);
-                      navigate("Agenda");
-                    }}
-                  />
-                ) : null}
-                {!entrada.propuesta && trozosConViajes(entrada.texto, entrada.viajes ?? {}).map((trozo, i) =>
+                <PropuestaDeViajes
+                  estado={entrada.propuesta}
+                  alAlternar={(clave) =>
+                    cambiarPropuesta(entrada.id, {
+                      elegidas: entrada.propuesta!.elegidas.includes(clave)
+                        ? entrada.propuesta!.elegidas.filter((c) => c !== clave)
+                        : [...entrada.propuesta!.elegidas, clave],
+                    })
+                  }
+                  alMarcarTodas={(marcar) =>
+                    cambiarPropuesta(entrada.id, {
+                      elegidas: marcar ? entrada.propuesta!.datos.filas.filter((f) => f.estado === "nuevo").map((f) => f.clave) : [],
+                    })
+                  }
+                  alCrear={() => void crearDeLaPropuesta(entrada.id)}
+                  alDescartar={() => cambiarPropuesta(entrada.id, { fase: "descartada", error: undefined })}
+                  alAbrirViaje={abrirViaje}
+                  alVerAgenda={() => {
+                    if (enTelefono()) setAbierto(false);
+                    navigate("Agenda");
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div key={entrada.id} data-entrada={entrada.id} className="flex max-w-[94%] items-start gap-2 self-start">
+              <BitaAvatar size={28} />
+              <div className="min-w-0 rounded-lg rounded-tl-[4px] border border-line bg-surface-soft px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
+                <span className="sr-only">{NOMBRE_DE_BITA}: </span>
+                {trozosConViajes(entrada.texto, entrada.viajes ?? {}).map((trozo, i) =>
                   trozo.tipo === "texto" ? (
                     <span key={i}>{trozo.texto}</span>
                   ) : (
@@ -450,7 +469,12 @@ export default function Bita() {
           ),
         )}
         {enviando && (
-          <p role="status" className="m-0 self-start text-meta text-muted">
+          <p role="status" className="m-0 flex items-center gap-2 self-start text-meta text-muted">
+            <span aria-hidden="true" className="inline-flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className="size-1.5 rounded-full bg-muted motion-safe:animate-bounce" style={{ animationDelay: `${i * 120}ms` }} />
+              ))}
+            </span>
             {leyendo ? `${NOMBRE_DE_BITA} está leyendo el documento…` : `${NOMBRE_DE_BITA} está revisando los viajes…`}
           </p>
         )}
@@ -462,7 +486,7 @@ export default function Bita() {
       </div>
 
       {!soloResumen && (
-        <form onSubmit={alEnviar} className="flex items-end gap-2 border-t border-line p-3 max-[760px]:pb-[max(12px,env(safe-area-inset-bottom))]">
+        <form onSubmit={alEnviar} className="border-t border-line px-3 pt-3">
           <input
             ref={selectorDeArchivo}
             type="file"
@@ -473,37 +497,42 @@ export default function Bita() {
             className="hidden"
             onChange={alElegirArchivo}
           />
-          <button
-            type="button"
-            disabled={enviando}
-            onClick={() => selectorDeArchivo.current?.click()}
-            aria-label="Adjuntar un documento: Excel, Word o PDF con texto"
-            title="Adjuntar un documento (Excel, Word o PDF)"
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-muted disabled:opacity-60 raton:hover:border-line-strong raton:hover:text-foreground"
-          >
-            <Paperclip size={18} aria-hidden="true" />
-          </button>
-          <textarea
-            ref={campo}
-            value={texto}
-            rows={1}
-            maxLength={2000}
-            aria-label="Tu pregunta"
-            placeholder={`Escríbele a ${NOMBRE_DE_BITA}`}
-            onChange={(evento) => setTexto(evento.target.value)}
-            onKeyDown={alTeclear}
-            className="max-h-[120px] min-h-11 min-w-0 flex-1 resize-none rounded-md border border-line-strong bg-surface px-3 py-[11px] text-sm max-[760px]:text-base"
-          />
-          <button
-            type="submit"
-            disabled={enviando || !texto.trim()}
-            className="inline-flex min-h-11 items-center gap-1 rounded-md border border-primary bg-primary px-3 text-meta font-bold text-primary-foreground disabled:opacity-60"
-          >
-            <Send size={15} /> Enviar
-          </button>
+          <div className="flex items-end gap-1 rounded-2xl border border-line-strong bg-surface p-1 focus-within:border-transparent focus-within:outline-2 focus-within:outline-ring">
+            <button
+              type="button"
+              disabled={enviando}
+              onClick={() => selectorDeArchivo.current?.click()}
+              aria-label="Adjuntar un documento: Excel, Word o PDF con texto"
+              title="Adjuntar un documento (Excel, Word o PDF)"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted disabled:opacity-60 raton:hover:bg-surface-hover raton:hover:text-foreground"
+            >
+              <Paperclip size={18} aria-hidden="true" />
+            </button>
+            <textarea
+              ref={campo}
+              value={texto}
+              rows={1}
+              maxLength={2000}
+              aria-label="Tu pregunta"
+              placeholder={`Escríbele a ${NOMBRE_DE_BITA}`}
+              onChange={(evento) => setTexto(evento.target.value)}
+              onKeyDown={alTeclear}
+              className="max-h-[120px] min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-[11px] text-sm outline-none max-[760px]:text-base"
+            />
+            <button
+              type="submit"
+              disabled={enviando || !texto.trim()}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+            >
+              <Send size={16} aria-hidden="true" />
+              <span className="sr-only">Enviar</span>
+            </button>
+          </div>
         </form>
       )}
-      <p className="m-0 px-4 pb-3 text-xs leading-normal text-muted">
+      <p
+        className={`m-0 px-4 pt-2 pb-3 text-center text-xs leading-normal text-muted max-[760px]:pb-[max(12px,env(safe-area-inset-bottom))] ${soloResumen ? "border-t border-line pt-3" : ""}`}
+      >
         {demo
           ? "Demostración: el resumen sale de los datos ficticios."
           : soloResumen

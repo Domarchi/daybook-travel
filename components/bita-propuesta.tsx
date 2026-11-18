@@ -111,9 +111,9 @@ export function PropuestaDeViajes({ estado, alAlternar, alMarcarTodas, alCrear, 
               </button>
             </div>
           )}
-          <ul aria-label="Viajes encontrados en el documento" className="m-0 flex list-none flex-col gap-2 p-0">
+          <ul aria-label="Viajes encontrados en el documento" className="m-0 flex list-none flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-surface p-0">
             {datos.filas.map((fila) => (
-              <li key={fila.clave} className={`rounded-md border border-line px-3 py-2 ${fila.estado === "nuevo" ? "bg-surface" : "bg-surface-soft"}`}>
+              <li key={fila.clave} className={`px-3 py-1 ${fila.estado === "nuevo" ? "" : "bg-surface-soft"}`}>
                 {fila.estado === "nuevo" ? (
                   <label className="flex min-h-11 cursor-pointer items-start gap-3 py-1">
                     <Checkbox
