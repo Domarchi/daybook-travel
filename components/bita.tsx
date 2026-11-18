@@ -311,7 +311,7 @@ export default function Bita() {
       role="dialog"
       aria-label={`${NOMBRE_DE_BITA}, asistente de Daybook Travel`}
       onKeyDown={alTeclearPanel}
-      className="fixed right-6 bottom-6 z-[40] flex h-[min(720px,calc(100dvh-48px))] w-[min(440px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-line bg-surface text-foreground shadow-[0_24px_64px_rgb(17_18_15/0.28)] motion-safe:animate-[bita-entra_180ms_ease-out] max-[760px]:inset-0 max-[760px]:h-dvh max-[760px]:w-full max-[760px]:rounded-none max-[760px]:border-0"
+      className="fixed right-6 bottom-6 z-[40] flex h-[min(720px,calc(100dvh-48px))] w-[min(440px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-line bg-surface text-foreground shadow-[0_24px_64px_rgb(17_18_15/0.28)] max-[760px]:inset-0 max-[760px]:h-dvh max-[760px]:w-full max-[760px]:rounded-none max-[760px]:border-0"
     >
       <header className="flex items-center justify-between gap-3 bg-[#1c1d1a] py-3 pr-2 pl-4 text-[#f3efe4] max-[760px]:pt-[max(12px,env(safe-area-inset-top))]">
         <div className="flex min-w-0 items-center gap-3">
