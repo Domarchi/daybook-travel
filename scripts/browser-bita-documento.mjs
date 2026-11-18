@@ -51,6 +51,7 @@ async function adjuntar(cdp, ruta) {
 
 async function captura(cdp, nombre) {
   if (!CAPTURAS) return;
+  await delay(350); // el panel se abre con una animación corta
   await mkdir(CAPTURAS, { recursive: true });
   const { data } = await cdp.send("Page.captureScreenshot", { format: "png" });
   await writeFile(join(CAPTURAS, `${nombre}.png`), Buffer.from(data, "base64"));
