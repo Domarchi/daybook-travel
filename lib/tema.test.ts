@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
-import { CLAVE_DEL_TEMA, leerPreferenciaDeTema, OPCIONES_DE_TEMA, SCRIPT_TEMA_INICIAL, temaEfectivo } from "./tema.ts";
+import { CLAVE_DEL_TEMA, etiquetaDeTema, leerPreferenciaDeTema, OPCIONES_DE_APARIENCIA, OPCIONES_DE_TEMA, SCRIPT_TEMA_INICIAL, siguientePreferenciaDeTema, temaEfectivo } from "./tema.ts";
 
 test("sin elección guardada, el tema sigue al sistema (antes era oscuro fijo)", () => {
   assert.equal(leerPreferenciaDeTema(null), "system");
@@ -21,6 +21,18 @@ test("«Sistema» pinta lo que diga el sistema; Claro y Oscuro mandan sobre él"
 
 test("las tres opciones, en el orden de las tres apps Daybook", () => {
   assert.deepEqual(OPCIONES_DE_TEMA.map((o) => o.etiqueta), ["Sistema", "Claro", "Oscuro"]);
+});
+
+test("el botón del riel recorre Sistema → Claro → Oscuro y vuelve a Sistema", () => {
+  assert.equal(siguientePreferenciaDeTema("system"), "light");
+  assert.equal(siguientePreferenciaDeTema("light"), "dark");
+  assert.equal(siguientePreferenciaDeTema("dark"), "system");
+  assert.deepEqual(["system", "light", "dark"].map((p) => etiquetaDeTema(p as never)), ["Sistema", "Claro", "Oscuro"]);
+});
+
+test("Configuración ofrece las tres, como Parte Diario: Claro, Oscuro y Según el sistema", () => {
+  assert.deepEqual(OPCIONES_DE_APARIENCIA.map((o) => o.etiqueta), ["Claro", "Oscuro", "Según el sistema"]);
+  assert.deepEqual(new Set(OPCIONES_DE_APARIENCIA.map((o) => o.valor)), new Set(OPCIONES_DE_TEMA.map((o) => o.valor)));
 });
 
 // El script del <head> repite la regla en texto: se ejecuta con un navegador de

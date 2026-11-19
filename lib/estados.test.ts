@@ -8,7 +8,8 @@ const leer = (ruta: string) => readFile(new URL(`../${ruta}`, import.meta.url), 
 
 test("el CSS de carga y vacío es el del paquete, importado después de los tokens", async () => {
   const layout = await leer("app/layout.tsx");
-  assert.match(layout, /import "@daybook\/design\/tokens\.css";\nimport "@daybook\/design\/estados\.css";/);
+  // Después de los tokens (y de la lista del riel, que también los usa).
+  assert.match(layout, /import "@daybook\/design\/tokens\.css";\nimport "@daybook\/design\/riel\.css";\nimport "@daybook\/design\/estados\.css";/);
   const paquete = await leer("node_modules/@daybook/design/src/estados.css");
   assert.match(paquete, /\.db-empty \{/);
   assert.match(paquete, /@media \(prefers-reduced-motion: reduce\)/);

@@ -14,6 +14,28 @@ export const OPCIONES_DE_TEMA: ReadonlyArray<{ valor: PreferenciaDeTema; etiquet
   { valor: "dark", etiqueta: "Oscuro" },
 ];
 
+/**
+ * El botón del pie del riel recorre las tres opciones en ese orden, como el de
+ * Parte Diario: Sistema → Claro → Oscuro → Sistema.
+ */
+export function siguientePreferenciaDeTema(preferencia: PreferenciaDeTema): PreferenciaDeTema {
+  return preferencia === "system" ? "light" : preferencia === "light" ? "dark" : "system";
+}
+
+export function etiquetaDeTema(preferencia: PreferenciaDeTema): string {
+  return OPCIONES_DE_TEMA.find((opcion) => opcion.valor === preferencia)?.etiqueta ?? "Sistema";
+}
+
+/**
+ * Configuración muestra las tres como un control de tres partes, en el orden y
+ * con los nombres de Parte Diario: Claro, Oscuro y Según el sistema.
+ */
+export const OPCIONES_DE_APARIENCIA: ReadonlyArray<{ valor: PreferenciaDeTema; etiqueta: string }> = [
+  { valor: "light", etiqueta: "Claro" },
+  { valor: "dark", etiqueta: "Oscuro" },
+  { valor: "system", etiqueta: "Según el sistema" },
+];
+
 /** Lo guardado en el navegador; cualquier otra cosa (o nada) es «Sistema». */
 export function leerPreferenciaDeTema(guardado: string | null | undefined): PreferenciaDeTema {
   return guardado === "light" || guardado === "dark" || guardado === "system" ? guardado : "system";

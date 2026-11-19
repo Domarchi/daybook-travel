@@ -3,6 +3,7 @@
 import { Check, ChevronRight, Menu, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AccessState from "@/components/access-state";
+import ConfiguracionView from "@/components/configuracion-view";
 import CostsView from "@/components/costs-view";
 import ActivityView from "@/components/activity-view";
 import AgendaPanel from "@/components/agenda-panel";
@@ -67,14 +68,18 @@ export default function Workspace() {
         aria-hidden={modal ? true : undefined}
       >
         <SideNav />
-        {/* El velo detrás del menú del teléfono: tocarlo lo cierra. */}
-        {menuAbierto && (
-          <div
-            className="fixed inset-0 z-40 bg-black/50 min-[821px]:hidden"
-            aria-hidden="true"
-            onClick={() => setMenuAbierto(false)}
-          />
-        )}
+        {/* El velo detrás del menú del teléfono: tocarlo lo cierra. Siempre
+            montado (`.db-rail-scrim`): se funde al abrir y al cerrar, y cerrado
+            deja pasar los toques. */}
+        <div
+          className="db-rail-scrim min-[820px]:hidden"
+          data-open={menuAbierto}
+          aria-hidden="true"
+          onClick={() => {
+            setMenuAbierto(false);
+            document.getElementById("boton-menu")?.focus();
+          }}
+        />
 
         {/* La cabecera fija de la familia Daybook (64 px, negra en oscuro), con
             el lugar donde uno está. En el teléfono lleva además el botón ☰ que
@@ -85,7 +90,7 @@ export default function Workspace() {
             id="boton-menu"
             type="button"
             variant="icon"
-            className="min-[821px]:hidden"
+            className="min-[820px]:hidden"
             aria-label="Abrir menú"
             aria-controls="menu-principal"
             aria-expanded={menuAbierto}
@@ -111,27 +116,38 @@ export default function Workspace() {
             </div>
           )}
 
-          {accessStatus !== "allowed" && !demo ? (
-            <AccessState />
-          ) : (
-            <>
-              <PageHead />
+          {/* Configuración se ve aunque el acceso no esté habilitado: ahí está
+              «Cerrar sesión». La vista entra con el fundido común
+              (`.db-view-enter`), con key por vista y no por datos: una recarga
+              no la vuelve a animar. */}
+          <div key={view} className="db-view-enter">
+            {view === "Configuración" ? (
+              <>
+                <PageHead />
+                <ConfiguracionView />
+              </>
+            ) : accessStatus !== "allowed" && !demo ? (
+              <AccessState />
+            ) : (
+              <>
+                <PageHead />
 
-              {view === "Agenda" ? (
-                <AgendaPanel />
-              ) : view === "Personas" ? (
-                <PeopleView />
-              ) : view === "Costos" ? (
-                <CostsView />
-              ) : view === "Actividad" ? (
-                <ActivityView />
-              ) : view === "Accesos" && isAdmin ? (
-                <MembersView />
-              ) : (
-                <TripsView />
-              )}
-            </>
-          )}
+                {view === "Agenda" ? (
+                  <AgendaPanel />
+                ) : view === "Personas" ? (
+                  <PeopleView />
+                ) : view === "Costos" ? (
+                  <CostsView />
+                ) : view === "Actividad" ? (
+                  <ActivityView />
+                ) : view === "Accesos" && isAdmin ? (
+                  <MembersView />
+                ) : (
+                  <TripsView />
+                )}
+              </>
+            )}
+          </div>
           <footer className="mt-9 border-t border-line pt-[18px] text-overline font-bold tracking-[0.06em] text-muted uppercase">
             Daybook Travel / Copiapó
           </footer>

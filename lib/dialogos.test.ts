@@ -90,14 +90,23 @@ test("la confirmación es la de la familia: foco en la salida segura y botón ro
   assert.match(caja, /if \(event\.target !== event\.currentTarget\) return;\s*event\.preventDefault\(\);\s*onCancel\(\);/);
 });
 
-test("cerrar sesión y el tema miden 44 px; salir pregunta y en la demostración avisa que se pierden los cambios", async () => {
-  const nav = await leer("components/side-nav.tsx");
-  assert.match(nav, /className=\{cn\(BOTON_RIEL, "size-11"\)\}\s*aria-label=\{demo \? "Salir de la demostración" : "Cerrar sesión"\}\s*onClick=\{\(\) => setConfirmandoSalida\(true\)\}/);
-  assert.match(nav, /Se pierden los cambios que hiciste en la demostración/);
-  // El selector de tema también mide 44 px y queda separado del botón de salir.
-  assert.match(nav, /<label className="mt-4 flex items-center gap-2 text-rail-caption">/);
-  assert.match(nav, /aria-label="Tema"[\s\S]{0,200}"min-h-11 flex-1 cursor-pointer/);
-  assert.doesNotMatch(nav, /min-h-9/);
-  assert.match(nav, /Vas a salir de Daybook Travel en este dispositivo/);
-  assert.doesNotMatch(nav, /onClick=\{async \(\) => \{\s*if \(!demo\) await db\(\)\.auth\.signOut\(\)/);
+test("salir vive en Configuración y pregunta; en la demostración avisa que se pierden los cambios", async () => {
+  const [nav, config, sesion] = await Promise.all([
+    leer("components/side-nav.tsx"),
+    leer("components/configuracion-view.tsx"),
+    leer("app/estado/use-acciones-sesion.ts"),
+  ]);
+  // El riel ya no sale ni elige el tema con un desplegable: solo dice quién está
+  // y recorre el tema con un botón, como Parte Diario.
+  assert.doesNotMatch(nav, /Cerrar sesión|Salir de la demostración|<select/);
+  assert.match(nav, /className="db-rail-icon-button"\s*aria-label=\{`Tema: \$\{etiquetaDeTema\(preferenciaTema\)\}`\}/);
+  assert.match(nav, /<IconoTema key=\{preferenciaTema\}/);
+  // Configuración pregunta antes de salir, con la confirmación común.
+  assert.match(config, /onClick=\{\(\) => setConfirmandoSalida\(true\)\}/);
+  assert.match(config, /Se pierden los cambios que hiciste en la demostración/);
+  assert.match(config, /Vas a salir de Daybook Travel en este dispositivo/);
+  assert.match(config, /<ConfirmDialog[\s\S]*onConfirm=\{\(\) => \{\s*setConfirmandoSalida\(false\);\s*void salir\(\);/);
+  // La salida de verdad: en la demostración no hay sesión que cerrar, y se
+  // vuelve a la Agenda para no entrar de nuevo en Configuración.
+  assert.match(sesion, /async function salir\(\) \{[\s\S]*if \(!demo\) await db\(\)\.auth\.signOut\(\);[\s\S]*setView\("Agenda"\);/);
 });

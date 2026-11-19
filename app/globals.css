@@ -90,23 +90,6 @@
   /* La tabla: la cabecera y el resaltado de la fila bajo el mouse. */
   --color-table-head: color-mix(in srgb, var(--surface-soft) 55%, var(--surface));
   --color-row-hover: color-mix(in srgb, var(--surface-soft) 52%, transparent);
-  /* La barra lateral, que es oscura en los dos temas (ver --rail-* abajo). */
-  --color-rail: var(--rail-bg);
-  --color-rail-foreground: var(--rail-fg);
-  --color-rail-line: var(--rail-line);
-  --color-rail-divider: var(--rail-divider);
-  --color-rail-caption: var(--rail-caption);
-  --color-rail-link: var(--rail-link);
-  --color-rail-link-hover: var(--rail-link-hover);
-  --color-rail-hover: var(--rail-hover);
-  --color-rail-active: var(--rail-active);
-  --color-rail-focus: var(--rail-focus);
-  --color-rail-avatar: var(--rail-avatar);
-  --color-rail-avatar-foreground: var(--rail-avatar-fg);
-  --color-rail-name: var(--rail-name);
-  --color-rail-sub: var(--rail-sub);
-  --color-rail-badge: var(--rail-badge);
-  --color-rail-badge-foreground: var(--rail-badge-fg);
   --radius-xs: var(--db-radius-small);
   --radius-sm: var(--rad-sm);
   --radius-md: var(--rad);
@@ -186,28 +169,6 @@
   /* La curva de los paneles laterales, tomada de iOS: sale rápido y frena
      largo, que es lo que hace que un cajón se sienta pesado y no elástico. */
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
-
-  /* La barra lateral, el mismo riel que Daybook Ticket y Parte Diario. Es
-     oscura en los dos temas, igual que allá, y no sigue a --text ni a
-     --surface. En el tema oscuro es negra como el fondo, separada solo por
-     su borde; en el claro vuelve al grafito (ver el bloque de abajo). */
-  --rail-bg: var(--db-rail-bg);
-  --rail-fg: var(--db-rail-text);
-  --rail-line: var(--db-rail-border);
-  --rail-divider: rgba(255, 255, 255, 0.06);
-  --rail-caption: var(--db-rail-text-muted);
-  --rail-link: var(--db-rail-text-muted);
-  --rail-link-hover: var(--db-rail-text);
-  --rail-hover: var(--db-rail-hover);
-  --rail-active: var(--db-rail-active);
-  --rail-focus: var(--db-rail-focus);
-  --rail-avatar: #1f1f1f;
-  --rail-avatar-fg: #c7c7c7;
-  --rail-name: #ededed;
-  --rail-sub: #a1a1a1;
-  /* La cifra de cambios nuevos junto a Actividad: el dorado del foco del riel. */
-  --rail-badge: var(--db-rail-focus);
-  --rail-badge-fg: var(--db-rail-bg);
 }
 
 :root[data-theme="light"] {
@@ -229,15 +190,6 @@
   --down: #6f56b4;
   --down-soft: rgba(111, 86, 180, 0.09);
   --shadow: 0 16px 48px rgba(31, 43, 55, 0.08), 0 1px 3px rgba(31, 43, 55, 0.04);
-
-  /* El riel grafito del tema claro (fondo, texto, borde y activo vienen del
-     paquete); estos tonos de enlace y avatar son propios de Travel. */
-  --rail-link: #aeb5af;
-  --rail-link-hover: #f6f8f6;
-  --rail-avatar: #34352d;
-  --rail-avatar-fg: #ded9cb;
-  --rail-name: #d8d7cf;
-  --rail-sub: #a9aaa0;
 }
 
 * {

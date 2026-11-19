@@ -27,8 +27,23 @@ export function useTema() {
 
   const theme = temaEfectivo(preferenciaTema, sistemaOscuro);
 
+  // Mientras cambia el tema nada se anima (`.db-theme-switching` de
+  // @daybook/design/riel.css): las filas del riel y los botones tienen un
+  // fundido corto y quedaban atrás de las superficies, y el riel parpadeaba.
+  // Se fuerza el cálculo de estilos con la clase puesta y se saca al cuadro
+  // siguiente; sacarla antes de ese cálculo dispararía las transiciones igual.
   useEffect(() => {
-    if (cargado) document.documentElement.dataset.theme = theme;
+    if (!cargado) return;
+    const raiz = document.documentElement;
+    if (raiz.dataset.theme === theme) return;
+    raiz.classList.add("db-theme-switching");
+    raiz.dataset.theme = theme;
+    void raiz.offsetHeight;
+    const cuadro = requestAnimationFrame(() => raiz.classList.remove("db-theme-switching"));
+    return () => {
+      cancelAnimationFrame(cuadro);
+      raiz.classList.remove("db-theme-switching");
+    };
   }, [cargado, theme]);
 
   function elegirTema(preferencia: PreferenciaDeTema) {
