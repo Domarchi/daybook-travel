@@ -10,14 +10,14 @@
 // anuncia «Tema, Oscuro, 2 de 3». Se ocultan los círculos, no las radios: el
 // foco sigue cayendo en ellas y el anillo se dibuja sobre la opción.
 import { useState } from "react";
-import { LogOut, Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
+import { Contrast, LogOut, Moon, Sun, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { OPCIONES_DE_APARIENCIA, type PreferenciaDeTema } from "@/lib/tema";
 import { accesoDeLaCuenta, nombreDeLaCuenta } from "@/lib/cuenta";
 import { useApp } from "../app/store";
 
-const ICONO: Record<PreferenciaDeTema, LucideIcon> = { light: Sun, dark: Moon, system: Monitor };
+const ICONO: Record<PreferenciaDeTema, LucideIcon> = { light: Sun, dark: Moon, system: Contrast };
 
 const TARJETA = "grid gap-4 rounded-lg border border-line bg-surface p-5 max-[760px]:p-4";
 

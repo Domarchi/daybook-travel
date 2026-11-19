@@ -5,7 +5,7 @@ import {
   CalendarDays,
   Coins,
   History,
-  Monitor,
+  Contrast,
   Moon,
   Plane,
   Settings,
@@ -37,7 +37,7 @@ const ACTIVIDAD: Destino = { label: "Actividad", icon: History };
 const ACCESOS: Destino = { label: "Accesos", icon: ShieldCheck };
 const CONFIGURACION: Destino = { label: "Configuración", icon: Settings };
 
-const ICONO_DE_TEMA: Record<PreferenciaDeTema, LucideIcon> = { system: Monitor, light: Sun, dark: Moon };
+const ICONO_DE_TEMA: Record<PreferenciaDeTema, LucideIcon> = { system: Contrast, light: Sun, dark: Moon };
 
 // El riel lateral de Daybook: marca arriba, navegación en medio, quién está
 // abajo. Las filas, los títulos de grupo, el pie y el cajón del teléfono son los
