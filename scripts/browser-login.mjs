@@ -512,7 +512,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       screenWidth: width,
       screenHeight: height,
     }, `viewport efectivo ${label}: ${JSON.stringify(metrics.viewport)}`);
-    // El sello común de @daybook/design: símbolo de 48 px, DAYBOOK 16 px, producto 11 px.
+    // El sello común de @daybook/design (0.10): símbolo de 40 px, DAYBOOK 14 px, producto 11 px.
     assert.deepEqual(metrics.lockup, {
       role: "img",
       label: "Daybook Travel",
@@ -520,10 +520,10 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
       descriptorInside: false,
       images: 0,
     }, `contrato del logo ${label}`);
-    assertNear(metrics.logoMark.width, 48, 0.5, `símbolo del logo ${label}`);
-    assertNear(metrics.logoMark.height, 48, 0.5, `alto del símbolo del logo ${label}`);
-    assertNear(metrics.logo.height, 48, 0.5, `alto de logo ${label}`);
-    assert.equal(metrics.logoName.fontSize, "16px", `DAYBOOK ${label}`);
+    assertNear(metrics.logoMark.width, 40, 0.5, `símbolo del logo ${label}`);
+    assertNear(metrics.logoMark.height, 40, 0.5, `alto del símbolo del logo ${label}`);
+    assertNear(metrics.logo.height, 40, 0.5, `alto de logo ${label}`);
+    assert.equal(metrics.logoName.fontSize, "14px", `DAYBOOK ${label}`);
     assert.equal(metrics.logoProduct.fontSize, "11px", `producto ${label}`);
     assert.equal(metrics.descriptor.fontSize, "11px", `descriptor ${label}`);
     assert.ok(metrics.descriptor.y >= metrics.logo.y + metrics.logo.height, `el descriptor va bajo el logo ${label}`);
@@ -593,7 +593,7 @@ async function runViewport({ cdpPort, appUrl, width, height, mobile }) {
     assert.deepEqual(collector.errors, [], `errores de navegador ${label}`);
     assert.equal(externalRequests, 0, `requests externos ${label}`);
 
-    return `${label}: logo ${metrics.logo.width.toFixed(1)}×${metrics.logo.height.toFixed(1)} (símbolo 48×48), isotipo 56×56, tarjeta ${metrics.card.width.toFixed(0)}×${metrics.card.height.toFixed(2)}, sin overflow ni errores`;
+    return `${label}: logo ${metrics.logo.width.toFixed(1)}×${metrics.logo.height.toFixed(1)} (símbolo 40×40), isotipo 56×56, tarjeta ${metrics.card.width.toFixed(0)}×${metrics.card.height.toFixed(2)}, sin overflow ni errores`;
   } finally {
     collector.stop();
     try { await cdp.send("Page.close"); } catch {}

@@ -23,6 +23,7 @@ export function useAccionesSesion(e: Entrada) {
   const {
     clearMessages,
     clearTripFilters,
+    demo,
     runAction,
     setAccessStatus,
     setCalendarMonth,
@@ -33,6 +34,7 @@ export function useAccionesSesion(e: Entrada) {
     setDemo,
     setDocuments,
     setDocumentTypes,
+    setMenuAbierto,
     setPeople,
     setPeopleFilter,
     setPeopleQuery,
@@ -80,9 +82,23 @@ export function useAccionesSesion(e: Entrada) {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }
 
+  // Salir: desde Configuración, después de confirmar. En la demostración no hay
+  // sesión que cerrar; se descartan los datos ficticios. Se vuelve a la Agenda
+  // para que la próxima entrada no parta en Configuración.
+  async function salir() {
+    setMenuAbierto(false);
+    if (!demo) await db().auth.signOut();
+    setDemo(false);
+    setAccessStatus("checking");
+    setPeople([]);
+    setTrips([]);
+    setView("Agenda");
+  }
+
   return {
     login,
     enterDemo,
+    salir,
   };
 }
 

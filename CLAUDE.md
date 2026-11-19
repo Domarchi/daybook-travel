@@ -29,7 +29,7 @@ base de datos**, no en el código de pantalla. Consecuencias que hay que tener p
 | `app/store.tsx` | 53 líneas. **Junta el estado**: llama a los hooks de `app/estado/` y los expone todos juntos. Cualquier pieza lo pide con `useApp()`; no se pasan props entre vistas. |
 | `app/estado/use-*.ts` | **El estado, por tema** (antes era un solo hook de 1.422 líneas). `use-tema`, `use-avisos` (avisos y `runAction`), `use-sesion`, `use-datos` (lo que viene de la base y `reload`), `use-navegacion` (pantalla y filtros), `use-dialogos` (modal, salida animada, foco), `use-derivados` (listas filtradas, costos, compra), `use-acreditacion`, y las acciones: `use-acciones-sesion`, `-viajes`, `-personas`, `-generar` y `use-manifiesto`. Cada hook declara en su tipo `Entrada` de cuáles depende y `store.tsx` le pasa solo esos. |
 | `components/workspace.tsx` | El armazón: decide qué pantalla se ve y ordena las piezas. |
-| `components/*.tsx` | Pantallas y diálogos, una pieza por archivo: `login-view`, `side-nav` (la barra lateral), `access-state`, `agenda-view`, `people-view`, `trips-view`, `costs-view`, `modal-layer` y los diálogos (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`, `manifest-dialog`). |
+| `components/*.tsx` | Pantallas y diálogos, una pieza por archivo: `login-view`, `side-nav` (la barra lateral), `configuracion-view` (tema, cuenta y salir), `access-state`, `agenda-view`, `people-view`, `trips-view`, `costs-view`, `modal-layer` y los diálogos (`person-dialog`, `trip-dialog`, `generate-dialog`, `history-dialog`, `manifest-dialog`). |
 | `components/ui/*.tsx` | Primitivas reutilizables: botón, campos, pastillas, tabla de datos, encabezado de página, partes de diálogo, marca (`brand-*`). |
 | `components/members-view.tsx` | La pantalla Accesos. Su lógica de presentación (correos, mensajes que se pueden mostrar) está en `lib/members.ts`; la regla de verdad, en `supabase/009_accesos.sql`. |
 | `components/document-types-panel.tsx` | «Documentos exigidos» en Personas: una línea plegable que dice qué se exige y se abre con «Ver» (o «Editar», para un administrador). Lo ven todos; solo un administrador agrega o desactiva tipos. «Gestionar con Excel» quedó en el menú «Más» de la barra. |
@@ -349,11 +349,15 @@ rota. Nada de reescritura de una sentada.
    Tailwind (rama `barra-lateral-tailwind`). La barra lateral se escribió en CSS cuando llegó
    el riel de Daybook, después de la migración, y fue lo último en pasar:
 
-   - Sus colores son los tokens `--rail-*`, solo en `:root`: el riel es oscuro en los dos
-     temas, así que el tema claro **no** los redefine. En Tailwind son `bg-rail`,
-     `text-rail-link`, `border-rail-line`, etc.
+   - Desde la 0.10 de `@daybook/design` (rama `ui/riel-como-pd`) el riel es el de Parte
+     Diario: filas, títulos de grupo («Operación», «Administración»), pie, cajón del
+     teléfono y velo son las clases de `@daybook/design/riel.css` (`.db-rail-*`), con los
+     colores `--db-rail-*`. Los tokens propios `--rail-*` y las clases `bg-rail`,
+     `text-rail-*` se quitaron. `riel.css` va sin capa, así que le gana a Tailwind: no le
+     pongas utilidades que choquen con lo que ya fija (por eso la ✕ del cajón se monta
+     solo en el teléfono en vez de esconderse con `hidden`).
    - El logo es el sello común de `@daybook/design/marca.css` (desde la 0.8.0): `BrandLogo`
-     dibuja `.db-lockup` (símbolo de 48 px + DAYBOOK + TRAVEL en texto), `BrandMark` el
+     dibuja `.db-lockup` (símbolo de 40 px desde la 0.10 + DAYBOOK + TRAVEL en texto), `BrandMark` el
      `.db-mark` (56 px con `grande`, en la tarjeta de entrada) y el riel usa
      `.db-brand-block.db-on-dark`. El símbolo viene en el CSS y sigue al tema solo; los
      tamaños los pone el paquete, igual en Ticket y Parte Diario: no se les pone ancho propio.
@@ -500,8 +504,10 @@ opinión.
 
 - **Barra lateral y tema claro de Daybook.** La barra superior se reemplazó por el riel lateral
   oscuro de Daybook Ticket y Parte Diario (`components/side-nav.tsx`): 232 px fijos, marca,
-  navegación y, abajo, el usuario con el cambio de tema y la salida. Por debajo de 820 px pasa a
-  una franja superior y por debajo de 430 px esconde los iconos. El tema claro usa el lienzo gris
+  navegación en dos grupos y, abajo, quién está y un botón de tema que recorre Sistema → Claro →
+  Oscuro. Salir y la cuenta están en **Configuración** (la última fila), como en Parte Diario.
+  Por debajo de 820 px el riel es un cajón que abre el ☰ (`.db-rail-drawer`, con `data-open`),
+  sobre un velo siempre montado (`.db-rail-scrim`); mientras sale no atrapa los toques. El tema claro usa el lienzo gris
   frío (`#f7f8f9`) con tarjetas blancas y los bordes de Daybook.
 - **No hay fondo de círculos.** `BrandBackground` (los círculos de las esquinas) se eliminó de
   toda la aplicación, la pantalla de carga y las de contraseña; no hay que volver a ponerlo.

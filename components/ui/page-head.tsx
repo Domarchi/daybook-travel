@@ -19,7 +19,11 @@ const TITULOS: Record<string, string> = {
   Actividad: "Actividad reciente",
   Accesos: "Accesos",
   Viajes: "Viajes y solicitudes",
+  Configuración: "Configuración",
 };
+
+// Las pantallas donde no se crea nada desde el encabezado.
+const SIN_BOTON = new Set(["Costos", "Accesos", "Actividad", "Configuración"]);
 
 export default function PageHead() {
   const { view, openPerson, openTrip } = useApp();
@@ -30,7 +34,7 @@ export default function PageHead() {
       <h1 className="min-w-0 text-[clamp(22px,1.9vw,27px)] leading-[1.15] font-semibold tracking-[-0.035em] text-foreground">
         {titulo}
       </h1>
-      {view !== "Costos" && view !== "Accesos" && view !== "Actividad" && (
+      {!SIN_BOTON.has(view) && (
         <Button
           type="button"
           variant="primary"

@@ -349,8 +349,9 @@ const VELO = [60, 450];
 // Escape cierran de una; con cambios, el velo, Escape, la ✕ y «Cancelar»
 // preguntan. El importador de Excel sigue la misma regla con un archivo cargado.
 // El historial se abre dentro del formulario. Marcar como solicitado se deshace
-// desde el aviso. Cerrar sesión (salir de la demostración) pregunta y dice que se
-// pierden los cambios; el selector de tema mide 44 px y no queda pegado a él.
+// desde el aviso. El botón de tema del riel mide 44 px y recorre las tres
+// opciones; salir de la demostración, desde Configuración, pregunta y dice que
+// se pierden los cambios.
 async function noPerderLoEscrito(cdpPort, appUrl) {
   const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
   // Un archivo que no es .xlsx: basta para que el importador quede con una revisión.
@@ -455,13 +456,32 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await clicReal(cdp, `window.__boton("Descartar cambios", ${PREGUNTA})`);
     await waitUntil(cdp, `!document.querySelector(".dialog") && !${PREGUNTA}`, "descartar la revisión");
 
-    // Salir de la demostración: 44 px, pregunta y dice que se pierden los cambios.
-    // El tema, debajo, también mide 44 px y deja aire entre los dos.
-    const salir = `document.querySelector('aside button[aria-label="Salir de la demostración"]')`;
-    assert.deepEqual(await cdp.evaluate(`(() => { const r = ${salir}.getBoundingClientRect(); return [r.width, r.height]; })()`), [44, 44]);
-    const [altoTema, aire] = await cdp.evaluate(`(() => { const t = document.querySelector('aside select[aria-label="Tema"]').getBoundingClientRect(); return [t.height, t.top - ${salir}.getBoundingClientRect().bottom]; })()`);
-    assert.equal(altoTema, 44, "el selector de tema mide 44 px");
-    assert.ok(aire >= 8, `el tema queda a ${aire} px del botón de salir`);
+    // El tema del pie del riel: un botón de 44 px que recorre Sistema → Claro →
+    // Oscuro, como en Parte Diario. Cambia el tema sin dejar las transiciones
+    // apagadas (la clase de @daybook/design sale al cuadro siguiente).
+    const tema = `document.querySelector('aside .db-rail-account button[aria-label^="Tema:"]')`;
+    assert.deepEqual(await cdp.evaluate(`(() => { const r = ${tema}.getBoundingClientRect(); return [r.width, r.height]; })()`), [44, 44]);
+    assert.equal(await cdp.evaluate(`${tema}.getAttribute("aria-label")`), "Tema: Sistema");
+    for (const [etiqueta, pintado] of [["Claro", "light"], ["Oscuro", "dark"]]) {
+      await clicReal(cdp, tema);
+      await waitUntil(cdp, `${tema}.getAttribute("aria-label") === "Tema: ${etiqueta}" && document.documentElement.dataset.theme === "${pintado}"`, `el tema ${etiqueta}`);
+    }
+    await clicReal(cdp, tema);
+    await waitUntil(cdp, `${tema}.getAttribute("aria-label") === "Tema: Sistema"`, "de vuelta a Sistema");
+    await delay(100);
+    assert.equal(await cdp.evaluate(`document.documentElement.classList.contains("db-theme-switching")`), false, "las transiciones vuelven después del cambio de tema");
+    assert.equal(await cdp.evaluate(`!!document.querySelector('aside select, aside button[aria-label="Salir de la demostración"]')`), false, "el riel ya no lleva la salida ni el desplegable del tema");
+
+    // Configuración: el tema como control de tres partes, y salir, que pregunta
+    // y dice que se pierden los cambios.
+    await ir(cdp, "Configuración");
+    await waitUntil(cdp, `document.querySelector("main h1")?.textContent === "Configuración"`, "Configuración");
+    assert.equal(await cdp.evaluate(`document.querySelector('main input[name=tema]:checked').value`), "system");
+    await clicReal(cdp, `[...document.querySelectorAll("main fieldset label")].find((l) => l.textContent.trim() === "Oscuro")`);
+    await waitUntil(cdp, `document.documentElement.dataset.theme === "dark" && ${tema}.getAttribute("aria-label") === "Tema: Oscuro"`, "Oscuro desde Configuración");
+    await clicReal(cdp, `[...document.querySelectorAll("main fieldset label")].find((l) => l.textContent.trim() === "Según el sistema")`);
+    await waitUntil(cdp, `document.querySelector('main input[name=tema]:checked').value === "system"`, "de vuelta a Según el sistema");
+    const salir = `window.__boton("Salir de la demostración", document.querySelector("main"))`;
     await clicReal(cdp, salir);
     await waitUntil(cdp, `${PREGUNTA}?.innerText.includes("Se pierden los cambios")`, "la pregunta al salir");
     await escape(cdp);
@@ -472,7 +492,7 @@ async function noPerderLoEscrito(cdpPort, appUrl) {
     await waitUntil(cdp, `!!document.querySelector("[data-demo-action]")`, "de vuelta en la entrada");
 
     assert.deepEqual(lista, [], "sin errores en la consola");
-    return "formulario: sin cambios el velo cierra; con cambios velo, Escape, ✕ y Cancelar preguntan; Excel igual; historial dentro; Deshacer solicitado; salir y tema de 44 px";
+    return "formulario: sin cambios el velo cierra; con cambios velo, Escape, ✕ y Cancelar preguntan; Excel igual; historial dentro; Deshacer solicitado; tema del riel y salir desde Configuración";
   } finally {
     cdp.close();
     await rm(carpeta, { recursive: true, force: true });
@@ -557,6 +577,36 @@ async function telefono(cdpPort, appUrl) {
     const leyenda = await cdp.evaluate(`document.querySelector('[aria-label="Leyenda del calendario"]').innerText.replace(/\\s+/g, " ")`);
     assert.match(leyenda, /10 = 10×10.*S\/T = sin turno.*\? = por confirmar/, `la leyenda en el teléfono: «${leyenda}»`);
 
+    // El cajón del ☰, como en Parte Diario: entra con el foco en la primera
+    // fila, el velo detrás, la página quieta; Escape, el velo y la ✕ lo cierran
+    // y el foco vuelve al ☰.
+    const riel = `document.getElementById("menu-principal")`;
+    const velo = `document.querySelector(".db-rail-scrim")`;
+    const abierto = `${riel}.dataset.open === "true" && ${velo}.dataset.open === "true"`;
+    const cerrado = `${riel}.dataset.open === "false" && ${velo}.dataset.open === "false" && document.activeElement?.id === "boton-menu"`;
+    assert.equal(await cdp.evaluate(`getComputedStyle(${riel}).visibility`), "hidden", "cerrado, el cajón no se ve ni se recorre con Tab");
+    const abrir = async (paso) => {
+      await clicReal(cdp, `document.getElementById("boton-menu")`);
+      // Sin esperar a que el cajón termine de salir: mientras sale no atrapa
+      // el toque y el ☰ vuelve a abrirlo.
+      await waitUntil(cdp, `${abierto} && document.activeElement?.textContent.trim() === "Agenda"`, `abrir el cajón (${paso})`);
+      assert.equal(await cdp.evaluate(`document.documentElement.style.overflow`), "hidden", "la página no se desplaza con el cajón abierto");
+      await delay(350); // termina de entrar
+    };
+    await abrir("Escape");
+    assert.deepEqual(await cdp.evaluate(`(() => { const r = ${riel}.getBoundingClientRect(); return [r.x, r.width]; })()`), [0, 232]);
+    await escape(cdp);
+    await waitUntil(cdp, cerrado, "Escape cierra el cajón");
+    await abrir("velo");
+    await clicReal(cdp, [330, 600]);
+    await waitUntil(cdp, cerrado, "el velo cierra el cajón");
+    await abrir("✕");
+    const cruz = `${riel}.querySelector('button[aria-label="Cerrar menú"]')`;
+    assert.deepEqual(await cdp.evaluate(`(() => { const r = ${cruz}.getBoundingClientRect(); return [r.width, r.height]; })()`), [44, 44]);
+    await clicReal(cdp, cruz);
+    await waitUntil(cdp, cerrado, "la ✕ cierra el cajón");
+    assert.equal(await cdp.evaluate(`document.documentElement.style.overflow`), "", "la página vuelve a desplazarse");
+
     await ir(cdp, "Viajes");
     await waitUntil(cdp, `!!document.querySelector("tbody")`, "la lista de viajes");
     const filtros = `window.__boton("Filtros", document.querySelector("main"))`;
@@ -594,7 +644,7 @@ async function telefono(cdpPort, appUrl) {
 
     assert.equal(await cdp.evaluate(`document.documentElement.scrollWidth`), 390, "nada se sale a 390 px");
     assert.deepEqual(lista, [], "sin errores en la consola");
-    return "teléfono: entrega antes del calendario, leyenda, Filtros (n), marcar todos, documentos plegados y Más";
+    return "teléfono: entrega antes del calendario, leyenda, cajón del ☰ (Escape, velo y ✕), Filtros (n), marcar todos, documentos plegados y Más";
   } finally {
     cdp.close();
   }
