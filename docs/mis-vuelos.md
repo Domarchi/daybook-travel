@@ -3,7 +3,7 @@
 Un espacio para que cada trabajador vea **solo sus propios vuelos** desde el teléfono y reciba un recordatorio el día antes. Lo pidió el dueño: «algo como su RUT y un código de 4 dígitos fácil y que se guarde».
 
 - Pantalla: `/mis-vuelos` (`components/mis-vuelos-view.tsx`), aparte de la de la coordinación: sin su store ni su sesión.
-- Base: `supabase/016_mis_vuelos.sql`. **No está aplicada en producción** hasta que el dueño lo apruebe; se registraría como `travel_016_mis_vuelos`.
+- Base: `supabase/016_mis_vuelos.sql`, aplicada en RELEVO el 23-nov-2026 como `travel_016_mis_vuelos` (con aprobación del dueño). Después se comprobó en producción que `anon` no lee ninguna tabla, que solo puede llamar a `worker_sign_in`, `worker_trips`, `worker_sign_out` y `worker_calendar`, y que `worker_reminder_data` es solo de `service_role`.
 - Ficha: RUT, teléfono y correo (opcionales) y la sección «Mis vuelos» (`components/acceso-mis-vuelos.tsx`).
 
 ## Decisiones
@@ -84,8 +84,12 @@ Costo aproximado: unos US$0,02 por mensaje de utilidad a Chile (tarifa de Meta, 
 
 ## Pasos para encenderlo
 
-1. Aprobar y aplicar `016_mis_vuelos.sql` en RELEVO como `travel_016_mis_vuelos`.
+1. ~~Aplicar `016_mis_vuelos.sql` en RELEVO.~~ Hecho el 23-nov-2026. Hasta que este cambio llegue a producción, la ficha no muestra los campos nuevos (los esconde el código viejo, que no los conoce).
 2. Cargar RUT (y teléfono o correo) en las fichas y entregar los códigos desde la ficha.
 3. Para el correo: las variables de Resend (ya pendientes por las alertas).
 4. Para WhatsApp: cuenta de Meta Business verificada, número, plantilla aprobada y sus tres variables.
 5. Probar con `?simular=1` antes del primer envío real.
+
+## El revisor de seguridad de Supabase
+
+Tras aplicar la 016 marca dos cosas suyas, las dos a propósito: las cuatro funciones `worker_*` del trabajador se pueden llamar sin sesión (así entra sin cuenta, y cada una devuelve solo lo del token), y `worker_access` y `worker_sessions` tienen RLS sin políticas (nadie las lee directo; solo las funciones).
