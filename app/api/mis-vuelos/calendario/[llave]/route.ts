@@ -6,7 +6,9 @@ import { manejarCalendario } from "@/lib/mis-vuelos-calendario-handler";
 // que devuelve los vuelos de la persona dueña de esta llave y nada más.
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request, ctx: RouteContext<"/api/mis-vuelos/calendario/[llave]">) {
+// El tipo va escrito a mano y no con RouteContext<…>: ese lo genera Next al
+// compilar, y el CI corre `tsc` antes que `next build`.
+export async function GET(_request: Request, ctx: { params: Promise<{ llave: string }> }) {
   const { llave } = await ctx.params;
   return manejarCalendario({
     llave,
