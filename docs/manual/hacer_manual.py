@@ -6,8 +6,8 @@ import html, sys
 SALIDA = sys.argv[1]
 LOGO = "daybook-travel-logo-on-light.svg"
 MARCA = "daybook-mark-on-light.svg"
-VERSION = "2.5"
-FECHA = "17 de noviembre de 2026"
+VERSION = "2.6"
+FECHA = "23 de noviembre de 2026"
 URL = "https://relevo-chi.vercel.app"
 
 def e(t):
@@ -151,6 +151,7 @@ pagina("Personas", "La ficha de cada integrante",
       "En 4×3, los días en que <strong>sube</strong> y <strong>baja</strong> (por omisión lunes y jueves).",
       "El inicio de vigencia (en 10×10, la primera subida) y, si se sabe, hasta cuándo está vigente.",
       "Equipaje habitual y si la persona está activa.",
+      "Si se tienen, <strong>RUT</strong>, teléfono y correo (opcionales): sirven para Mis vuelos y sus recordatorios.",
     ])),
     col("Detalles que conviene revisar", lista([
       "La fecha de término no puede quedar antes del inicio.",
@@ -419,6 +420,25 @@ pagina("Accesos", "Quién puede entrar",
   nota("Qué ve cada rol", "Los <strong>miembros</strong> trabajan con personas, viajes y costos. Solo los <strong>administradores</strong> ven Accesos, agregan o desactivan documentos exigidos y leen el historial de accesos.") +
   nota("Quiénes tienen acceso", "La lista vigente está siempre en la pantalla Accesos. Esta guía no la repite para que no quede desactualizada ni circule con correos de personas.", "aviso"))
 
+pagina("Mis vuelos", "Lo que ve cada trabajador",
+  "Cada persona puede consultar sus propios vuelos desde el teléfono, en " + URL + "/mis-vuelos, con su RUT y un código de 4 dígitos. Solo ve lo suyo.",
+  dos(
+    col("Darle acceso", pasos([
+      "En <strong>Personas</strong>, abre su ficha y escribe su <strong>RUT</strong>. Si lo tienes, agrega su teléfono y su correo. Guarda.",
+      "Vuelve a abrir la ficha: en <strong>Mis vuelos</strong>, pulsa <strong>Dar código</strong>.",
+      "Pulsa <strong>Enviar por WhatsApp</strong>: se abre con el mensaje escrito (la dirección, que entra con su RUT y el código). El código se muestra solo esa vez.",
+      "Su teléfono lo recuerda: no tiene que escribirlo cada vez.",
+    ])),
+    col("Qué ve y qué recibe", lista([
+      "Sus viajes de hoy en adelante y los de los últimos 60 días, sin los anulados.",
+      "Fecha, ruta, hora, vuelo y <strong>código de reserva</strong>. Nunca el monto ni las observaciones.",
+      "«Pasaje listo» cuando ya tiene código de reserva; «Pasaje por confirmar» mientras no.",
+      "<strong>Agregar a mi calendario</strong>: sus vuelos aparecen en el calendario del teléfono, se actualizan solos y avisan la víspera.",
+      "El día antes de un vuelo con código de reserva, un recordatorio por WhatsApp y por correo, si su ficha los tiene.",
+    ]))) +
+  nota("Si se equivoca o pierde el teléfono", "Cinco códigos equivocados seguidos bloquean su acceso. Para devolvérselo, pulsa <strong>Dar código nuevo</strong> en su ficha: el código anterior y la sesión del otro teléfono dejan de servir. <strong>Quitar acceso</strong> lo bloquea de inmediato. Desactivar la ficha también corta su acceso.", "aviso") +
+  nota("Qué queda registrado", "El historial de la persona dice cuándo se le dio un código y cuándo se bloqueó. El código no se guarda ni se puede volver a ver: si se pierde, se da uno nuevo."))
+
 pagina("Trabajo diario", "Cómo proponemos organizarnos",
   "Si seguimos el mismo orden, evitamos solicitar dos veces un pasaje o dejar datos incompletos.",
   dos(
@@ -449,10 +469,11 @@ pagina("Para terminar", "Qué está listo y qué viene después",
       "Lista de solicitud con control de acreditación.",
       "Lista para el campamento, con los traslados del aeropuerto.",
       "Sincronización con Excel y administración de accesos.",
+      "Mis vuelos: cada trabajador ve los suyos, con calendario del teléfono.",
       "Actividad reciente con lo nuevo desde tu última visita, viajes sin cerrar, cierre en bloque y costos para Excel.",
     ])),
     col("Lo que queda para otra etapa", lista([
-      "Avisos por correo de viajes urgentes sin PNR: ya está hecho, falta configurar el correo.",
+      "Avisos por correo de viajes urgentes sin PNR y recordatorios del día antes a cada trabajador: ya están hechos, falta configurar el correo y la cuenta de WhatsApp.",
       "Consulta de precios de aerolíneas en tiempo real.",
       "Compra o emisión directa de pasajes.",
       "Envío automático a la agencia.",

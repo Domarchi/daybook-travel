@@ -11,10 +11,13 @@ import { useState } from "react";
 import { DIAS_SEMANA } from "../lib/cycles";
 import { useApp } from "../app/store";
 import { HistorialEnFicha } from "@/components/history-dialog";
+import AccesoMisVuelos from "@/components/acceso-mis-vuelos";
+import { baseConContacto, formatearRut, formatearTelefono } from "../lib/contacto";
 
 export default function PersonDialog() {
   const {
     busy,
+    demo,
     pedirCierre,
     documents,
     documentTypes,
@@ -38,6 +41,8 @@ export default function PersonDialog() {
   const futuros = editPerson ? viajesFuturosDe(editPerson.id, trips, localDate()) : null;
   const seDesactiva = Boolean(editPerson?.active && !activa && futuros);
   const repetidas = personasConMismoNombre(nombre, people, editPerson?.id);
+  // RUT, teléfono, correo y Mis vuelos existen desde la migración 016.
+  const conContacto = baseConContacto(people);
 
   return (
     <form onSubmit={savePerson} aria-busy={busy}
@@ -99,6 +104,49 @@ export default function PersonDialog() {
             </Label>
           </FormGrid>
         </FormSection>
+        {conContacto && (
+          <FormSection aria-labelledby="person-contact">
+            <h3 id="person-contact" className="text-foreground">
+              Contacto <small className="font-normal text-muted">(opcional)</small>
+            </h3>
+            <FormGrid>
+              <Label>
+                RUT
+                <Input
+                  name="rut"
+                  autoComplete="off"
+                  placeholder="12.345.678-9"
+                  defaultValue={editPerson?.rut ? formatearRut(editPerson.rut) : ""}
+                />
+              </Label>
+              <Label>
+                Teléfono
+                <Input
+                  name="phone"
+                  type="tel"
+                  autoComplete="off"
+                  placeholder="+56 9 1234 5678"
+                  defaultValue={editPerson?.phone ? formatearTelefono(editPerson.phone) : ""}
+                />
+              </Label>
+              <Label>
+                Correo
+                <Input
+                  name="email"
+                  type="email"
+                  autoComplete="off"
+                  placeholder="nombre@correo.cl"
+                  defaultValue={editPerson?.email ?? ""}
+                />
+              </Label>
+            </FormGrid>
+            <Hint>
+              Con el RUT entra a Mis vuelos. El teléfono (WhatsApp) y el correo reciben el recordatorio
+              el día antes de cada vuelo con pasaje.
+            </Hint>
+          </FormSection>
+        )}
+        {conContacto && editPerson && <AccesoMisVuelos persona={editPerson} demo={demo} />}
         <FormSection aria-labelledby="person-schedule">
           <h3 id="person-schedule" className="text-foreground">Turno y vigencia</h3>
           <FormGrid>

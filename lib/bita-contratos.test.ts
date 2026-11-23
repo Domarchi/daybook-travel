@@ -46,6 +46,13 @@ test("Bita solo lee: ninguna escritura en tablas, y la llave de servicio solo cu
   // Todo lo demás se lee con el token de la persona.
   assert.match(dependencias, /Authorization: `Bearer \$\{token\}`/);
   assert.ok(!/deServicio\(\)\.from\(/.test(dependencias));
+  // Las personas se leen con columnas nombradas: el RUT, el teléfono y el correo
+  // de la ficha (migración 016) nunca llegan a Bita ni al modelo.
+  const columnasDePersonas = /todas<Person>\(db, "people", "([^"]+)"\)/.exec(dependencias)?.[1] ?? "";
+  assert.ok(columnasDePersonas, "Bita lee personas con columnas nombradas");
+  for (const privada of ["rut", "phone", "email", "*"]) {
+    assert.ok(!columnasDePersonas.split(",").includes(privada), `Bita no lee people.${privada}`);
+  }
 });
 
 test("las rutas pasan por el manejador, que revisa el interruptor antes que nada", async () => {

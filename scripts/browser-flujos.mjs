@@ -3,8 +3,9 @@
 // como solicitado, editar un viaje con su motivo, el aviso de persona repetida,
 // cerrar en bloque los viajes pasados sin reserva, los viajes para revisar, la
 // reserva en bloque, que lo escrito en un diálogo no se pierda sin preguntar y
-// el motivo que se anota solo al registrar un dato que faltaba, y el orden de
-// las pantallas en el teléfono.
+// el motivo que se anota solo al registrar un dato que faltaba, el orden de
+// las pantallas en el teléfono y Mis vuelos (la ficha y la pantalla del
+// trabajador).
 //
 // Hasta ahora el CI probaba en navegador solo la entrada y la recuperación de
 // clave; el resto se comprobaba a mano. Esto no reemplaza las pruebas de
@@ -680,9 +681,88 @@ async function campamento(cdpPort, appUrl) {
   }
 }
 
+// Mis vuelos. La ficha de la persona (demostración): el RUT se valida al
+// guardar, el teléfono queda internacional y «Dar código» muestra el código con
+// el enlace de WhatsApp ya escrito. La pantalla del trabajador, en el ancho de
+// un teléfono: el formulario de RUT y código, y su demostración con el próximo
+// viaje, el código de reserva y el calendario. Entrar de verdad no se prueba
+// aquí: eso es la base (lib/mis-vuelos-postgres.test.ts).
+async function misVuelos(cdpPort, appUrl) {
+  const { cdp, lista } = await abrirDemo(cdpPort, appUrl);
+  const abrirFicha = () => cdp.evaluate(`(() => {
+    const fila = [...document.querySelectorAll("main article")].find((a) => a.querySelector("h2")?.textContent === "Persona de ejemplo 1");
+    return window.__clic("Editar", fila);
+  })()`);
+  try {
+    await ir(cdp, "Personas");
+    await abrirFicha();
+    await waitUntil(cdp, `!!document.querySelector("[data-acceso-mis-vuelos]") && !!window.__boton("Dar código", document.querySelector(".dialog"))`, "el acceso a Mis vuelos en la ficha");
+    assert.equal(await cdp.evaluate(`document.querySelector(".dialog input[name=rut]").value`), "11.111.111-1");
+
+    await cdp.evaluate(`window.__clic("Dar código", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `!!document.querySelector("[data-codigo-mis-vuelos]")`, "el código entregado");
+    const codigo = await cdp.evaluate(`document.querySelector("[data-codigo-mis-vuelos] strong").textContent`);
+    assert.match(codigo, /^\d{4}$/);
+    const whatsapp = await cdp.evaluate(`[...document.querySelectorAll("[data-codigo-mis-vuelos] a")].find((a) => a.textContent.includes("WhatsApp")).href`);
+    assert.ok(whatsapp.startsWith("https://wa.me/56900000000?text="), whatsapp);
+    const mensaje = decodeURIComponent(whatsapp.split("text=")[1]);
+    assert.ok(mensaje.includes(`código: ${codigo}`) && mensaje.includes("/mis-vuelos con tu RUT"), mensaje);
+
+    // Un RUT con el dígito verificador equivocado no se guarda, y lo dice.
+    await cdp.evaluate(`window.__valor(".dialog input[name=rut]", "11.111.111-2")`);
+    await cdp.evaluate(`window.__clic("Guardar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `/RUT no es válido/.test(window.__error())`, "el error de RUT");
+    await cdp.evaluate(`window.__valor(".dialog input[name=rut]", "11111111-1")`);
+    await cdp.evaluate(`window.__valor(".dialog input[name=phone]", "9 1234 5678")`);
+    await cdp.evaluate(`window.__clic("Guardar", document.querySelector(".dialog"))`);
+    await waitUntil(cdp, `window.__aviso().startsWith("Persona guardada")`, "la ficha guardada");
+    await waitUntil(cdp, `!document.querySelector(".dialog")`, "el diálogo cerrado");
+    await abrirFicha();
+    await waitUntil(cdp, `!!document.querySelector(".dialog input[name=phone]")`, "la ficha otra vez");
+    assert.equal(await cdp.evaluate(`document.querySelector(".dialog input[name=phone]").value`), "+56 9 1234 5678");
+    assert.deepEqual(lista, [], "sin errores en la consola (coordinación)");
+  } finally {
+    cdp.close();
+  }
+
+  // La pantalla del trabajador, en un teléfono.
+  const target = await openTarget(cdpPort);
+  const telefono = await Cdp.connect(target.webSocketDebuggerUrl);
+  const erroresDelTrabajador = errores(telefono);
+  try {
+    await Promise.all([telefono.send("Page.enable"), telefono.send("Runtime.enable")]);
+    await telefono.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await telefono.send("Page.navigate", { url: new URL("mis-vuelos", appUrl).href });
+    await waitUntil(telefono, `!!document.querySelector("input[name=rut]") && !!document.querySelector("input[name=codigo]")`, "el formulario de Mis vuelos");
+    await telefono.evaluate(AYUDAS);
+    assert.equal(await telefono.evaluate(`document.querySelector("input[name=codigo]").inputMode`), "numeric");
+    assert.equal(await telefono.evaluate(`document.title`), "Mis vuelos · Daybook Travel");
+
+    await telefono.evaluate(`document.querySelector("[data-mis-vuelos-demo]").click()`);
+    await waitUntil(telefono, `document.querySelectorAll("[data-viaje-trabajador]").length > 1`, "los vuelos de la demostración");
+    const texto = await telefono.evaluate(`document.querySelector("main").innerText`);
+    assert.match(texto, /Hola, Persona/);
+    assert.match(texto, /TU PRÓXIMO VIAJE|Tu próximo viaje/i);
+    const primero = await telefono.evaluate(`document.querySelector("[data-viaje-trabajador]").innerText`);
+    assert.match(primero, /DEMO01/);
+    assert.match(primero, /Pasaje listo/);
+    assert.match(texto, /Pasaje por confirmar/);
+    assert.match(texto, /aviso por WhatsApp/);
+    assert.equal(await telefono.evaluate(`!!document.querySelector("[data-mis-vuelos-calendario]")`), true, "el botón del calendario");
+    assert.equal(await telefono.evaluate(`document.documentElement.scrollWidth`), 390, "nada se sale a 390 px");
+
+    await telefono.evaluate(`document.querySelector("[data-mis-vuelos-salir]").click()`);
+    await waitUntil(telefono, `!!document.querySelector("input[name=rut]")`, "Salir vuelve al formulario");
+    assert.deepEqual(erroresDelTrabajador, [], "sin errores en la consola (trabajador)");
+    return `Mis vuelos: código con WhatsApp, RUT validado, teléfono internacional y la pantalla del trabajador a 390 px`;
+  } finally {
+    telefono.close();
+  }
+}
+
 async function main() {
   const { cdpPort, appUrl } = await startBrowser();
-  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, campamento, bita, noPerderLoEscrito, motivoYAnticipacion, telefono]) {
+  for (const escenario of [planificarYSolicitar, cerrarEnBloque, revisarYReservar, campamento, misVuelos, bita, noPerderLoEscrito, motivoYAnticipacion, telefono]) {
     console.log(`✓ ${await escenario(cdpPort, appUrl)}`);
   }
 }

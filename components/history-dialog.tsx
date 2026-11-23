@@ -7,7 +7,7 @@ import { DialogBody } from "@/components/ui/dialog-parts";
 import { ArrowDownLeft, ArrowRight, ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
 import { formatDateTime } from "../lib/format";
-import { cambiosDe, notaDelCambio, type Entidad } from "../lib/historial";
+import { cambiosDe, notaDelCambio, tituloDeAcceso, type Entidad } from "../lib/historial";
 import { useApp } from "../app/store";
 import type { HistoryItem } from "../lib/types";
 
@@ -55,15 +55,19 @@ export function ListaDeHistorial() {
             const esAlta = item.action === "INSERT";
             // En el historial de una persona también vienen sus documentos.
             const esDocumento = item.entity === "person_documents";
+            // Y su acceso a Mis vuelos: cuándo se le dio un código o se bloqueó.
+            const esAcceso = item.entity === "worker_access";
             const tipo = esDocumento
               ? documentTypes.find((t) => t.id === item.after_data?.type_id)?.name ?? "Documento"
               : "";
-            const cambios = esAlta
+            const cambios = esAcceso
+              ? []
+              : esAlta
               ? esDocumento
                 ? cambiosDe("person_documents", { expires_on: null }, item.after_data)
                 : []
               : cambiosDe(esDocumento ? "person_documents" : entidad, item.before_data, item.after_data);
-            const nota = esDocumento ? "" : notaDelCambio(esAlta ? null : item.before_data, item.after_data);
+            const nota = esDocumento || esAcceso ? "" : notaDelCambio(esAlta ? null : item.before_data, item.after_data);
             const estadoInicial = esAlta && editTrip ? String(item.after_data?.status ?? "") : "";
             return (
               // La línea vertical que une los puntos es el ::before, y por eso
@@ -78,7 +82,9 @@ export function ListaDeHistorial() {
                 />
                 <div className="grid gap-1">
                   <strong className="text-foreground">
-                    {esDocumento
+                    {esAcceso
+                      ? tituloDeAcceso(item.before_data, item.after_data)
+                      : esDocumento
                       ? `${tipo}: ${esAlta ? "registrado" : "actualizado"}`
                       : esAlta
                         ? creado
@@ -106,7 +112,7 @@ export function ListaDeHistorial() {
                       {[nota, estadoInicial].filter(Boolean).join(" · ")}
                     </p>
                   )}
-                  {!esAlta && !cambios.length && !nota && (
+                  {!esAlta && !esAcceso && !cambios.length && !nota && (
                     <small className="text-muted">
                       Sin cambios en los datos que muestra la ficha {deLaFicha}.
                     </small>

@@ -59,6 +59,9 @@ const CAMPOS = {
     ["down_weekday", "Baja los", dia],
     ["baggage", "Equipaje habitual", texto],
     ["active", "Estado", activa],
+    ["rut", "RUT", texto],
+    ["phone", "Teléfono", texto],
+    ["email", "Correo", texto],
   ],
   // Los documentos de una persona: lo único que cambia es el vencimiento. Qué
   // documento es (type_id) no cambia; el diálogo lo pone en el título.
@@ -105,4 +108,16 @@ export function notaDelCambio(antes: Fila, despues: Fila): string {
   }
   if (obs !== observacionesDe(vieja)) lineas.push(obs ? `Observaciones: ${obs}` : "Se borraron las observaciones.");
   return lineas.join("\n");
+}
+
+/**
+ * El título de una entrada del acceso a Mis vuelos (entidad `worker_access`,
+ * migración 016). La base guarda solo cuándo se entregó el código y si está
+ * bloqueado; nunca el código.
+ */
+export function tituloDeAcceso(antes: Fila, despues: Fila): string {
+  const bloqueado = despues?.locked === true;
+  if (!antes || antes.pin_set_at !== despues?.pin_set_at) return "Mis vuelos: código entregado";
+  if (bloqueado && antes.locked !== true) return "Mis vuelos: acceso bloqueado o quitado";
+  return "Mis vuelos: acceso actualizado";
 }
