@@ -22,6 +22,10 @@ export function makeDemoPeople(): Person[] {
       down_weekday: 4,
       baggage: "Mochila",
       active: true,
+      // RUT y teléfono de prueba (no son de nadie): con ellos la ficha muestra
+      // el acceso a Mis vuelos y el botón de WhatsApp.
+      rut: "11111111-1",
+      phone: "+56900000000",
     },
     {
       id: "p2",

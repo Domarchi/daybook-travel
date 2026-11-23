@@ -9,6 +9,7 @@ import { localDate } from "../../lib/format";
 import { MOTIVO_PERSONA_INACTIVA, viajesFuturosDe } from "../../lib/cierre";
 import { viajesARevisar } from "../../lib/revision";
 import { Person } from "../../lib/types";
+import { baseConContacto, leerContacto } from "../../lib/contacto";
 import type { Avisos } from "./use-avisos";
 import type { Sesion } from "./use-sesion";
 import type { Datos } from "./use-datos";
@@ -30,6 +31,7 @@ export function useAccionesPersonas(e: Entrada) {
     fechasDeDocumentosCambiadas,
     openTrip,
     pendingTripDate,
+    people,
     reload,
     runAction,
     setDocuments,
@@ -64,12 +66,28 @@ export function useAccionesPersonas(e: Entrada) {
         down_weekday: Number(form.get("down_weekday") ?? 4) || 4,
         baggage: String(form.get("baggage")),
         active: form.get("active") === "on",
+        // RUT, teléfono y correo: opcionales, validados aquí y en la base (016).
+        // Sin la 016 aplicada no existen esas columnas y no se mandan.
+        ...(baseConContacto(people)
+          ? leerContacto({
+              rut: String(form.get("rut") ?? ""),
+              phone: String(form.get("phone") ?? ""),
+              email: String(form.get("email") ?? ""),
+            })
+          : {}),
       };
       if (person.end_date && person.end_date < person.start_date) {
         throw new Error("La fecha de término debe ser posterior al inicio.");
       }
       if (person.shift === "4×3" && person.up_weekday === person.down_weekday) {
         throw new Error("La subida y la bajada no pueden ser el mismo día.");
+      }
+      // La base lo exige (un RUT en una sola ficha activa); aquí se dice con nombre.
+      const mismoRut = "rut" in person && person.rut && person.active
+        ? people.find((otra) => otra.id !== editPerson?.id && otra.active && otra.rut === person.rut)
+        : undefined;
+      if (mismoRut) {
+        throw new Error(`Ese RUT ya está en la ficha activa de ${mismoRut.name}.`);
       }
       let savedId = editPerson?.id ?? "";
       let avisoDeDocumentos = "";

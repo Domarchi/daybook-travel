@@ -88,3 +88,27 @@ test("con las notas nuevas (observaciones y último motivo) se ve el motivo que 
   const acumuladas = viaje({ notes: "Prefiere la tarde.\nMotivo del cambio: Uno\nMotivo del cambio: Dos" });
   assert.equal(notaDelCambio(acumuladas, viaje({ notes: "Prefiere la tarde.\nMotivo del cambio: Tres" })), "Motivo del cambio: Tres");
 });
+
+test("el acceso a Mis vuelos dice si se entregó un código o se bloqueó", async () => {
+  const { tituloDeAcceso } = await import("./historial.ts");
+  assert.equal(tituloDeAcceso(null, { pin_set_at: "2026-11-23T10:00:00Z", locked: false }), "Mis vuelos: código entregado");
+  assert.equal(
+    tituloDeAcceso({ pin_set_at: "2026-11-23T10:00:00Z", locked: true }, { pin_set_at: "2026-11-24T10:00:00Z", locked: false }),
+    "Mis vuelos: código entregado",
+  );
+  assert.equal(
+    tituloDeAcceso({ pin_set_at: "2026-11-23T10:00:00Z", locked: false }, { pin_set_at: "2026-11-23T10:00:00Z", locked: true }),
+    "Mis vuelos: acceso bloqueado o quitado",
+  );
+});
+
+test("la ficha muestra los cambios de RUT, teléfono y correo", async () => {
+  const { cambiosDe } = await import("./historial.ts");
+  assert.deepEqual(
+    cambiosDe("people", { rut: null, phone: null, email: null }, { rut: "12345678-5", phone: "+56912345678", email: null }),
+    [
+      { campo: "RUT", antes: "—", despues: "12345678-5" },
+      { campo: "Teléfono", antes: "—", despues: "+56912345678" },
+    ],
+  );
+});

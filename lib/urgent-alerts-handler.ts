@@ -5,7 +5,7 @@
 // Falla cerrado: sin el secreto del cron no responde a nadie, y sin la
 // configuración de correo no envía nada ni inventa un remitente.
 
-import { createHash, timingSafeEqual } from "node:crypto";
+import { cronAutorizado } from "./cron-auth.ts";
 import {
   destinatariosDe,
   leerDatosDeAlerta,
@@ -28,11 +28,6 @@ export const DIRECCION_POR_OMISION = "https://relevo-chi.vercel.app";
 const json = (cuerpo: unknown, status = 200) =>
   Response.json(cuerpo, { status, headers: { "Cache-Control": "no-store" } });
 
-// Se comparan los resúmenes y no los textos: así el tiempo no depende de cuánto
-// del secreto coincide, ni del largo de lo que mandó quien llama.
-const iguales = (a: string, b: string) =>
-  timingSafeEqual(createHash("sha256").update(a).digest(), createHash("sha256").update(b).digest());
-
 export async function manejarAlertas({
   request,
   entorno,
@@ -49,8 +44,7 @@ export async function manejarAlertas({
   const secreto = entorno.CRON_SECRET ?? "";
   if (!secreto) return json({ error: "Los avisos no están configurados." }, 503);
 
-  const autorizacion = request.headers.get("authorization") ?? "";
-  if (!iguales(autorizacion, `Bearer ${secreto}`)) {
+  if (!cronAutorizado(request, secreto)) {
     return json({ error: "No autorizado." }, 401);
   }
 

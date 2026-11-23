@@ -43,6 +43,12 @@ export type Person = {
   down_weekday?: number | null;
   baggage: string;
   active: boolean;
+  /** RUT sin puntos, con guion: «12345678-5». Con él entra a Mis vuelos (migración 016). */
+  rut?: string | null;
+  /** Internacional: «+56912345678». Para el recordatorio por WhatsApp. */
+  phone?: string | null;
+  /** Para el recordatorio por correo. */
+  email?: string | null;
   updated_at?: string;
 };
 
